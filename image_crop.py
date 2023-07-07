@@ -6,7 +6,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def crop_save():
 
-	Создание папки назначения, если она не существует
+	# Создание папки назначения, если она не существует
 	if not os.path.exists(dest_folder):
 		os.makedirs(dest_folder)
 
