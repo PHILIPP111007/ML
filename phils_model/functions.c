@@ -105,6 +105,13 @@ void softmax_calc(float *input_sample, int input_sample_len, float* output_data)
     }
 }
 
+void softmax_derivative(float *input_sample, int input_sample_len, float* output_data) {
+    for(int i = 0; i < input_sample_len; ++i) {
+        output_data[i] = input_sample[i];
+    }
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -197,6 +204,18 @@ void apply_activation_calc(float *output_list, int n_neurons, char *activation) 
     }
 }
 
+void apply_activation_derivative(float *output_list, int n_neurons, char *activation) {
+    if (strcmp(activation, "ReLU") == 0) {
+        relu_derivative(output_list, n_neurons, output_list);
+    } else if (strcmp(activation, "Sigmoid") == 0) {
+        sigmoid_derivative(output_list, n_neurons, output_list);
+    } else if (strcmp(activation, "Softmax") == 0) {
+        softmax_derivative(output_list, n_neurons, output_list);
+    } else if (strcmp(activation, "Empty") == 0) {
+        empty_derivative(output_list, n_neurons, output_list);
+    }
+}
+
 float calc_loss(const char *loss, float target, float *prediction, int prediction_len) {
     if (strcmp(loss, "MSELoss") == 0) {
         return mse_loss(prediction, prediction_len, target);
@@ -218,6 +237,7 @@ float calculate_mean(float *arr, int len) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
 
 void save_as_json(char *fname, float ***weights_result, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     FILE *fp = fopen(fname, "w+");
@@ -279,7 +299,6 @@ void fit(
     char **activations,
     int activations_len,
     const char *loss,
-    int regression,
     int n_epoch,
     float learning_rate,
     int verbose) {
@@ -389,8 +408,6 @@ void fit(
             float output_error = calc_loss(loss, target, prediction, n_neurons);
             epoch_losses[dataset_index] = output_error;
 
-
-
             // Backward pass
             float **delta_list = malloc(layer_sizes_rows * sizeof(float*));
             n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
@@ -402,57 +419,59 @@ void fit(
             for (int i = 0; i < n_neurons; ++i) {
                 delta[i] = output_error;
             }
+
+            activation = activations[layer_sizes_rows - 1];
+            prediction = output_lists[layer_sizes_rows - 1];
+            apply_activation_derivative(prediction, n_neurons, activation);
+            for (int i = 0; i < n_neurons; i++) {
+                delta[i] *= prediction[i];
+            }
+
             delta_list[layer_sizes_rows - 1] = delta;
 
-
-
-
-
-
-            for (int layer = layer_sizes_rows - 2; layer >= 0; layer--) {
-                n_inputs_double = layer_sizes[layer * layer_sizes_cols + 0];
-                n_neurons_double = layer_sizes[layer * layer_sizes_cols + 1];
+            for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
+                n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
+                n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
                 n_inputs = (int)n_inputs_double;
                 n_neurons = (int)n_neurons_double;
+
+                activation = activations[layer_index];
+                prediction = output_lists[layer_index];
+                apply_activation_derivative(prediction, n_neurons, activation);
 
                 float *new_delta = malloc(n_neurons * n_inputs * sizeof(float));
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        float num = weights[layer][i][j] * delta_list[layer + 1][i];
+                        float num = weights[layer_index][i][j] * prediction[i] * delta_list[layer_index + 1][i + j];
                         new_delta[i + j] = num;
                     }
                 }
-                delta_list[layer] = new_delta;
+                delta_list[layer_index] = new_delta;
+            }
+
+            char *file = "weights_1.json";
+            save_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+
+            // Update weights
+            for (int layer_index = 1; layer_index < layer_sizes_rows; ++layer_index) {
+                n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
+                n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
+                n_inputs = (int)n_inputs_double;
+                n_neurons = (int)n_neurons_double;
+
+                for (int i = 0; i < n_neurons; i++) {
+                    for (int j = 0; j < n_inputs; j++) {
+                        weights[layer_index][i][j] += delta_list[layer_index][i + j] * learning_rate;
+                    }
+                }
             }
         }
-
         float mean_loss = calculate_mean(epoch_losses, dataset_rows);
         losses_by_epoch[epoch] = mean_loss;
-
         if (verbose) {
             printf("Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
         }
     }
-    char *file = "weights.json";
+    char *file = "weights_2.json";
     save_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 }
-
-
-// TODO: делать логи эпох
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
