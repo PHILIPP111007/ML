@@ -25,22 +25,12 @@ void relu_calc(float *input_sample, int input_sample_len, float* output_data) {
 // Вычисляем производную от ReLU (это бинарная маска неотрицательных элементов).
 void relu_derivative(float *input_sample, int input_sample_len, float* output_data) {
     for(int i = 0; i < input_sample_len; ++i) {
-        // Производная равна 1 там, где значение больше нуля, иначе — ноль.
-        output_data[i] = (input_sample[i] > 0) ? 1.0f : 0.0f;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void empty_calc(float *input_sample, int input_sample_len, float* output_data) {
-    for(int i = 0; i < input_sample_len; ++i) {
-        output_data[i] = input_sample[i];
-    }
-}
-
-void empty_derivative(float *input_sample, int input_sample_len, float* output_data) {
-    for(int i = 0; i < input_sample_len; ++i) {
-        output_data[i] = input_sample[i];
+        if(input_sample[i] > 0) {
+            output_data[i] = input_sample[i];
+        }
+        else {
+            output_data[i] = 0.0f;
+        }
     }
 }
 
@@ -48,10 +38,6 @@ void empty_derivative(float *input_sample, int input_sample_len, float* output_d
 
 // Функция сигмоида (Sigmoid activation function).
 float sigmoid(float x) {
-    // Ограничиваем диапазон ввода, чтобы избежать переполнения экспоненты.
-    if (x <= -500) return 0.0;
-    if (x >= 500) return 1.0;
-
     // Используем оптимизированную формулу расчета сигмоиды.
     if (x >= 0) {
         return 1.0 / (1.0 + exp(-x));
@@ -80,7 +66,6 @@ void sigmoid_derivative(float *input_sample, int input_sample_len, float* output
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 
 // Метод softmax (возвращает нормализованные вероятности классов).
 void softmax_calc(float *input_sample, int input_sample_len, float* output_data) {
@@ -111,18 +96,31 @@ void softmax_derivative(float *input_sample, int input_sample_len, float* output
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void empty_calc(float *input_sample, int input_sample_len, float* output_data) {
+    for(int i = 0; i < input_sample_len; ++i) {
+        output_data[i] = input_sample[i];
+    }
+}
+
+void empty_derivative(float *input_sample, int input_sample_len, float* output_data) {
+    for(int i = 0; i < input_sample_len; ++i) {
+        output_data[i] = input_sample[i];
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
 
 // Функцию потерь MSE
-float mse_loss(float *prediction, int prediction_len, float target) {
+float mse_loss(float *prediction, int prediction_len, float *target) {
     float total_loss = 0.0;
 
     // Подсчет суммы квадратичных ошибок
     for(int i = 0; i < prediction_len; ++i) {
-        float diff = target - prediction[i];
+        float diff = target[i] - prediction[i];
         total_loss += diff * diff;
     }
 
@@ -133,7 +131,7 @@ float mse_loss(float *prediction, int prediction_len, float target) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // Функция подсчета кросс-энтропии
-float cross_entropy_loss(float *prediction, int prediction_len, float target) {
+float cross_entropy_loss(float *prediction, int prediction_len, float *target) {
     float loss = 0.0;
 
     // Подсчет кросс-энтропии
@@ -142,27 +140,22 @@ float cross_entropy_loss(float *prediction, int prediction_len, float target) {
         float p = prediction[i] > 1e-15 ? prediction[i] : 1e-15;
         
         // Добавляем вклад каждой пары "вероятность-метка" в общий убыток
-        loss -= target * log(p);
+        loss -= target[i] * log(p);
     }
     return loss;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
 // Функция инициализации смещений (bias)
 float* init_bias(int n_neurons) {
     float* bias = malloc(n_neurons * sizeof(float)); // Выделяем память для строк
-
-    // Установка случайного числа
-    srand(time(NULL));
     
     for(int i = 0; i < n_neurons; ++i) {
-        bias[i] = ((float) rand() / RAND_MAX); // Генерируем число между 0 и 1
+        bias[i] = ((float) rand() / RAND_MAX) * 10; // Генерируем число между 0 и 1
     }
     return bias;
 }
-
 
 // Инициализация матриц весов
 float** init_weights(int n_neurons, int n_inputs) {
@@ -174,8 +167,6 @@ float** init_weights(int n_neurons, int n_inputs) {
     }
 
     // Генерация случайных чисел с нормальным распределением
-    srand(time(NULL)); // Устанавливаем начальное состояние генератора случайных чисел
-
     for (int i = 0; i < n_neurons; i++) {
         for (int j = 0; j < n_inputs; j++) {
             // Генерируем случайное нормальное распределение (среднее=0, стандартное отклонение=1)
@@ -190,7 +181,6 @@ float** init_weights(int n_neurons, int n_inputs) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 
 void apply_activation_calc(float *output_list, int n_neurons, char *activation) {
     if (strcmp(activation, "ReLU") == 0) {
@@ -216,13 +206,13 @@ void apply_activation_derivative(float *output_list, int n_neurons, char *activa
     }
 }
 
-float calc_loss(const char *loss, float target, float *prediction, int prediction_len) {
+float calc_loss(const char *loss, float *target, float *prediction, int prediction_len) {
     if (strcmp(loss, "MSELoss") == 0) {
         return mse_loss(prediction, prediction_len, target);
     } else if (strcmp(loss, "CrossEntropy") == 0) {
         return cross_entropy_loss(prediction, prediction_len, target);
     }
-    return 0;
+    return 0.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -238,7 +228,6 @@ float calculate_mean(float *arr, int len) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
 void save_as_json(char *fname, float ***weights_result, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     FILE *fp = fopen(fname, "w+");
 
@@ -252,7 +241,6 @@ void save_as_json(char *fname, float ***weights_result, double *layer_sizes, int
     for (int layer_size = 0; layer_size < layer_sizes_rows; ++layer_size) { 
         double n_inputs_double = layer_sizes[layer_size * layer_sizes_cols + 0];
         double n_neurons_double = layer_sizes[layer_size * layer_sizes_cols + 1];
-
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
@@ -288,11 +276,13 @@ void save_as_json(char *fname, float ***weights_result, double *layer_sizes, int
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
 void fit(
-    double *dataset,
-    int dataset_rows,
-    int dataset_cols,
+    double *dataset_samples,
+    double *dataset_targets,
+    int dataset_samples_rows,
+    int dataset_samples_cols,
+    int dataset_targets_rows,
+    int dataset_targets_cols,
     double *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
@@ -302,35 +292,46 @@ void fit(
     int n_epoch,
     float learning_rate,
     int verbose) {
-    
-    // Загрузка датасета
-    float dataset_samples[dataset_rows][dataset_cols - 1];
-    float dataset_targets[dataset_rows];
 
-    for(int i = 0; i < dataset_rows; ++i) {
-        int j = 0;
-        for(; j < dataset_cols; ++j) {
-            dataset_samples[i][j] = dataset[i * dataset_cols + j];
+    // Загрузка датасета
+    float** samples = malloc(dataset_samples_rows * sizeof(float*));
+    float** targets = malloc(dataset_targets_rows * sizeof(float*));
+
+    for (int i = 0; i < dataset_samples_rows; ++i) {
+        float *arr = malloc(dataset_samples_cols * sizeof(float));
+        for (int j = 0; j < dataset_samples_cols; ++j) {
+            arr[j] = (float)dataset_samples[i * dataset_samples_cols + j];
         }
-        dataset_targets[i] = dataset[i * dataset_cols + i + 1];
+        samples[i] = arr;
+    }
+
+    for (int i = 0; i < dataset_targets_rows; ++i) {
+        float *arr = malloc(dataset_targets_cols * sizeof(float));
+        for (int j = 0; j < dataset_targets_cols; ++j) {
+            arr[j] = (float)dataset_targets[i * dataset_targets_cols + j];
+        }
+        targets[i] = arr;
     }
 
     // Инициализация смещений и весов
     float** biases = malloc(layer_sizes_rows * sizeof(float*));
     float*** weights = malloc(layer_sizes_rows * sizeof(float**));
 
-    for(int i = 0; i < layer_sizes_rows; ++i) {
-        double n_inputs_double = layer_sizes[i * layer_sizes_cols + 0];
-        double n_neurons_double = layer_sizes[i * layer_sizes_cols + 1];
-
+    for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
+        double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
+        double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
         // Инициализировать смещение
-        biases[i] = init_bias(n_neurons);
+        float *biases_arr = malloc(n_neurons * sizeof(float));
+        biases_arr = init_bias(n_neurons);
+        biases[layer_index] = biases_arr;
 
         // Инициализировать веса
-        weights[i] = init_weights(n_neurons, n_inputs);
+        float **weights_arr = malloc(n_neurons * sizeof(float*));
+        weights_arr = init_weights(n_neurons, n_inputs);
+        weights[layer_index] = weights_arr;
     }
 
     // Обучение
@@ -338,19 +339,25 @@ void fit(
     float **output_lists = malloc(layer_sizes_rows * sizeof(float*));
 
     for (int epoch = 0; epoch < n_epoch; ++epoch) {
-        float* epoch_losses = malloc(dataset_rows * sizeof(float));
+        float* epoch_losses = malloc(dataset_samples_rows * sizeof(float));
 
-        for (int dataset_index = 0; dataset_index < dataset_rows; ++dataset_index) {
-            float sample[dataset_cols - 1];
-            memcpy(sample, dataset_samples[dataset_index], (dataset_cols - 1) * sizeof(float));
-            float target = dataset_targets[dataset_index];
+        for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+            float *sample = malloc(dataset_samples_cols * sizeof(float));
+            for (int i = 0; i < dataset_samples_cols; ++i) {
+                sample[i] = samples[dataset_index][i];
+            }
+
+            float *target = malloc(dataset_targets_cols * sizeof(float));
+            for (int i = 0; i < dataset_targets_cols; ++i) {
+                target[i] = targets[dataset_index][i];
+            }
 
             double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
             double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
-
             int n_inputs = (int)n_inputs_double;
             int n_neurons = (int)n_neurons_double;
-            float output_list[n_neurons];
+
+            float *output_list = malloc(n_neurons * sizeof(float));
 
             // Forward pass
             for (int i = 0; i < n_neurons; i++) {
@@ -371,22 +378,32 @@ void fit(
             apply_activation_calc(output_list, n_neurons, activation);
             output_lists[0] = output_list;
 
-            for (int layer_index = 1; layer_index < layer_sizes_rows; ++layer_index) {
-                n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
-                n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
+            for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
+                double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
+                double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
+                int n_inputs = (int)n_inputs_double;
+                int n_neurons = (int)n_neurons_double;
 
-                n_inputs = (int)n_inputs_double;
-                n_neurons = (int)n_neurons_double;
-
-                float* output_list = calloc(n_neurons, sizeof(float));
+                float* output_list = malloc(n_neurons * sizeof(float));
 
                 for (int i = 0; i < n_neurons; i++) {
-                    float output = 0.0;
+                    float output = 0;
                     for (int j = 0; j < n_inputs; j++) {
-                        output += weights[layer_index][i][j] * output_lists[layer_index - 1][j];
+                        float a = (float)weights[layer_index][i][j];
+                        float b = (float)output_lists[layer_index - 1][j];
+                        float sum = a * b;
+                        // output += sum;  // TODO
+                        // printf("%f\n", output);
+
+                        // printf("%f\n", output_lists[layer_index - 1][j]);
+                        // printf("%f\n", weights[layer_index][i][j]);
+                        // printf("output_lists[layer_index - 1][j] %f\n", output_lists[layer_index - 1][j]);
+                        // printf("%f\n", weights[layer_index][i][j] * output_lists[layer_index - 1][j]);
                     }
                     output_list[i] = output;
                 }
+
+                // TODO
 
                 // Add bias
                 for (int i = 0; i < n_neurons; ++i) {
@@ -402,7 +419,9 @@ void fit(
             n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
             n_neurons = (int)n_neurons_double;
 
-            float *prediction = output_lists[layer_sizes_rows - 1];
+
+            float *prediction = malloc(n_neurons * sizeof(float));
+            prediction = output_lists[layer_sizes_rows - 1];
 
             // Calc loss
             float output_error = calc_loss(loss, target, prediction, n_neurons);
@@ -466,7 +485,7 @@ void fit(
                 }
             }
         }
-        float mean_loss = calculate_mean(epoch_losses, dataset_rows);
+        float mean_loss = calculate_mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;
         if (verbose) {
             printf("Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
