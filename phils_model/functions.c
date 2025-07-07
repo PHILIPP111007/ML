@@ -152,7 +152,7 @@ double* init_bias(int n_neurons) {
     double* bias = malloc(n_neurons * sizeof(double)); // Выделяем память для строк
 
     for(int i = 0; i < n_neurons; ++i) {
-        bias[i] = ((double)rand() / RAND_MAX) * 10.0;
+        bias[i] = (double)rand() / RAND_MAX;
     }
     return bias;
 }
@@ -174,7 +174,7 @@ double** init_weights(int n_neurons, int n_inputs) {
             double u1 = (double)rand() / RAND_MAX;
             double u2 = (double)rand() / RAND_MAX;
             double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-            weights[i][j] = (double)(z * 10.0); // Умножаем каждый вес на 10
+            weights[i][j] = (double)z; // Умножаем каждый вес на 10
         }
     }
     return weights;
@@ -229,14 +229,10 @@ double calculate_mean(double *arr, int len) {
 double safe_weight_update(double delta, double learning_rate, double max_change) {
     double change = delta * learning_rate;
 
-    // printf("%f     %f      %f\n", delta, learning_rate, change);
-
     if (change > max_change)
         change = max_change;
     else if (change < -max_change)
         change = -max_change;
-
-    // printf("safe_weight_update %f\n", change);
 
     return change;
 }
@@ -444,16 +440,6 @@ void fit(
             apply_activation_derivative(prediction, n_neurons, activation);
             double *new_delta = malloc(n_inputs * sizeof(double));
 
-            // for (int i = 0; i < n_neurons; i++) {
-            //     double num = 0.0;
-            //     for (int j = 0; j < n_inputs; j++) {
-            //         double num_1 = prediction[i] * delta[i] * weights[layer_sizes_rows - 1][i][j];
-            //         num += num_1;
-            //         // printf("%f     %f       %f      %f привет\n", num_1, prediction[i], delta[i], weights[layer_sizes_rows - 1][i][j]);
-            //         // printf("%f\n",weights[layer_sizes_rows - 1][i][j]);
-            //     }
-            //     new_delta[i] = num / (double)n_inputs;
-            // }
             for (int j = 0; j < n_inputs; j++) {
                 double num = 0.0;
                 for (int i = 0; i < n_neurons; i++) {
@@ -489,40 +475,20 @@ void fit(
                 delta_list[layer_index] = new_delta;
             }
 
-
-
-
-
-
-
-            // TODO
-
-
-
-
-
             char *file = "weights_1.json";
             save_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
             // Update weights
-            for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
-                n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
-                n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
-                n_inputs = (int)n_inputs_double;
-                n_neurons = (int)n_neurons_double;
+            for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+                double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
+                double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
+                int n_inputs = (int)n_inputs_double;
+                int n_neurons = (int)n_neurons_double;
 
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        printf("До %f\n", weights[layer_index][i][j]);
-                        weights[layer_index][i][j] += safe_weight_update(delta_list[layer_index][i], learning_rate, 10);
-                        // printf("%f\n", safe_weight_update(delta_list[layer_index][i], learning_rate, 10));
-
-
-
-
-
-                        // printf("%f\n", safe_weight_update(delta_list[layer_index][i + j], learning_rate, 10000));
-                        // printf("%f\n", learning_rate);
+                        double change = safe_weight_update(delta_list[layer_index][i], learning_rate, 10.0);
+                        weights[layer_index][i][j] += change;
                     }
                 }
             }
