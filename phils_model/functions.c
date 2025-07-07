@@ -224,7 +224,7 @@ double safe_weight_update(double delta, double learning_rate, double max_change)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void save_as_json(char *fname, double ***weights_result, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
+void save_weights_as_json(char *fname, double ***weights_result, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     FILE *fp = fopen(fname, "w+");
 
     if (!fp) {
@@ -263,6 +263,39 @@ void save_as_json(char *fname, double ***weights_result, double *layer_sizes, in
             fprintf(fp, "\t],\n");
         } else {
             fprintf(fp, "\t]\n");
+        }
+    }
+
+    fprintf(fp, "]");
+    fclose(fp);
+}
+
+void save_biases_as_json(char *fname, double **biases, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
+    FILE *fp = fopen(fname, "w+");
+
+    if (!fp) {
+        fprintf(stderr, "Ошибка открытия файла '%s'\\n", fname);
+        return;
+    }
+
+    fprintf(fp, "[");
+
+    for (int layer_size = 0; layer_size < layer_sizes_rows; ++layer_size) { 
+        double n_neurons_double = layer_sizes[layer_size * layer_sizes_cols + 1];
+        int n_neurons = (int)n_neurons_double;
+
+        fprintf(fp, "[");
+        for (size_t neuron = 0; neuron < n_neurons; neuron++) {
+            fprintf(fp, "[");
+            fprintf(fp, "%f", biases[layer_size][neuron]);
+            fprintf(fp, "]");
+            if (neuron != n_neurons - 1) fprintf(fp, ",");
+        }
+
+        if (layer_size != layer_sizes_rows - 1) {
+            fprintf(fp, "],");
+        } else {
+            fprintf(fp, "]");
         }
     }
 
@@ -310,8 +343,8 @@ void fit(
     }
 
     // Инициализация смещений и весов
-    double** biases = malloc(layer_sizes_rows * sizeof(double*));
-    double*** weights = malloc(layer_sizes_rows * sizeof(double**));
+    double **biases = malloc(layer_sizes_rows * sizeof(double*));
+    double ***weights = malloc(layer_sizes_rows * sizeof(double**));
 
     for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
         double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -384,7 +417,7 @@ void fit(
                 for (int i = 0; i < n_neurons; i++) {
                     double output = 0.0;
                     for (int j = 0; j < n_inputs; j++) {
-                        output += weights[layer_index][i][j] * output_lists[layer_index - 1][i];
+                        output += weights[layer_index][i][j] * output_lists[layer_index - 1][j];
                     }
                     output_list[i] = output;
                 }
@@ -461,7 +494,7 @@ void fit(
             }
 
             char *file = "weights_1.json";
-            save_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+            save_weights_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
             // Update weights
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -484,13 +517,73 @@ void fit(
             printf("Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
         }
     }
-    char *file = "weights_2.json";
-    save_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+    char *file_weights = "weights_2.json";
+    save_weights_as_json(file_weights, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+    char *file_biases = "biases.json";
+    save_biases_as_json(file_biases, biases, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 }
 
 
+void predict(
+    double *sample_input,
+    int sample_rows,
+    double *biases_input,
+    int biases_rows,
+    double *weights_input,
+    int weights_rows,
+    int weights_cols,
+    double *layer_size,
+    int layer_size_rows,
+    int activation,
+    double *prediction) {
 
+    double *sample = malloc(sample_rows * sizeof(double));
+    for (int i = 0; i < sample_rows; ++i) {
+        sample[i] = sample_input[i];
+    }
 
+    double* biases = malloc(layer_size_rows * sizeof(double));
+    double** weights = malloc(weights_rows * sizeof(double*));
 
+    for (int i = 0; i < weights_rows; ++i) {
+        double *weights_arr = malloc(weights_cols * sizeof(double));
+        for (int j = 0; j < weights_cols; ++j) {
+            weights_arr[j] = (double)weights_input[i * weights_cols + j];
+        }
+        weights[i] = weights_arr;
+    }
+
+    for (int i = 0; i < biases_rows; ++i) {
+        biases[i] = (double)biases_input[i];
+    }
+
+    double n_inputs_double = layer_size[0];
+    double n_neurons_double = layer_size[1];
+    int n_inputs = (int)n_inputs_double;
+    int n_neurons = (int)n_neurons_double;
+
+    double *output_list = malloc(n_neurons * sizeof(double));
+
+    // Forward pass
+    for (int i = 0; i < n_neurons; i++) {
+        double output = 0.0;
+        for (int j = 0; j < n_inputs; j++) {
+            output += weights[i][j] * sample[j];
+        }
+        output_list[i] = output;
+    }
+
+    // Add bias
+    for (int i = 0; i < n_neurons; ++i) {
+        output_list[i] += biases[i];
+    }
+
+    // Apply activation function
+    apply_activation_calc(output_list, n_neurons, activation);
+
+    for (int i = 0; i < n_neurons; ++i) {
+        prediction[i] = output_list[i];
+    }
+}
 
 
