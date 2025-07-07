@@ -221,7 +221,7 @@ double calc_loss(int loss, double *target, double *prediction, int prediction_le
 ///////////////////////////////////////////////////////////////////////////////
 
 void save_weights_as_json(char *fname, double ***weights_result, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
-    FILE *fp = fopen(fname, "w+");
+    FILE *fp = fopen(fname, "w");
 
     if (!fp) {
         fprintf(stderr, "Ошибка открытия файла '%s'\\n", fname);
@@ -237,21 +237,21 @@ void save_weights_as_json(char *fname, double ***weights_result, double *layer_s
         int n_neurons = (int)n_neurons_double;
 
         fprintf(fp, "\t[\n");
-        for (size_t neuron = 0; neuron < n_neurons; neuron++) {
+        for (int i = 0; i < n_neurons; i++) {
             fprintf(fp, "\t\t[\n");
 
             fprintf(fp, "\t\t\t");
-            for (size_t input = 0; input < n_inputs; input++) {
-                if (input != 0) fprintf(fp, "\t\t\t");
-                if (input == n_inputs - 1) {
-                    fprintf(fp, "%f\n", weights_result[layer_size][neuron][input]);
+            for (int j = 0; j < n_inputs; j++) {
+                if (j != 0) fprintf(fp, "\t\t\t");
+                if (j == n_inputs - 1) {
+                    fprintf(fp, "%f\n", weights_result[layer_size][i][j]);
                 } else {
-                    fprintf(fp, "%f,\n", weights_result[layer_size][neuron][input]);
+                    fprintf(fp, "%f,\n", weights_result[layer_size][i][j]);
                 }
             }
 
             fprintf(fp, "\t\t]");
-            if (neuron != n_neurons - 1) fprintf(fp, ",");
+            if (i != n_neurons - 1) fprintf(fp, ",");
             fprintf(fp, "\n");
         }
 
@@ -267,7 +267,7 @@ void save_weights_as_json(char *fname, double ***weights_result, double *layer_s
 }
 
 void save_biases_as_json(char *fname, double **biases, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
-    FILE *fp = fopen(fname, "w+");
+    FILE *fp = fopen(fname, "w");
 
     if (!fp) {
         fprintf(stderr, "Ошибка открытия файла '%s'\\n", fname);
@@ -488,9 +488,6 @@ void fit(
                 delta_list[layer_index] = new_delta;
             }
 
-            char *file = "weights_1.json";
-            save_weights_as_json(file, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
-
             // Update weights
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -500,7 +497,7 @@ void fit(
 
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, 10.0);
+                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, 10000000.0);
                         weights[layer_index][i][j] += change;
                     }
                 }
@@ -512,7 +509,7 @@ void fit(
             printf("Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
         }
     }
-    char *file_weights = "weights_2.json";
+    char *file_weights = "weights.json";
     save_weights_as_json(file_weights, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
     char *file_biases = "biases.json";
     save_biases_as_json(file_biases, biases, layer_sizes, layer_sizes_rows, layer_sizes_cols);
