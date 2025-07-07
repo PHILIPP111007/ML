@@ -1,9 +1,8 @@
+// gcc -shared -o functions.so -fPIC -O3 functions.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <string.h> // для memcpy()
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Activation functions
@@ -182,34 +181,34 @@ double** init_weights(int n_neurons, int n_inputs) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void apply_activation_calc(double *output_list, int n_neurons, char *activation) {
-    if (strcmp(activation, "ReLU") == 0) {
+void apply_activation_calc(double *output_list, int n_neurons, int activation) {
+    if (activation == 0) {
         relu_calc(output_list, n_neurons, output_list);
-    } else if (strcmp(activation, "Sigmoid") == 0) {
+    } else if (activation == 1) {
         sigmoid_calc(output_list, n_neurons, output_list);
-    } else if (strcmp(activation, "Softmax") == 0) {
+    } else if (activation == 2) {
         softmax_calc(output_list, n_neurons, output_list);
-    } else if (strcmp(activation, "Empty") == 0) {
+    } else if (activation == 3) {
         empty_calc(output_list, n_neurons, output_list);
     }
 }
 
-void apply_activation_derivative(double *output_list, int n_neurons, char *activation) {
-    if (strcmp(activation, "ReLU") == 0) {
+void apply_activation_derivative(double *output_list, int n_neurons, int activation) {
+    if (activation == 0) {
         relu_derivative(output_list, n_neurons, output_list);
-    } else if (strcmp(activation, "Sigmoid") == 0) {
+    } else if (activation == 1) {
         sigmoid_derivative(output_list, n_neurons, output_list);
-    } else if (strcmp(activation, "Softmax") == 0) {
+    } else if (activation == 2) {
         softmax_derivative(output_list, n_neurons, output_list);
-    } else if (strcmp(activation, "Empty") == 0) {
+    } else if (activation == 3) {
         empty_derivative(output_list, n_neurons, output_list);
     }
 }
 
-double calc_loss(const char *loss, double *target, double *prediction, int prediction_len) {
-    if (strcmp(loss, "MSELoss") == 0) {
+double calc_loss(int loss, double *target, double *prediction, int prediction_len) {
+    if (loss == 0) {
         return mse_loss(prediction, prediction_len, target);
-    } else if (strcmp(loss, "CrossEntropy") == 0) {
+    } else if (loss == 1) {
         return cross_entropy_loss(prediction, prediction_len, target);
     }
     return 0.0;
@@ -297,9 +296,9 @@ void fit(
     double *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
-    char **activations,
+    double *activations,
     int activations_len,
-    const char *loss,
+    int loss,
     int n_epoch,
     double learning_rate,
     int verbose) {
@@ -384,7 +383,7 @@ void fit(
             }
 
             // Apply activation function
-            char* activation = activations[0];
+            int activation = (int)activations[0];
             apply_activation_calc(output_list, n_neurons, activation);
             output_lists[0] = output_list;
 
@@ -410,7 +409,7 @@ void fit(
                 }
 
                 // Apply activation function
-                char* activation = activations[layer_index];
+                int activation = (int)activations[layer_index];
                 apply_activation_calc(output_list, n_neurons, activation);
                 output_lists[layer_index] = output_list;
             }
@@ -436,7 +435,7 @@ void fit(
                 delta[i] = output_error;
             }
 
-            activation = activations[layer_sizes_rows - 1];
+            activation = (int)activations[layer_sizes_rows - 1];
             apply_activation_derivative(prediction, n_neurons, activation);
             double *new_delta = malloc(n_inputs * sizeof(double));
 
@@ -459,7 +458,7 @@ void fit(
                 double n_inputs_double_delta = layer_sizes[(layer_index + 1) * layer_sizes_cols + 0];
                 int n_inputs_delta = (int)n_inputs_double_delta;
 
-                activation = activations[layer_index];
+                activation = (int)activations[layer_index];
                 prediction = output_lists[layer_index];
                 apply_activation_derivative(prediction, n_neurons, activation);
 
