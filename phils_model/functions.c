@@ -96,20 +96,6 @@ void softmax_derivative(double *input_sample, int input_sample_len, double* outp
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-void empty_calc(double *input_sample, int input_sample_len, double* output_data) {
-    for(int i = 0; i < input_sample_len; ++i) {
-        output_data[i] = input_sample[i];
-    }
-}
-
-void empty_derivative(double *input_sample, int input_sample_len, double* output_data) {
-    for(int i = 0; i < input_sample_len; ++i) {
-        output_data[i] = input_sample[i];
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -189,7 +175,7 @@ void apply_activation_calc(double *output_list, int n_neurons, int activation) {
     } else if (activation == 2) {
         softmax_calc(output_list, n_neurons, output_list);
     } else if (activation == 3) {
-        empty_calc(output_list, n_neurons, output_list);
+        return;
     }
 }
 
@@ -201,7 +187,7 @@ void apply_activation_derivative(double *output_list, int n_neurons, int activat
     } else if (activation == 2) {
         softmax_derivative(output_list, n_neurons, output_list);
     } else if (activation == 3) {
-        empty_derivative(output_list, n_neurons, output_list);
+        return;
     }
 }
 
