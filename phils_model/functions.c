@@ -5,6 +5,28 @@
 #include <time.h>
 
 ///////////////////////////////////////////////////////////////////////////////
+
+double calculate_mean(double *arr, int len) {
+    if (len == 0) return 0.0;
+    double sum = 0.0;
+    for (int i = 0; i < len; ++i) {
+        sum += arr[i];
+    }
+    return sum / len;
+}
+
+double safe_weight_update(double delta, double learning_rate, double max_change) {
+    double change = delta * learning_rate;
+
+    if (change > max_change)
+        change = max_change;
+    else if (change < -max_change)
+        change = -max_change;
+
+    return change;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Activation functions
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -101,16 +123,12 @@ void softmax_derivative(double *input_sample, int input_sample_len, double* outp
 
 // Функцию потерь MSE
 double mse_loss(double *prediction, int prediction_len, double *target) {
-    double total_loss = 0.0;
+    double *loss = malloc(prediction_len * sizeof(double));
 
-    // Подсчет суммы квадратичных ошибок
     for(int i = 0; i < prediction_len; ++i) {
-        double diff = target[i] - prediction[i];
-        total_loss += diff * diff;
+        loss[i] = target[i] - prediction[i];
     }
-
-    // Возвращаем среднее значение квадрата разности
-    return total_loss / (2.0 * prediction_len);
+    return calculate_mean(loss, prediction_len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -198,28 +216,6 @@ double calc_loss(int loss, double *target, double *prediction, int prediction_le
         return cross_entropy_loss(prediction, prediction_len, target);
     }
     return 0.0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-double calculate_mean(double *arr, int len) {
-    if (len == 0) return 0.0;
-    double sum = 0.0;
-    for (int i = 0; i < len; ++i) {
-        sum += arr[i];
-    }
-    return sum / len;
-}
-
-double safe_weight_update(double delta, double learning_rate, double max_change) {
-    double change = delta * learning_rate;
-
-    if (change > max_change)
-        change = max_change;
-    else if (change < -max_change)
-        change = -max_change;
-
-    return change;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -474,10 +470,9 @@ void fit(
                 int n_inputs = (int)n_inputs_double;
                 int n_neurons = (int)n_neurons_double;
 
-                double n_inputs_double_delta = layer_sizes[(layer_index + 1) * layer_sizes_cols + 0];
-                int n_inputs_delta = (int)n_inputs_double_delta;
-
                 activation = (int)activations[layer_index];
+
+                double *prediction = malloc(n_neurons * sizeof(double));
                 prediction = output_lists[layer_index];
                 apply_activation_derivative(prediction, n_neurons, activation);
 
@@ -485,7 +480,7 @@ void fit(
                 for (int j = 0; j < n_inputs; j++) {
                     double num = 0.0;
                     for (int i = 0; i < n_neurons; i++) {
-                        double num_1 = prediction[i] * delta_list[layer_index + 1][n_inputs_delta - 1] * weights[layer_index][i][j];
+                        double num_1 = prediction[i] * delta_list[layer_index + 1][0] * weights[layer_index][i][j];
                         num += num_1;
                     }
                     new_delta[j] = num / (double)n_neurons;
@@ -505,7 +500,7 @@ void fit(
 
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        double change = safe_weight_update(delta_list[layer_index][i], learning_rate, 10.0);
+                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, 10.0);
                         weights[layer_index][i][j] += change;
                     }
                 }
