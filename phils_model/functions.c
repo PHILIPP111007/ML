@@ -26,6 +26,22 @@ double safe_weight_update(double delta, double learning_rate, double max_change)
     return change;
 }
 
+int argmax(double* output, int size) {
+    if (size <= 0)
+        return -1; // Если размер массива некорректный
+
+    double max_value = output[0];
+    int index_max = 0;
+    
+    for(int i = 1; i < size; ++i) {
+        if (output[i] > max_value) {
+            max_value = output[i];
+            index_max = i;
+        }
+    }
+    return index_max;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Activation functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -121,7 +137,6 @@ void softmax_derivative(double *input_sample, int input_sample_len, double* outp
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
 
-// Функцию потерь MSE
 double mse_loss(double *prediction, int prediction_len, double *target) {
     double *loss = malloc(prediction_len * sizeof(double));
 
@@ -133,15 +148,13 @@ double mse_loss(double *prediction, int prediction_len, double *target) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// Функция подсчета кросс-энтропии
 double cross_entropy_loss(double *prediction, int prediction_len, double *target) {
     double loss = 0.0;
 
-    // Подсчет кросс-энтропии
     for(int i = 0; i < prediction_len; ++i) {
         // Если вероятность близка к нулю, используем минимальное положительное значение
         double p = prediction[i] > 1e-15 ? prediction[i] : 1e-15;
-        
+
         // Добавляем вклад каждой пары "вероятность-метка" в общий убыток
         loss -= target[i] * log(p);
     }
@@ -445,9 +458,15 @@ void fit(
             n_inputs = (int)n_inputs_double;
             n_neurons = (int)n_neurons_double;
 
+            // TODO
             double *delta = malloc(n_neurons * sizeof(double));
+            int max_value_index = argmax(prediction, n_neurons);
             for (int i = 0; i < n_neurons; ++i) {
-                delta[i] = output_error;
+                if (i == max_value_index) {
+                    delta[i] = output_error;
+                } else {
+                    delta[i] = 0;
+                }
             }
 
             activation = (int)activations[layer_sizes_rows - 1];
