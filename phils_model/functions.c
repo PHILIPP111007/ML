@@ -516,7 +516,7 @@ void fit(
 
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, 10000000.0);
+                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, 0.000001);
                         weights[layer_index][i][j] += change;
                     }
                 }
@@ -532,6 +532,22 @@ void fit(
     save_weights_as_json(file_weights, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
     char *file_biases = "biases.json";
     save_biases_as_json(file_biases, biases, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+
+    // Очищаем память
+    for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
+        double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
+        int n_neurons = (int)n_neurons_double;
+
+        double **weights_arr = weights[layer_index];
+        double *bias = biases[layer_index];
+        for (int i = 0; i < n_neurons; i++) {
+            free(weights_arr[i]);
+        }
+        free(bias);
+        free(weights_arr);
+    }
+    free(biases);
+    free(weights);
 }
 
 
