@@ -534,7 +534,7 @@ void predict(
         sample[i] = sample_input[i];
     }
 
-    double* biases = malloc(layer_size_rows * sizeof(double));
+    double* biases = malloc(biases_rows * sizeof(double));
     double** weights = malloc(weights_rows * sizeof(double*));
 
     for (int i = 0; i < weights_rows; ++i) {
