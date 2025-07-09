@@ -453,15 +453,17 @@ void fit(
             epoch_losses[dataset_index] = output_error;
 
             // Backward pass
-            double **delta_list = malloc(layer_sizes_rows * sizeof(double*));
             n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
             n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
             n_inputs = (int)n_inputs_double;
             n_neurons = (int)n_neurons_double;
 
-            double *delta = malloc(n_neurons * sizeof(double));
+            double **grad_w = malloc(layer_sizes_rows * sizeof(double*));
+            double **grad_x = malloc(layer_sizes_rows * sizeof(double*));
+
+            double *delta = malloc(n_inputs * sizeof(double));
             int max_value_index = argmax(prediction, n_neurons);
-            for (int i = 0; i < n_neurons; ++i) {
+            for (int i = 0; i < n_inputs; ++i) {
                 if (i == max_value_index) {
                     delta[i] = output_error;
                 } else {
@@ -469,20 +471,18 @@ void fit(
                 }
             }
 
-            activation = (int)activations[layer_sizes_rows - 1];
-            apply_activation_derivative(prediction, n_neurons, activation);
-            double *new_delta = malloc(n_inputs * sizeof(double));
-
+            double *x = malloc(n_inputs * sizeof(double));
             for (int j = 0; j < n_inputs; j++) {
                 double num = 0.0;
                 for (int i = 0; i < n_neurons; i++) {
-                    double num_1 = prediction[i] * delta[i] * weights[layer_sizes_rows - 1][i][j];
+                    double num_1 = weights[layer_sizes_rows - 1][i][j] * delta[i];
                     num += num_1;
                 }
-                new_delta[j] = num / (double)n_neurons;
+                x[j] = num / (double)n_neurons;
             }
 
-            delta_list[layer_sizes_rows - 1] = new_delta;
+            grad_w[layer_sizes_rows - 1] = delta;
+            grad_x[layer_sizes_rows - 1] = x;
             for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
                 double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -495,16 +495,27 @@ void fit(
                 prediction = output_lists[layer_index];
                 apply_activation_derivative(prediction, n_neurons, activation);
 
-                double *new_delta = malloc(n_inputs * sizeof(double));
+                double *delta = malloc(n_inputs * sizeof(double));
                 for (int j = 0; j < n_inputs; j++) {
                     double num = 0.0;
                     for (int i = 0; i < n_neurons; i++) {
-                        double num_1 = prediction[i] * delta_list[layer_index + 1][n_neurons] * weights[layer_index][i][j];
+                        double num_1 = prediction[i] * grad_x[layer_index + 1][i];
                         num += num_1;
                     }
-                    new_delta[j] = num / (double)n_neurons;
+                    delta[j] = num / (double)n_neurons;
                 }
-                delta_list[layer_index] = new_delta;
+                grad_w[layer_index] = delta;
+
+                double *x = malloc(n_inputs * sizeof(double));
+                for (int j = 0; j < n_inputs; j++) {
+                    double num = 0.0;
+                    for (int i = 0; i < n_neurons; i++) {
+                        double num_1 = weights[layer_index][i][j] * prediction[i];
+                        num += num_1;
+                    }
+                    x[j] = num / (double)n_neurons;
+                }
+                grad_x[layer_index] = x;
             }
 
             // Update weights
@@ -516,7 +527,7 @@ void fit(
 
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, max_change);
+                        double change = safe_weight_update(grad_w[layer_index][j], learning_rate, max_change);
                         weights[layer_index][i][j] += change;
                     }
                 }
