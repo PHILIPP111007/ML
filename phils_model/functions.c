@@ -475,7 +475,7 @@ void fit(
             for (int j = 0; j < n_inputs; j++) {
                 double num = 0.0;
                 for (int i = 0; i < n_neurons; i++) {
-                    double num_1 = weights[layer_sizes_rows - 1][i][j] * delta[i];
+                    double num_1 = weights[layer_sizes_rows - 1][i][j] * delta[j];
                     num += num_1;
                 }
                 x[j] = num / (double)n_neurons;
