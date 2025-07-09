@@ -499,7 +499,7 @@ void fit(
                 for (int j = 0; j < n_inputs; j++) {
                     double num = 0.0;
                     for (int i = 0; i < n_neurons; i++) {
-                        double num_1 = prediction[i] * delta_list[layer_index + 1][0] * weights[layer_index][i][j];
+                        double num_1 = prediction[i] * delta_list[layer_index + 1][n_neurons] * weights[layer_index][i][j];
                         num += num_1;
                     }
                     new_delta[j] = num / (double)n_neurons;
