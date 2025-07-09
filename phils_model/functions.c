@@ -190,7 +190,7 @@ double** init_weights(int n_neurons, int n_inputs) {
             double u1 = (double)rand() / RAND_MAX;
             double u2 = (double)rand() / RAND_MAX;
             double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-            weights[i][j] = (double)z; // Умножаем каждый вес на 10
+            weights[i][j] = (double)z;
         }
     }
     return weights;
@@ -329,7 +329,8 @@ void fit(
     int loss,
     int n_epoch,
     double learning_rate,
-    int verbose) {
+    int verbose,
+    double max_change) {
 
     // Загрузка датасета
     double** samples = malloc(dataset_samples_rows * sizeof(double*));
@@ -515,7 +516,7 @@ void fit(
 
                 for (int i = 0; i < n_neurons; i++) {
                     for (int j = 0; j < n_inputs; j++) {
-                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, 0.000001);
+                        double change = safe_weight_update(delta_list[layer_index][j], learning_rate, max_change);
                         weights[layer_index][i][j] += change;
                     }
                 }
