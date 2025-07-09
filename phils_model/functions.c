@@ -458,7 +458,6 @@ void fit(
             n_inputs = (int)n_inputs_double;
             n_neurons = (int)n_neurons_double;
 
-            // TODO
             double *delta = malloc(n_neurons * sizeof(double));
             int max_value_index = argmax(prediction, n_neurons);
             for (int i = 0; i < n_neurons; ++i) {
