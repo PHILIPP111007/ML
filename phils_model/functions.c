@@ -532,7 +532,6 @@ void fit(
 
             x = malloc(matrix_rows * sizeof(double*));
             x = Y[layer_sizes_rows - 1];
-
             double **x_T = malloc(matrix_columns * sizeof(double*));
             x_T = transpose(x, matrix_rows, matrix_columns);
             double **w = malloc(matrix_columns * sizeof(double*));
@@ -548,7 +547,7 @@ void fit(
             grad_x[layer_sizes_rows - 1] = result;
 
             matrix_rows = matrix_rows;
-            matrix_columns = n_neurons;
+            matrix_columns = n_inputs;
 
             for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -556,31 +555,38 @@ void fit(
                 int n_inputs = (int)n_inputs_double;
                 int n_neurons = (int)n_neurons_double;
 
-                matrix_rows = matrix_rows;
-                matrix_columns = n_neurons;
-
-                double **delta = malloc(matrix_rows * sizeof(double*));
-                double **y =  malloc(matrix_rows * sizeof(double*));
+                double **y =  malloc(n_inputs * sizeof(double*));
                 y = Y[layer_index];
                 int activation = (int)activations[layer_index];
-                apply_activation_derivative(y, matrix_rows, matrix_columns, activation);
-                delta = y;
+                apply_activation_derivative(y, n_inputs, n_neurons, activation);
+
+                double **result = malloc(matrix_rows * sizeof(double*));
+                double **x = malloc(matrix_rows * sizeof(double*));
+                x = grad_x[layer_index + 1];
+                y = transpose(y, n_inputs, n_neurons);
+                matmul(x, y, result, matrix_rows, n_neurons, n_neurons, n_inputs);
+
+                double **delta = malloc(matrix_rows * sizeof(double*));
+                delta = result;
 
                 x = malloc(matrix_rows * sizeof(double*));
                 x = X[layer_index];
                 double **x_T = malloc(matrix_columns * sizeof(double*));
                 x_T = transpose(x, matrix_rows, matrix_columns);
                 double **w = malloc(matrix_columns * sizeof(double*));
-                matmul(x_T, delta, w, matrix_columns, matrix_rows, matrix_rows, matrix_columns);
+                matmul(x_T, delta, w, matrix_columns, matrix_rows, matrix_rows, n_inputs);
                 grad_w[layer_index] = w;
 
                 w = malloc(n_inputs * sizeof(double*));
                 w = weights[layer_index];
                 double **w_T = malloc(n_neurons * sizeof(double*));
                 w_T = transpose(w, n_inputs, n_neurons);
-                double **result = malloc(matrix_rows * sizeof(double*));
+                result = malloc(matrix_rows * sizeof(double*));
                 matmul(delta, w_T, result, matrix_rows, matrix_columns, n_neurons, n_inputs);
                 grad_x[layer_index] = result;
+
+                matrix_rows = matrix_rows;
+                matrix_columns = n_inputs;
             }
 
             // Update weights
@@ -590,7 +596,7 @@ void fit(
                 int n_inputs = (int)n_inputs_double;
                 int n_neurons = (int)n_neurons_double;
 
-                double **w = malloc(n_inputs * sizeof(double*));
+                double **w = malloc(n_neurons * sizeof(double*));
                 w = grad_w[layer_index];
 
                 for (int i = 0; i < n_neurons; i++) {
