@@ -20,6 +20,7 @@ void matmul(double **first, double **second, double **result_matrix, int rows_fi
             for (int k = 0; k < cols_first; k++) {
                 result_matrix[i][j] += first[i][k] * second[k][j];
             }
+            free(arr);
         }
     }
 }
@@ -38,16 +39,6 @@ double **transpose(double **original_matrix, int rows, int cols) {
     }
 
     return transposed_matrix;
-}
-
-// Вспомогательная функция печати матрицы
-void printMatrix(int matrix[][10], int n) {
-    printf("Матрица:\\n");
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j)
-            printf("%d ", matrix[i][j]);
-        printf("\\n");
-    }
 }
 
 // ///////////////////////////////////////////////////////////////////////////////
@@ -125,10 +116,11 @@ void relu_derivative(double **y, int matrix_rows, int matrix_columns, double **o
 // Функция сигмоида (Sigmoid activation function).
 double sigmoid(double x) {
     // Используем оптимизированную формулу расчета сигмоиды.
+    double n = exp(x);
     if (x >= 0) {
-        return 1.0 / (1.0 + exp(-x));
+        return 1.0 / (1.0 + n);
     } else {
-        return exp(x) / (1.0 + exp(x));
+        return n / (1.0 + n);
     }
 }
 
@@ -216,6 +208,11 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
         }
         output_error[i] = arr;
     }
+
+    for (int i = 0; i < prediction_rows; ++i) {
+        free(loss[i]);
+    }
+    free(loss);
 }
 
 void cross_entropy_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error) {
@@ -238,6 +235,11 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
         }
         output_error[i] = arr;
     }
+    
+    for (int i = 0; i < prediction_rows; ++i) {
+        free(loss[i]);
+    }
+    free(loss);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -637,6 +639,19 @@ void fit(
     }
     free(biases);
     free(weights);
+
+    for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+        for (int i = 0; i < dataset_samples_rows; ++i) {
+            free(samples[dataset_index][i]);
+        }
+        free(samples[dataset_index]);
+    }
+    free(samples);
+
+    for (int i = 0; i < dataset_targets_rows; ++i) {
+        free(targets[i]);
+    }
+    free(targets);
 }
 
 void predict(
