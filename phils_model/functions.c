@@ -694,4 +694,13 @@ void predict(
             prediction[j] = result[i][j];
         }
     }
+
+    // Очищаем память
+    for (int i = 0; i < weights_rows; i++) {
+        free(weights[i]);
+    }
+    free(weights);
+    free(biases);
+    free(result[0]);
+    free(result);
 }
