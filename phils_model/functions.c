@@ -269,7 +269,7 @@ double** init_weights(int n_neurons, int n_inputs) {
             double u1 = (double)rand() / RAND_MAX;
             double u2 = (double)rand() / RAND_MAX;
             double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-            weights[i][j] = (double)z;
+            weights[i][j] = (double)z * 10.0;
         }
     }
     return weights;
