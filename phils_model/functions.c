@@ -192,6 +192,8 @@ void softmax_derivative(double **y, int matrix_rows, int matrix_columns, double 
 
 void mse_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error) {
     double **loss = malloc(prediction_rows * sizeof(double*));
+    int max_target_index = argmax(target, prediction_cols);
+    double max_target = target[max_target_index];
 
     for (int i = 0; i < prediction_rows; ++i) {
         double *arr = malloc(prediction_cols * sizeof(double));
@@ -199,9 +201,9 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
 
         for (int j = 0; j < prediction_cols; ++j) {
             if (j == max_prediction_index) {
-                arr[j] = target[j] - prediction[i][j];
+                arr[j] = max_target - prediction[i][j];
             } else {
-                arr[j] = 1.0;
+                arr[j] = 0.0;
             }
         }
         loss[i] = arr;
@@ -223,6 +225,8 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
 
 void cross_entropy_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error) {
     double **loss = malloc(prediction_rows * sizeof(double*));
+    int max_target_index = argmax(target, prediction_cols);
+    double max_target = target[max_target_index];
 
     for(int i = 0; i < prediction_rows; ++i) {
         double *arr = malloc(prediction_cols * sizeof(double));
@@ -232,9 +236,9 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
             double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
 
             if (j == max_prediction_index) {
-                arr[j] = target[j] * log(p);
+                arr[j] = max_target * log(p);
             } else {
-                arr[j] = 1.0;
+                arr[j] = 0.0;
             }
         }
         loss[i] = arr;
