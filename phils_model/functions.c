@@ -201,7 +201,7 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
             if (j == max_prediction_index) {
                 arr[j] = pow(target[j] - prediction[i][j], 2);
             } else {
-                arr[j] = 1;  // TODO: 1
+                arr[j] = 1;
             }
         }
         loss[i] = arr;
