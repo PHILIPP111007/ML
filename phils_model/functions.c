@@ -195,8 +195,14 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
 
     for (int i = 0; i < prediction_rows; ++i) {
         double *arr = malloc(prediction_cols * sizeof(double));
+        int max_prediction_index = argmax(prediction[i], prediction_cols);
+
         for (int j = 0; j < prediction_cols; ++j) {
-            arr[j] = target[j] - prediction[i][j];
+            if (j == max_prediction_index) {
+                arr[j] = pow(target[j] - prediction[i][j], 2);
+            } else {
+                arr[j] = 1;  // TODO: 1
+            }
         }
         loss[i] = arr;
     }
@@ -217,13 +223,18 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
 
 void cross_entropy_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error) {
     double **loss = malloc(prediction_rows * sizeof(double*));
-
+    
     for(int i = 0; i < prediction_rows; ++i) {
         double *arr = malloc(prediction_cols * sizeof(double));
+        int max_prediction_index = argmax(prediction[i], prediction_cols);
         for(int j = 0; j < prediction_cols; ++j) {
             double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
 
-            arr[j] = target[j] * log(p);
+            if (j == max_prediction_index) {
+                arr[j] = target[j] * log(p);
+            } else {
+                arr[j] = 1;
+            }
         }
         loss[i] = arr;
     }
@@ -639,7 +650,6 @@ void fit(
     }
     free(biases);
     free(weights);
-
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         for (int i = 0; i < dataset_samples_rows; ++i) {
             free(samples[dataset_index][i]);
@@ -647,7 +657,6 @@ void fit(
         free(samples[dataset_index]);
     }
     free(samples);
-
     for (int i = 0; i < dataset_targets_rows; ++i) {
         free(targets[i]);
     }
