@@ -586,11 +586,9 @@ void fit(
                         y[i][j] = Y[layer_index][i][j];
                     }
                 }
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(y[i]);
-                }
                 int activation = (int)activations[layer_index];
                 apply_activation_derivative(y, matrix_rows, n_inputs, activation);
+
                 double **x = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
                     x[i] = malloc(n_inputs * sizeof(double*));
@@ -598,22 +596,20 @@ void fit(
                         x[i][j] = grad_x[layer_index + 1][i][j];
                     }
                 }
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(x[i]);
-                }
                 double **result = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
                     result[i] = malloc(n_inputs * sizeof(double));
                     for (int j = 0; j < n_inputs; j++) {
                         result[i][j] = x[i][j] * y[i][j];
-                     }
+                    }
+                }
+                for (int i = 0; i < matrix_rows; i++) {
+                    free(x[i]);
+                    free(y[i]);
                 }
 
                 double **delta = malloc(matrix_rows * sizeof(double*));
                 delta = result;
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(result[i]);
-                }
 
                 x = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
