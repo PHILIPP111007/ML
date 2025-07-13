@@ -531,7 +531,7 @@ void fit(
             output_error /= matrix_rows + matrix_columns;
             epoch_losses[dataset_index] = output_error;
 
-            x = malloc(matrix_rows * sizeof(double*));  //TODO
+            x = malloc(matrix_rows * sizeof(double*));
             x = X[layer_sizes_rows - 1];
             double **x_T = malloc(n_inputs * sizeof(double*));
             x_T = transpose(x, matrix_rows, n_inputs);
