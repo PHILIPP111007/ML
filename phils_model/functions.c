@@ -478,10 +478,13 @@ void fit(
 
             double **y = malloc(dataset_samples_cols * sizeof(double*));
             for (int i = 0; i < dataset_samples_cols; i++) {
-                y[i] = malloc(n_neurons * sizeof(double));
+                y[i] = malloc(dataset_samples_depth * sizeof(double));
             }
 
             matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons);
+
+            int activation = (int)activations[0];
+            apply_activation_calc(y, dataset_samples_cols, n_neurons, activation);
 
             // TODO add bias
 
