@@ -19,19 +19,15 @@ void matmul(double **first, double **second, double **result_matrix, int rows_fi
             double *arr = malloc(cols_first * sizeof(double));
             for (int k = 0; k < cols_first; k++) {
                 result_matrix[i][j] += first[i][k] * second[k][j];
-
-                // printf("first %f        second %f\n", first[i][k], second[k][j]);
             }
         }
     }
-    // printf("\n__________________________\n");
 }
 
 double **transpose(double **original_matrix, int rows, int cols) {
-    // Создаем новую матрицу с размерами равными числу столбцов и строк оригинальной матрицы
     double **transposed_matrix = (double**)malloc(cols * sizeof(double*));
     for (int i = 0; i < cols; i++) {
-        transposed_matrix[i] = (double*)malloc(rows * sizeof(double)); // Строки новой матрицы будут иметь длину old_cols
+        transposed_matrix[i] = (double*)malloc(rows * sizeof(double));
     }
 
     for (int i = 0; i < rows; i++) {
@@ -59,17 +55,20 @@ double calculate_mean(double *arr, int len) {
 double safe_weight_update(double delta, double learning_rate, double max_change) {
     double change = delta * learning_rate;
 
-    if (change > max_change)
+    if (change > max_change) {
         change = max_change;
-    else if (change < -max_change)
+    }
+    else if (change < -max_change) {
         change = -max_change;
+    }
 
     return change;
 }
 
 int argmax(double* output, int size) {
-    if (size <= 0)
-        return -1; // Если размер массива некорректный
+    if (size <= 0) {
+        return -1;
+    }
 
     double max_value = output[0];
     int index_max = 0;
@@ -89,7 +88,6 @@ int argmax(double* output, int size) {
 
 void relu_calc(double **y, int matrix_rows, int matrix_columns, double **output_data) {
     for (int i = 0; i < matrix_rows; ++i) {
-        // Применяем max(0, x), аналог np.maximum(0, x) из Python.
         for (int j = 0; j < matrix_columns; ++j) {
             if (y[i] > 0) {
                 output_data[i][j] = y[i][j];
@@ -103,7 +101,6 @@ void relu_calc(double **y, int matrix_rows, int matrix_columns, double **output_
 
 void relu_derivative(double **y, int matrix_rows, int matrix_columns, double **output_data) {
     for (int i = 0; i < matrix_rows; ++i) {
-        // Применяем max(0, x), аналог np.maximum(0, x) из Python.
         for (int j = 0; j < matrix_columns; ++j) {
             if (y[i] > 0) {
                 output_data[i][j] = y[i][j];
@@ -117,9 +114,7 @@ void relu_derivative(double **y, int matrix_rows, int matrix_columns, double **o
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// Функция сигмоида (Sigmoid activation function).
 double sigmoid(double x) {
-    // Используем оптимизированную формулу расчета сигмоиды.
     double n = exp(x);
     if (x >= 0) {
         return 1.0 / (1.0 + n);
@@ -128,7 +123,6 @@ double sigmoid(double x) {
     }
 }
 
-// Расчет сигмоидной активации для всех элементов выборки.
 void sigmoid_calc(double **y, int matrix_rows, int matrix_columns, double **output_data) {
     for (int i = 0; i < matrix_rows; ++i) {
         for (int j = 0; j < matrix_columns; ++j) {
@@ -137,7 +131,6 @@ void sigmoid_calc(double **y, int matrix_rows, int matrix_columns, double **outp
     }
 }
 
-// Расчёт производной сигмоиды.
 void sigmoid_derivative(double **y, int matrix_rows, int matrix_columns, double **output_data) {
     for (int i = 0; i < matrix_rows; ++i) {
         for (int j = 0; j < matrix_columns; ++j) {
@@ -150,7 +143,6 @@ void sigmoid_derivative(double **y, int matrix_rows, int matrix_columns, double 
 
 // Метод softmax (возвращает нормализованные вероятности классов).
 void softmax_calc(double **y, int matrix_rows, int matrix_columns, double **output_data) {
-    // Найдем максимальное значение среди элементов массива.
     double max_val = y[0][0];
 
     for (int i = 1; i < matrix_rows; ++i) {
@@ -246,9 +238,8 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// Функция инициализации смещений
 double* init_bias(int n_neurons) {
-    double* bias = malloc(n_neurons * sizeof(double)); // Выделяем память для строк
+    double* bias = malloc(n_neurons * sizeof(double));
 
     for (int i = 0; i < n_neurons; ++i) {
         bias[i] = (double)rand() / RAND_MAX;
@@ -256,20 +247,16 @@ double* init_bias(int n_neurons) {
     return bias;
 }
 
-// Инициализация матриц весов
 double** init_weights(int n_neurons, int n_inputs) {
-    // Создание динамического двумерного массива
-    double** weights = malloc(n_inputs * sizeof(double*)); // Выделяем память для строк
+    double** weights = malloc(n_inputs * sizeof(double*));
 
     for (int i = 0; i < n_inputs; i++) {
-        weights[i] = malloc(n_neurons * sizeof(double)); // Выделяем память для каждого столбца строки
+        weights[i] = malloc(n_neurons * sizeof(double));
     }
 
     // Генерация случайных чисел с нормальным распределением
     for (int i = 0; i < n_inputs; i++) {
         for (int j = 0; j < n_neurons; j++) {
-            // Генерируем случайное нормальное распределение (среднее=0, стандартное отклонение=1)
-            // Простое приближённое решение с использованием Box-Muller преобразования
             double u1 = (double)rand() / RAND_MAX;
             double u2 = (double)rand() / RAND_MAX;
             double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
@@ -617,7 +604,7 @@ void fit(
                 double **result = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
                     result[i] = malloc(n_inputs * sizeof(double));
-                    for (int j = 0; j < n_inputs; j++) {        // TODO
+                    for (int j = 0; j < n_inputs; j++) {
                         result[i][j] = x[i][j] * y[i][j];
                      }
                 }
@@ -689,16 +676,11 @@ void fit(
                     for (int j = 0; j < n_neurons; j++) {
                         double change = safe_weight_update(w[i][j], learning_rate, max_change);
 
-
-                        // printf("%f ", change);
-
                         weights[layer_index][i][j] += change;
                         if (isnan(weights[layer_index][i][j])) {
                             weights[layer_index][i][j] = 0.0;
                         }
-                        // printf("\n");
                     }
-                    // printf("\n____________\n");
                 }
             }
         }
