@@ -240,7 +240,7 @@ double** init_weights(int n_neurons, int n_inputs) {
             double u1 = (double)rand() / RAND_MAX;
             double u2 = (double)rand() / RAND_MAX;
             double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-            weights[i][j] = (double)z;
+            weights[i][j] = (double)z * 0.01;
         }
     }
     return weights;
@@ -583,7 +583,6 @@ void fit(
             for (int i = 0; i < n_inputs; i++) {
                 w[i] = malloc(n_neurons * sizeof(double));
             }
-
             matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons);
             grad_w[layer_sizes_rows - 1] = malloc(n_inputs * sizeof(double*));
             for (int i = 0; i < n_inputs; i++) {
@@ -610,8 +609,14 @@ void fit(
             }
 
             double **w_T = malloc(n_neurons * sizeof(double*));
+            for (int i = 0; i < n_neurons; i++) {
+                w_T[i] = malloc(n_inputs * sizeof(double));
+            }
             w_T = transpose(weight, n_inputs, n_neurons);
             double **result = malloc(matrix_rows * sizeof(double*));
+            for (int i = 0; i < matrix_rows; i++) {
+                result[i] = malloc(n_inputs * sizeof(double));
+            }
             matmul(delta, w_T, result, matrix_rows, n_neurons, n_neurons, n_inputs);
             grad_x[layer_sizes_rows - 1] = malloc(matrix_rows * sizeof(double*));
             for (int i = 0; i < matrix_rows; i++) {
@@ -661,7 +666,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     result[i] = malloc(n_neurons * sizeof(double));
                     for (int j = 0; j < n_neurons; j++) {
-                        result[i][j] = grad[i][j] + y[i][j];
+                        result[i][j] = grad[i][j] * y[i][j];
                     }
                 }
                 for (int i = 0; i < matrix_rows; i++) {
@@ -688,6 +693,9 @@ void fit(
                     }
                 }
                 double **x_T = malloc(n_inputs * sizeof(double*));
+                for (int i = 0; i < n_inputs; i++) {
+                    x_T[i] = malloc(matrix_rows * sizeof(double));
+                }
                 x_T = transpose(x, matrix_rows, n_inputs);
                 for (int i = 0; i < matrix_rows; i++) {
                     free(x[i]);
@@ -717,6 +725,9 @@ void fit(
                     }
                 }
                 double **w_T = malloc(n_neurons * sizeof(double*));
+                for (int i = 0; i < n_neurons; i++) {
+                    w_T[i] = malloc(n_inputs * sizeof(double));
+                }
                 w_T = transpose(weight, n_inputs, n_neurons);
                 for (int i = 0; i < n_inputs; i++) {
                     free(weight[i]);
@@ -756,6 +767,10 @@ void fit(
                     for (int j = 0; j < n_neurons; j++) {
                         double change = safe_weight_update(grad_w[layer_index][i][j], learning_rate, max_change);
                         weights[layer_index][i][j] -= change;
+
+
+
+
                         // printf("%f\n", change);
                     }
                 }
