@@ -199,7 +199,7 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
         loss[i] =  malloc(prediction_cols * sizeof(double));
         for (int j = 0; j < prediction_cols; ++j) {
             double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
-            loss[i][j] = target[i] * log(p);
+            loss[i][j] = target[j] * log(p);
         }
     }
 
@@ -240,7 +240,7 @@ double** init_weights(int n_neurons, int n_inputs) {
             double u1 = (double)rand() / RAND_MAX;
             double u2 = (double)rand() / RAND_MAX;
             double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-            weights[i][j] = (double)z * 0.01;
+            weights[i][j] = (double)z;
         }
     }
     return weights;
@@ -666,7 +666,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     result[i] = malloc(n_neurons * sizeof(double));
                     for (int j = 0; j < n_neurons; j++) {
-                        result[i][j] = grad[i][j] * y[i][j];
+                        result[i][j] = grad[i][j] * y[i][j] * output_error;
                     }
                 }
                 for (int i = 0; i < matrix_rows; i++) {
@@ -733,7 +733,7 @@ void fit(
                     free(weight[i]);
                 }
                 double **result_grad_x = malloc(matrix_rows * sizeof(double*));
-                for (int i = 0; i < n_inputs; i++) {
+                for (int i = 0; i < matrix_rows; i++) {
                     result_grad_x[i] = malloc(n_inputs * sizeof(double));
                 }
                 matmul(delta, w_T, result_grad_x, matrix_rows, n_neurons, n_neurons, n_inputs);
@@ -767,10 +767,6 @@ void fit(
                     for (int j = 0; j < n_neurons; j++) {
                         double change = safe_weight_update(grad_w[layer_index][i][j], learning_rate, max_change);
                         weights[layer_index][i][j] -= change;
-
-
-
-
                         // printf("%f\n", change);
                     }
                 }
