@@ -733,27 +733,17 @@ void fit(
                         grad[i][j] = grad_x[layer_index + 1][i][j];
                     }
                 }
-                double **result = malloc(matrix_rows * sizeof(double*));
-                for (int i = 0; i < matrix_rows; i++) {
-                    result[i] = malloc(n_neurons * sizeof(double));
-                    for (int j = 0; j < n_neurons; j++) {
-                        result[i][j] = grad[i][j] * y[i][j];
-                    }
-                }
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(grad[i]);
-                    free(y[i]);
-                }
 
                 double **delta = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
                     delta[i] = malloc(n_neurons * sizeof(double));
                     for (int j = 0; j < n_neurons; j++) {
-                        delta[i][j] = result[i][j];
+                        delta[i][j] = grad[i][j] * y[i][j];
                     }
                 }
                 for (int i = 0; i < matrix_rows; i++) {
-                    free(result[i]);
+                    free(grad[i]);
+                    free(y[i]);
                 }
 
                 grad_b[layer_index] = sum_axis_0(delta, matrix_rows, n_neurons);
@@ -945,8 +935,8 @@ void predict(
         }
     }
 
-    double* biases = malloc(biases_rows * sizeof(double));
-    double** weights = malloc(weights_rows * sizeof(double*));
+    double *biases = malloc(biases_rows * sizeof(double));
+    double **weights = malloc(weights_rows * sizeof(double*));
 
     for (int i = 0; i < weights_rows; ++i) {
         weights[i] = malloc(weights_cols * sizeof(double));
@@ -960,22 +950,22 @@ void predict(
     }
 
     // Forward pass
-    double **result = malloc(sample_rows * sizeof(double*));
-    matmul(sample, weights, result, sample_rows, sample_cols, n_inputs, n_neurons);
+    double **y = malloc(sample_rows * sizeof(double*));
+    matmul(sample, weights, y, sample_rows, sample_cols, n_inputs, n_neurons);
 
     // Add bias
     for (int i = 0; i < sample_rows; ++i) {
         for (int j = 0; j < n_neurons; ++j) {
-            result[i][j] += biases[i];
+            y[i][j] += biases[j];
         }
     }
 
     // Apply activation function
-    apply_activation_calc(result, sample_rows, n_neurons, activation);
+    apply_activation_calc(y, sample_rows, n_neurons, activation);
 
     for (int i = 0; i < 1; i++) {
         for (int j = 0; j < n_neurons; j++) {
-            prediction[j] = result[i][j];
+            prediction[j] = y[i][j];
         }
     }
 
@@ -989,8 +979,8 @@ void predict(
     }
     free(weights);
     for (int i = 0; i < sample_rows; ++i) {
-        free(result[i]);
+        free(y[i]);
     }
-    free(result);
+    free(y);
     free(biases);
 }
