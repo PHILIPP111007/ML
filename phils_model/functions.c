@@ -696,7 +696,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     result[i] = malloc(n_neurons * sizeof(double));
                     for (int j = 0; j < n_neurons; j++) {
-                        result[i][j] = grad[i][j] * y[i][j];
+                        result[i][j] = grad[i][j] * y[i][j] * output_error;
                     }
                 }
                 for (int i = 0; i < matrix_rows; i++) {
