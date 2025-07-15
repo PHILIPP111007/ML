@@ -71,6 +71,20 @@ double mean(double *arr, int len) {
     return sum / len;
 }
 
+int argmax(double *arr, int size) {
+    if (size <= 0) {
+        return -1;
+    }
+
+    int max_idx = 0;
+    for (int i = 1; i < size; ++i) {
+        if (arr[i] > arr[max_idx]) {
+            max_idx = i;
+        }
+    }
+    return max_idx;
+}
+
 double safe_weight_update(double delta, double learning_rate, double max_change) {
     double change = delta * learning_rate;
     if (change > max_change) {
@@ -216,14 +230,22 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
 
     for (int i = 0; i < prediction_rows; ++i) {
         loss[i] =  malloc(prediction_cols * sizeof(double));
+
+        int max_target_index = argmax(target, prediction_cols);
+        int max_prediction_index = argmax(prediction[i], prediction_cols);
+
         for (int j = 0; j < prediction_cols; ++j) {
-            double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
-            loss[i][j] = target[j] * log(p);
+            
+            if (j == max_prediction_index) {
+                double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
+                loss[i][j] = target[max_target_index] * log(p);
+            } else {
+                loss[i][j] = 0.0;
+            }
         }
     }
 
     for (int i = 0; i < prediction_rows; ++i) {
-        double *arr = malloc(prediction_cols * sizeof(double));
         for (int j = 0; j < prediction_cols; ++j) {
             output_error[i][j] = loss[i][j];
         }
@@ -696,7 +718,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     result[i] = malloc(n_neurons * sizeof(double));
                     for (int j = 0; j < n_neurons; j++) {
-                        result[i][j] = grad[i][j] * y[i][j] * output_error;
+                        result[i][j] = grad[i][j] * y[i][j];
                     }
                 }
                 for (int i = 0; i < matrix_rows; i++) {
@@ -799,6 +821,9 @@ void fit(
                     for (int j = 0; j < n_neurons; j++) {
                         double change = safe_weight_update(grad_w[layer_index][i][j], learning_rate, max_change);
                         weights[layer_index][i][j] -= change;
+                        
+                        
+                        
                         // printf("%f\n", change);
                     }
                 }
