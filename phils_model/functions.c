@@ -97,6 +97,17 @@ double safe_weight_update(double delta, double learning_rate, double max_change)
     return change;
 }
 
+void dropout(double **y, int matrix_rows, int n_neurons, double keep_prob) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < n_neurons; j++) {
+            double random = (double)rand() / RAND_MAX;
+            if (random > keep_prob) {
+                y[i][j] = 0.0;
+            }
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Activation functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -421,7 +432,8 @@ void fit(
     double learning_rate,
     int verbose,
     double max_change,
-    int random_state) {
+    int random_state,
+    double keep_prob) {
     
     if (random_state != -1) {
         srand(random_state); // устанавливаем начальное состояние генератора
@@ -522,6 +534,7 @@ void fit(
             }
             int activation = (int)activations[0];
             apply_activation_calc(y, dataset_samples_cols, n_neurons, activation);
+            dropout(y, dataset_samples_cols, n_neurons, keep_prob);
 
             X[0] = malloc(dataset_samples_cols * sizeof(double*));
             for (int i = 0; i < dataset_samples_cols; i++) {
@@ -587,6 +600,7 @@ void fit(
                 }
                 int activation = (int)activations[layer_index];
                 apply_activation_calc(y, matrix_rows, n_neurons, activation);
+                dropout(y, matrix_rows, n_neurons, keep_prob);
 
                 Y[layer_index] = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
