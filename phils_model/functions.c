@@ -250,7 +250,7 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
             output_error[i][j] = loss[i][j];
         }
     }
-    
+
     for (int i = 0; i < prediction_rows; ++i) {
         free(loss[i]);
     }
@@ -259,29 +259,29 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
 
 ///////////////////////////////////////////////////////////////////////////////
 
-double *init_bias(int n_neurons) {
+double *init_bias(int n_neurons, int n_inputs) {
     double* bias = malloc(n_neurons * sizeof(double));
+    double std_dev = sqrtf(2.0 / (n_neurons + n_inputs));
 
     for (int i = 0; i < n_neurons; ++i) {
-        bias[i] = (double)rand() / RAND_MAX;
+        bias[i] = ((double)rand() / RAND_MAX) * std_dev * sqrtf(2.0 / (n_neurons + n_inputs)) * 2.0 - std_dev * sqrtf(2.0 / (n_neurons + n_inputs));
+        bias[i] *= 100.0;
     }
     return bias;
 }
 
 double **init_weights(int n_neurons, int n_inputs) {
-    double** weights = malloc(n_inputs * sizeof(double*));
-
+    double **weights = malloc(n_inputs * sizeof(double*));
     for (int i = 0; i < n_inputs; i++) {
         weights[i] = malloc(n_neurons * sizeof(double));
     }
 
-    // Генерация случайных чисел с нормальным распределением
+    double std_dev = sqrtf(2.0 / (n_neurons + n_inputs));
+
     for (int i = 0; i < n_inputs; i++) {
         for (int j = 0; j < n_neurons; j++) {
-            double u1 = (double)rand() / RAND_MAX;
-            double u2 = (double)rand() / RAND_MAX;
-            double z = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-            weights[i][j] = (double)z;
+            weights[i][j] = ((double)rand() / RAND_MAX) * std_dev * sqrtf(2.0 / (n_neurons + n_inputs)) * 2.0 - std_dev * sqrtf(2.0 / (n_neurons + n_inputs));
+            weights[i][j] *= 100.0;
         }
     }
     return weights;
@@ -420,7 +420,12 @@ void fit(
     int n_epoch,
     double learning_rate,
     int verbose,
-    double max_change) {
+    double max_change,
+    int random_state) {
+    
+    if (random_state != -1) {
+        srand(random_state); // устанавливаем начальное состояние генератора
+    }
 
     // Загрузка датасета
     double*** samples = malloc(dataset_samples_rows * sizeof(double**));
@@ -456,7 +461,7 @@ void fit(
         // Инициализировать смещение
         biases[layer_index] = malloc(n_neurons * sizeof(double));
         double *biases_arr = malloc(n_neurons * sizeof(double));
-        biases_arr = init_bias(n_neurons);
+        biases_arr = init_bias(n_neurons, n_inputs);
         for (int i = 0; i < n_neurons; ++i) {
             biases[layer_index][i] = biases_arr[i];
         }
@@ -825,6 +830,9 @@ void fit(
                         if (isnan(weights[layer_index][i][j])) {
                             weights[layer_index][i][j] = 0.0;
                         }
+
+
+
                         // printf("%f\n", change);
                     }
                 }
