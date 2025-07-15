@@ -821,9 +821,10 @@ void fit(
                     for (int j = 0; j < n_neurons; j++) {
                         double change = safe_weight_update(grad_w[layer_index][i][j], learning_rate, max_change);
                         weights[layer_index][i][j] -= change;
-                        
-                        
-                        
+
+                        if (isnan(weights[layer_index][i][j])) {
+                            weights[layer_index][i][j] = 0.0;
+                        }
                         // printf("%f\n", change);
                     }
                 }
