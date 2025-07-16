@@ -1,21 +1,23 @@
-// gcc -shared -o functions.so -fPIC -O3 functions.c
+// clang -fopenmp -shared -o functions.so -fPIC -O3 functions.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
 
+///////////////////////////////////////////////////////////////////////////////
 
 void matmul(double **first, double **second, double **result_matrix, int rows_first, int cols_first, int rows_second, int cols_second) {
     if (cols_first != rows_second) {
-        printf("cols first != rows second!\n");
+        fprintf(stderr, "Cols first != rows second!\n");
         return;
     }
 
     for (int i = 0; i < rows_first; i++) {
         result_matrix[i] = malloc(cols_second * sizeof(double));
+
+        #pragma omp for
         for (int j = 0; j < cols_second; j++) {
             result_matrix[i][j] = 0.0;
-            double *arr = malloc(cols_first * sizeof(double));
             for (int k = 0; k < cols_first; k++) {
                 result_matrix[i][j] += first[i][k] * second[k][j];
             }
