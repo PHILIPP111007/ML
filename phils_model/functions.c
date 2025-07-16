@@ -4,7 +4,6 @@
 #include <math.h>
 #include <time.h>
 
-///////////////////////////////////////////////////////////////////////////////
 
 void matmul(double **first, double **second, double **result_matrix, int rows_first, int cols_first, int rows_second, int cols_second) {
     if (cols_first != rows_second) {
