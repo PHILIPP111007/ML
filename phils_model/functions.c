@@ -834,14 +834,14 @@ void fit(
                         if (isnan(weights[layer_index][i][j])) {
                             weights[layer_index][i][j] = 0.0;
                         }
-
-
-
                         // printf("%f\n", change);
                     }
                 }
                 for (int i = 0; i < n_neurons; ++i) {
-                    biases[layer_index][i] -= grad_b[layer_index][i] * learning_rate;
+                    biases[layer_index][i] -= safe_weight_update(grad_b[layer_index][i], learning_rate, max_change);
+                    if (isnan(biases[layer_index][i])) {
+                        biases[layer_index][i] = 0.0;
+                    }
                 }
             }
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
