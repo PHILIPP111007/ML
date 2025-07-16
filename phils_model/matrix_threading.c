@@ -1,4 +1,4 @@
-// clang -shared -o functions.so -fPIC -O3 functions.c
+// clang -fopenmp -shared -o functions.so -fPIC -O3 functions.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -24,6 +24,8 @@ void *matmul_thread(void *arg) {
     ThreadData *td = (ThreadData *)arg;
 
     for (int i = td->startRow; i < td->endRow; i++) {
+
+        #pragma omp for
         for (int j = 0; j < td->cols_B; j++) {
             double sum = 0.0;
             for (int k = 0; k < td->cols_A; k++) {
