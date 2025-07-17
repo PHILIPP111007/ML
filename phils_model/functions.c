@@ -1094,7 +1094,7 @@ void predict_one(
         }
     }
     for (int i = 0; i < matrix_rows; i++) {
-        free(y);
+        free(y[i]);
     }
     free(y);
     
