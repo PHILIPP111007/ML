@@ -1,4 +1,4 @@
-// clang -fopenmp -shared -o functions.so -fPIC -O3 functions.c
+// clang -shared -o functions.so -fPIC -O3 functions.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
