@@ -217,7 +217,7 @@ void softmax_derivative(double **y, int matrix_rows, int matrix_columns) {
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
 
-void mse_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error) {
+void mse_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error, int regression) {
     double **loss = malloc(prediction_rows * sizeof(double*));
 
     for (int i = 0; i < prediction_rows; ++i) {
@@ -227,7 +227,7 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
         int max_prediction_index = argmax(prediction[i], prediction_cols);
 
         for (int j = 0; j < prediction_cols; ++j) {
-            if (j == max_target_index) {
+            if (j == max_target_index && !regression) {
                 loss[i][j] = 0.0;
             } else {
                 loss[i][j] = pow(target[max_target_index] - prediction[i][j], 2);
@@ -244,7 +244,7 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
     free(loss);
 }
 
-void cross_entropy_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error) {
+void cross_entropy_loss(double **prediction, int prediction_rows, int prediction_cols, double *target, double **output_error, int regression) {
     double **loss = malloc(prediction_rows * sizeof(double*));
 
     for (int i = 0; i < prediction_rows; ++i) {
@@ -254,7 +254,7 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
         int max_prediction_index = argmax(prediction[i], prediction_cols);
 
         for (int j = 0; j < prediction_cols; ++j) {
-            if (j == max_target_index) {
+            if (j == max_target_index && !regression) {
                 loss[i][j] = 0.0;
             } else {
                 double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
@@ -331,11 +331,11 @@ void apply_activation_derivative(double **y, int matrix_rows, int matrix_columns
     }
 }
 
-void calc_loss(int loss, double *target, double **prediction, int prediction_rows, int prediction_cols, double **output_error) {
+void calc_loss(int loss, double *target, double **prediction, int prediction_rows, int prediction_cols, double **output_error, int regression) {
     if (loss == 0) {
-        return mse_loss(prediction, prediction_rows, prediction_cols, target, output_error);
+        return mse_loss(prediction, prediction_rows, prediction_cols, target, output_error, regression);
     } else if (loss == 1) {
-        return cross_entropy_loss(prediction, prediction_rows, prediction_cols, target, output_error);
+        return cross_entropy_loss(prediction, prediction_rows, prediction_cols, target, output_error, regression);
     }
 }
 
@@ -438,7 +438,8 @@ void fit(
     int verbose,
     double max_change,
     int random_state,
-    double keep_prob) {
+    double keep_prob,
+    int regression) {
     
     if (random_state != -1) {
         srand(random_state); // устанавливаем начальное состояние генератора
@@ -555,11 +556,6 @@ void fit(
             }
             free(sample);
 
-
-
-
-
-
             Y[0] = malloc(dataset_samples_cols * sizeof(double*));
             for (int i = 0; i < dataset_samples_cols; i++) {
                 Y[0][i] = malloc(n_neurons * sizeof(double));
@@ -644,7 +640,7 @@ void fit(
             for (int i = 0; i < matrix_rows; i++) {
                 delta[i] = malloc(n_neurons * sizeof(double));
             }
-            calc_loss(loss, target, Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta);
+            calc_loss(loss, target, Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
             free(target);
             double output_error = sum(delta, matrix_rows, n_neurons);
             output_error /= matrix_rows + n_neurons;
