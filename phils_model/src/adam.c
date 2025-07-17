@@ -36,7 +36,7 @@ void destroy_adam(struct AdamOptimizer *opt, double *layer_sizes, int layer_size
 
 // Создание нового экземпляра оптимизатора
 struct AdamOptimizer *create_adam(double lr, double b1, double b2, double eps, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
-    AdamOptimizer *optimizer = malloc(sizeof(AdamOptimizer));
+    struct AdamOptimizer *optimizer = malloc(sizeof(AdamOptimizer));
     optimizer->lr = lr;
     optimizer->b1 = b1;
     optimizer->b2 = b2;
