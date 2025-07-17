@@ -222,8 +222,16 @@ void mse_loss(double **prediction, int prediction_rows, int prediction_cols, dou
 
     for (int i = 0; i < prediction_rows; ++i) {
         loss[i] =  malloc(prediction_cols * sizeof(double));
+
+        int max_target_index = argmax(target, prediction_cols);
+        int max_prediction_index = argmax(prediction[i], prediction_cols);
+
         for (int j = 0; j < prediction_cols; ++j) {
-            loss[i][j] = target[j] - prediction[i][j];
+            if (j == max_target_index) {
+                loss[i][j] = 0.0;
+            } else {
+                loss[i][j] = pow(target[max_target_index] - prediction[i][j], 2);
+            }
         }
     }
 
@@ -246,12 +254,11 @@ void cross_entropy_loss(double **prediction, int prediction_rows, int prediction
         int max_prediction_index = argmax(prediction[i], prediction_cols);
 
         for (int j = 0; j < prediction_cols; ++j) {
-            
-            if (j == max_prediction_index) {
+            if (j == max_target_index) {
+                loss[i][j] = 0.0;
+            } else {
                 double p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
                 loss[i][j] = target[max_target_index] * log(p);
-            } else {
-                loss[i][j] = 0.0;
             }
         }
     }
