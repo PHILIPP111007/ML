@@ -13,8 +13,6 @@ void matmul(double **first, double **second, double **result_matrix, int rows_fi
 
     for (int i = 0; i < rows_first; i++) {
         result_matrix[i] = malloc(cols_second * sizeof(double));
-
-        #pragma omp for
         for (int j = 0; j < cols_second; j++) {
             result_matrix[i][j] = 0.0;
             for (int k = 0; k < cols_first; k++) {
