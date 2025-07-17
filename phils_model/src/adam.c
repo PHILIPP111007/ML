@@ -16,7 +16,6 @@ typedef struct {
     double ***v;    // Накопленный квадратный градиент
 } AdamOptimizer;
 
-
 // Освобождение ресурсов оптимизатора
 void destroy_adam(struct AdamOptimizer *opt, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
