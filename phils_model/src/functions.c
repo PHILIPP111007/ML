@@ -51,7 +51,7 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
         // Разделяем строки между потоками
         int rowsPerThread = rows_A / num_threads;
         int remainder = rows_A % num_threads;
-        
+
         for (int t = 0; t < num_threads; t++) {
             thread_data[t].A = A;
             thread_data[t].B = B;
