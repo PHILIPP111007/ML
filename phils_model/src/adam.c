@@ -66,7 +66,7 @@ struct AdamOptimizer *create_adam(double lr, double b1, double b2, double eps, d
     return optimizer;
 }
 
-void adam_update(struct AdamOptimizer *optimizer, double ***weights, double ***grads, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
+void adam_step(struct AdamOptimizer *optimizer, double ***weights, double ***grads, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     optimizer->epoch++;
 
     for(int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {

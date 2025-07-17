@@ -30,7 +30,7 @@ struct AdamOptimizer *create_adam(
     int layer_sizes_cols
 );
 
-void adam_update(
+void adam_step(
     struct AdamOptimizer *optimizer,
     double ***weights,
     double ***grads,

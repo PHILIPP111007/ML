@@ -2,14 +2,19 @@
 #define FUNCTIONS_H
 
 
+void *process_row(
+    void *arg
+);
+
 void matmul(
-    double **first,
-    double **second,
-    double **result_matrix,
-    int rows_first,
-    int cols_first,
-    int rows_second,
-    int cols_second
+    double **A,
+    double **B,
+    double **C,
+    int rows_A,
+    int cols_A,
+    int rows_B,
+    int cols_B,
+    int threading
 );
 
 double **transpose(

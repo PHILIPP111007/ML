@@ -31,7 +31,8 @@ void fit(
     double max_change,
     int random_state,
     double keep_prob,
-    int regression) {
+    int regression,
+    int threading) {
     
     if (random_state != -1) {
         srand(random_state); // устанавливаем начальное состояние генератора
@@ -98,7 +99,6 @@ void fit(
     // Create Adam
     struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-8, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
-
     double losses_by_epoch[n_epoch];
     for (int epoch = 0; epoch < n_epoch; ++epoch) {
         double *epoch_losses = malloc(dataset_samples_rows * sizeof(double));
@@ -129,7 +129,7 @@ void fit(
                 y[i] = malloc(n_neurons * sizeof(double));
             }
 
-            matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons);
+            matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons, threading);
 
             for (int i = 0; i < dataset_samples_cols; ++i) {
                 for (int j = 0; j < n_neurons; ++j) {
@@ -193,7 +193,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     y[i] = malloc(n_neurons * sizeof(double));
                 }
-                matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons);
+                matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading);
                 for (int i = 0; i < matrix_rows; i++) {
                     free(x[i]);
                 }
@@ -261,7 +261,7 @@ void fit(
             for (int i = 0; i < n_inputs; i++) {
                 w[i] = malloc(n_neurons * sizeof(double));
             }
-            matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons);
+            matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons, threading);
             grad_w[layer_sizes_rows - 1] = malloc(n_inputs * sizeof(double*));
             for (int i = 0; i < n_inputs; i++) {
                 grad_w[layer_sizes_rows - 1][i] = malloc(n_neurons * sizeof(double));
@@ -297,7 +297,7 @@ void fit(
             for (int i = 0; i < matrix_rows; i++) {
                 result[i] = malloc(n_inputs * sizeof(double));
             }
-            matmul(delta, w_T, result, matrix_rows, n_neurons, n_neurons, n_inputs);
+            matmul(delta, w_T, result, matrix_rows, n_neurons, n_neurons, n_inputs, threading);
             grad_x[layer_sizes_rows - 1] = malloc(matrix_rows * sizeof(double*));
             for (int i = 0; i < matrix_rows; i++) {
                 grad_x[layer_sizes_rows - 1][i] = malloc(n_inputs * sizeof(double));
@@ -382,7 +382,7 @@ void fit(
                 for (int i = 0; i < n_inputs; i++) {
                     w[i] = malloc(n_neurons * sizeof(double));
                 }
-                matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons);
+                matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons, threading);
                 grad_w[layer_index] = malloc(n_inputs * sizeof(double*));
                 for (int i = 0; i < n_inputs; i++) {
                     grad_w[layer_index][i] = malloc(n_neurons * sizeof(double));
@@ -417,7 +417,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     result_grad_x[i] = malloc(n_inputs * sizeof(double));
                 }
-                matmul(delta, w_T, result_grad_x, matrix_rows, n_neurons, n_neurons, n_inputs);
+                matmul(delta, w_T, result_grad_x, matrix_rows, n_neurons, n_neurons, n_inputs, threading);
                 for (int i = 0; i < n_neurons; i++) {
                     free(w_T[i]);
                 }
@@ -439,7 +439,10 @@ void fit(
                 matrix_rows = matrix_rows;
             }
 
-            // Update biases
+            // Update weights and biases
+            
+            adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
                 double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -454,9 +457,6 @@ void fit(
                     }
                 }
             }
-
-            // Update weights
-            adam_update(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -537,7 +537,8 @@ void predict_one(
     int layer_sizes_cols,
     double *activations,
     int activations_len,
-    double *prediction) {
+    double *prediction,
+    int threading) {
 
     double** sample = malloc(sample_rows * sizeof(double*));
     for (int i = 0; i < sample_rows; ++i) {
@@ -590,7 +591,7 @@ void predict_one(
         y[i] = malloc(n_neurons * sizeof(double));
     }
 
-    matmul(sample, weights[0], y, sample_rows, sample_cols, n_inputs, n_neurons);
+    matmul(sample, weights[0], y, sample_rows, sample_cols, n_inputs, n_neurons, threading);
 
     for (int i = 0; i < sample_rows; ++i) {
         for (int j = 0; j < n_neurons; ++j) {
@@ -636,7 +637,7 @@ void predict_one(
         for (int i = 0; i < matrix_rows; i++) {
             y[i] = malloc(n_neurons * sizeof(double));
         }
-        matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons);
+        matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading);
         for (int i = 0; i < matrix_rows; i++) {
             free(x[i]);
         }
@@ -721,7 +722,8 @@ void predict(
     int layer_sizes_cols,
     double *activations,
     int activations_len,
-    double *predictions) {
+    double *predictions,
+    int threading) {
 
     // Загрузка датасета
     double*** samples = malloc(dataset_samples_rows * sizeof(double**));
@@ -787,7 +789,7 @@ void predict(
             y[i] = malloc(n_neurons * sizeof(double));
         }
 
-        matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons);
+        matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons, threading);
 
         for (int i = 0; i < dataset_samples_cols; ++i) {
             for (int j = 0; j < n_neurons; ++j) {
@@ -833,7 +835,7 @@ void predict(
             for (int i = 0; i < matrix_rows; i++) {
                 y[i] = malloc(n_neurons * sizeof(double));
             }
-            matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons);
+            matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading);
             for (int i = 0; i < matrix_rows; i++) {
                 free(x[i]);
             }
