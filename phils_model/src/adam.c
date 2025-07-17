@@ -91,6 +91,10 @@ void adam_update(struct AdamOptimizer *optimizer, double ***weights, double ***g
                 
                 // Обновляем веса
                 weights[layer_index][i][j] -= optimizer->lr * m_hat / (sqrt(v_hat) + optimizer->eps);
+
+                if (isnan(weights[layer_index][i][j])) {
+                    weights[layer_index][i][j] = 0.0;
+                }
             }
         }
     }
