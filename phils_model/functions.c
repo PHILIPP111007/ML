@@ -85,7 +85,7 @@ int argmax(double *arr, int size) {
     return max_idx;
 }
 
-double safe_weight_update(double delta, double learning_rate, double max_change) {
+double safe_update(double delta, double learning_rate, double max_change) {
     double change = delta * learning_rate;
     if (change > max_change) {
         change = max_change;
@@ -345,11 +345,11 @@ void save_weights_as_json(char *fname, double ***weights_result, double *layer_s
     FILE *fp = fopen(fname, "w");
 
     if (!fp) {
-        fprintf(stderr, "Ошибка открытия файла '%s'\\n", fname);
+        fprintf(stderr, "Ошибка открытия файла '%s'\n", fname);
         return;
     }
 
-    fprintf(fp, "[\n");
+    fprintf(fp, "[");
 
     for (int layer_size = 0; layer_size < layer_sizes_rows; ++layer_size) { 
         double n_inputs_double = layer_sizes[layer_size * layer_sizes_cols + 0];
@@ -357,29 +357,27 @@ void save_weights_as_json(char *fname, double ***weights_result, double *layer_s
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
-        fprintf(fp, "\t[\n");
+        fprintf(fp, "[");
         for (int i = 0; i < n_inputs; i++) {
-            fprintf(fp, "\t\t[\n");
-
-            fprintf(fp, "\t\t\t");
+            fprintf(fp, "[");
             for (int j = 0; j < n_neurons; j++) {
-                if (j != 0) fprintf(fp, "\t\t\t");
                 if (j == n_neurons - 1) {
-                    fprintf(fp, "%f\n", weights_result[layer_size][i][j]);
+                    fprintf(fp, "%f", weights_result[layer_size][i][j]);
                 } else {
-                    fprintf(fp, "%f,\n", weights_result[layer_size][i][j]);
+                    fprintf(fp, "%f,", weights_result[layer_size][i][j]);
                 }
             }
 
-            fprintf(fp, "\t\t]");
-            if (i != n_inputs - 1) fprintf(fp, ",");
-            fprintf(fp, "\n");
+            fprintf(fp, "]");
+            if (i != n_inputs - 1) {
+                fprintf(fp, ",");
+            }
         }
 
         if (layer_size != layer_sizes_rows - 1) {
-            fprintf(fp, "\t],\n");
+            fprintf(fp, "],");
         } else {
-            fprintf(fp, "\t]\n");
+            fprintf(fp, "]");
         }
     }
     fprintf(fp, "]");
@@ -448,7 +446,7 @@ void fit(
 
     // Загрузка датасета
     double*** samples = malloc(dataset_samples_rows * sizeof(double**));
-    double** targets = malloc(dataset_targets_rows * sizeof(double*));
+    double** targets = malloc(dataset_targets_rows * sizeof(double*)); 
 
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = malloc(dataset_samples_cols * sizeof(double*));
@@ -555,6 +553,12 @@ void fit(
             for (int i = 0; i < dataset_samples_cols; i++) {
                 free(sample[i]);
             }
+            free(sample);
+
+
+
+
+
 
             Y[0] = malloc(dataset_samples_cols * sizeof(double*));
             for (int i = 0; i < dataset_samples_cols; i++) {
@@ -566,9 +570,9 @@ void fit(
             for (int i = 0; i < dataset_samples_cols; i++) {
                 free(y[i]);
             }
+            free(y);
 
             int matrix_rows = dataset_samples_cols;
-            int matrix_columns = n_inputs;
 
             for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -600,6 +604,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     free(x[i]);
                 }
+                free(x);
 
                 for (int i = 0; i < matrix_rows; ++i) {
                     for (int j = 0; j < n_neurons; ++j) {
@@ -620,9 +625,9 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     free(y[i]);
                 }
+                free(y);
 
                 matrix_rows = matrix_rows;
-                matrix_columns = n_inputs;
             }
 
             // Backward pass
@@ -640,6 +645,7 @@ void fit(
                 delta[i] = malloc(n_neurons * sizeof(double));
             }
             calc_loss(loss, target, Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta);
+            free(target);
             double output_error = sum(delta, matrix_rows, n_neurons);
             output_error /= matrix_rows + n_neurons;
             epoch_losses[dataset_index] = output_error;
@@ -674,10 +680,12 @@ void fit(
                 free(x_T[i]);
                 free(w[i]);
             }
+            free(x_T);
             free(w);
             for (int i = 0; i < matrix_rows; i++) {
                 free(x[i]);
             }
+            free(x);
 
             double **weight = malloc(n_inputs * sizeof(double*));
             for (int i = 0; i < n_inputs; i++) {
@@ -707,16 +715,19 @@ void fit(
             for (int i = 0; i < n_inputs; i++) {
                 free(weight[i]);
             }
+            free(weight);
             for (int i = 0; i < n_neurons; i++) {
                 free(w_T[i]);
             }
+            free(w_T);
             for (int i = 0; i < matrix_rows; i++) {
                 free(result[i]);
                 free(delta[i]);
             }
+            free(result);
+            free(delta);
 
             matrix_rows = matrix_rows;
-            matrix_columns = n_inputs;
 
             for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -753,6 +764,8 @@ void fit(
                     free(grad[i]);
                     free(y[i]);
                 }
+                free(grad);
+                free(y);
 
                 grad_b[layer_index] = sum_axis_0(delta, matrix_rows, n_neurons);
 
@@ -771,6 +784,7 @@ void fit(
                 for (int i = 0; i < matrix_rows; i++) {
                     free(x[i]);
                 }
+                free(x);
                 double **w = malloc(n_inputs * sizeof(double*));
                 for (int i = 0; i < n_inputs; i++) {
                     w[i] = malloc(n_neurons * sizeof(double));
@@ -787,6 +801,8 @@ void fit(
                     free(w[i]);
                     free(x_T[i]);
                 }
+                free(w);
+                free(x_T);
 
                 double **weight = malloc(n_inputs * sizeof(double*));
                 for (int i = 0; i < n_inputs; i++) {
@@ -803,6 +819,7 @@ void fit(
                 for (int i = 0; i < n_inputs; i++) {
                     free(weight[i]);
                 }
+                free(weight);
                 double **result_grad_x = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
                     result_grad_x[i] = malloc(n_inputs * sizeof(double));
@@ -811,6 +828,7 @@ void fit(
                 for (int i = 0; i < n_neurons; i++) {
                     free(w_T[i]);
                 }
+                free(w_T);
                 grad_x[layer_index] = malloc(matrix_rows * sizeof(double*));
                 for (int i = 0; i < matrix_rows; i++) {
                     grad_x[layer_index][i] = malloc(n_inputs * sizeof(double));
@@ -822,9 +840,10 @@ void fit(
                     free(result_grad_x[i]);
                     free(delta[i]);
                 }
+                free(result_grad_x);
+                free(delta);
 
                 matrix_rows = matrix_rows;
-                matrix_columns = n_inputs;
             }
 
             // Update weights
@@ -836,7 +855,7 @@ void fit(
 
                 for (int i = 0; i < n_inputs; i++) {
                     for (int j = 0; j < n_neurons; j++) {
-                        double change = safe_weight_update(grad_w[layer_index][i][j], learning_rate, max_change);
+                        double change = safe_update(grad_w[layer_index][i][j], learning_rate, max_change);
                         weights[layer_index][i][j] -= change;
 
                         if (isnan(weights[layer_index][i][j])) {
@@ -846,7 +865,8 @@ void fit(
                     }
                 }
                 for (int i = 0; i < n_neurons; ++i) {
-                    biases[layer_index][i] -= safe_weight_update(grad_b[layer_index][i], learning_rate, max_change);
+                    biases[layer_index][i] -= safe_update(grad_b[layer_index][i], learning_rate, max_change);
+
                     if (isnan(biases[layer_index][i])) {
                         biases[layer_index][i] = 0.0;
                     }
@@ -864,9 +884,11 @@ void fit(
                 }
                 free(grad_w[layer_index]);
                 free(grad_x[layer_index]);
+                free(grad_b[layer_index]);
             }
             free(grad_w);
             free(grad_x);
+            free(grad_b);
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 for (int i = 0; i < matrix_rows; i++) {
                     free(X[layer_index][i]);
@@ -877,7 +899,6 @@ void fit(
             }
             free(X);
             free(Y);
-            free(target);
         }
         double mean_loss = mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;
@@ -993,6 +1014,7 @@ void predict_one(
     for (int i = 0; i < sample_rows; i++) {
         free(sample[i]);
     }
+    free(sample);
 
     Y[0] = malloc(sample_rows * sizeof(double*));
     for (int i = 0; i < sample_rows; i++) {
@@ -1004,6 +1026,7 @@ void predict_one(
     for (int i = 0; i < sample_rows; i++) {
         free(y[i]);
     }
+    free(y);
 
     int matrix_rows = sample_rows;
     for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
@@ -1028,6 +1051,7 @@ void predict_one(
         for (int i = 0; i < matrix_rows; i++) {
             free(x[i]);
         }
+        free(x);
 
         for (int i = 0; i < matrix_rows; ++i) {
             for (int j = 0; j < n_neurons; ++j) {
@@ -1047,6 +1071,7 @@ void predict_one(
         for (int i = 0; i < matrix_rows; i++) {
             free(y[i]);
         }
+        free(y);
     }
 
     n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
@@ -1068,6 +1093,10 @@ void predict_one(
             prediction[j] = y[i][j];
         }
     }
+    for (int i = 0; i < matrix_rows; i++) {
+        free(y);
+    }
+    free(y);
     
     // Очищаем память
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -1087,8 +1116,8 @@ void predict_one(
         free(weights[layer_index]);
         free(biases[layer_index]);
     }
-    free(biases);
     free(weights);
+    free(biases);
 }
 
 void predict(
@@ -1182,6 +1211,7 @@ void predict(
         for (int i = 0; i < dataset_samples_cols; i++) {
             free(sample[i]);
         }
+        free(sample);
 
         Y[0] = malloc(dataset_samples_cols * sizeof(double*));
         for (int i = 0; i < dataset_samples_cols; i++) {
@@ -1193,6 +1223,7 @@ void predict(
         for (int i = 0; i < dataset_samples_cols; i++) {
             free(y[i]);
         }
+        free(y);
 
         int matrix_rows = dataset_samples_cols;
         for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
@@ -1217,6 +1248,7 @@ void predict(
             for (int i = 0; i < matrix_rows; i++) {
                 free(x[i]);
             }
+            free(x);
 
             for (int i = 0; i < matrix_rows; ++i) {
                 for (int j = 0; j < n_neurons; ++j) {
@@ -1236,6 +1268,7 @@ void predict(
             for (int i = 0; i < matrix_rows; i++) {
                 free(y[i]);
             }
+            free(y);
         }
 
         n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
@@ -1263,6 +1296,11 @@ void predict(
         for (int i = 0; i < n_neurons; i++) {
             predictions[dataset_index * n_neurons + i] = y[0][i];
         }
+
+        for (int i = 0; i < matrix_rows; i++) {
+            free(y[i]);
+        }
+        free(y);
     }
 
     // Очищаем память
@@ -1276,8 +1314,8 @@ void predict(
         free(weights[layer_index]);
         free(biases[layer_index]);
     }
-    free(biases);
     free(weights);
+    free(biases);
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         for (int i = 0; i < dataset_samples_cols; ++i) {
             free(samples[dataset_index][i]);
