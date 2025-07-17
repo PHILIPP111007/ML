@@ -14,7 +14,8 @@ void matmul(
     int cols_A,
     int rows_B,
     int cols_B,
-    int threading
+    int threading,
+    int num_cpu
 );
 
 double **transpose(
