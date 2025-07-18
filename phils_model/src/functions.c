@@ -44,10 +44,6 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
         pthread_t threads[num_threads];
         ThreadData thread_data[num_threads];
 
-        for (int i = 0; i < rows_A; i++) {
-            C[i] = malloc(cols_B * sizeof(double));
-        }
-
         // Разделяем строки между потоками
         int rowsPerThread = rows_A / num_threads;
         int remainder = rows_A % num_threads;

@@ -71,7 +71,7 @@ void sigmoid_derivative(double **y, int matrix_rows, int matrix_columns) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// Метод softmax (возвращает нормализованные вероятности классов).
+// The softmax method (returns normalized class probabilities)
 void softmax_calc(double **y, int matrix_rows, int matrix_columns) {
     double max_val = y[0][0];
 
@@ -83,7 +83,7 @@ void softmax_calc(double **y, int matrix_rows, int matrix_columns) {
         }
     }
 
-    // Отнимем максимум от каждого элемента для стабилизации экспоненты.
+    // Let's subtract the maximum from each element to stabilize the exponent
     double sum_exp = 0.0;
     for (int i = 0; i < matrix_rows; ++i) {
         for (int j = 0; j < matrix_columns; ++j) {
@@ -92,7 +92,7 @@ void softmax_calc(double **y, int matrix_rows, int matrix_columns) {
         }
     }
 
-    // Нормализация путем деления каждого элемента на сумму экспонент.
+    // Normalization by dividing each element by the sum of the exponents
     for (int i = 0; i < matrix_rows; ++i) {
         for (int j = 0; j < matrix_columns; ++j) {
             y[i][j] /= sum_exp;

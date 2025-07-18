@@ -16,7 +16,7 @@ typedef struct {
     double ***v;    // Накопленный квадратный градиент
 } AdamOptimizer;
 
-// Освобождение ресурсов оптимизатора
+// Freeing up optimizer resources
 void destroy_adam(struct AdamOptimizer *opt, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
 
@@ -33,7 +33,7 @@ void destroy_adam(struct AdamOptimizer *opt, double *layer_sizes, int layer_size
     free(opt);
 }
 
-// Создание нового экземпляра оптимизатора
+// Creating a new instance of the optimizer
 struct AdamOptimizer *create_adam(double lr, double b1, double b2, double eps, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     struct AdamOptimizer *optimizer = malloc(sizeof(AdamOptimizer));
     optimizer->lr = lr;
@@ -78,17 +78,17 @@ void adam_step(struct AdamOptimizer *optimizer, double ***weights, double ***gra
 
         for (int i = 0; i < n_inputs; i++) {
             for (int j = 0; j < n_neurons; j++) {
-                // Обновляем первый момент (среднее градиентов)
+                // Update the first moment (average of gradients)
                 optimizer->m[layer_index][i][j] = optimizer->b1 * optimizer->m[layer_index][i][j] + (1 - optimizer->b1) * grads[layer_index][i][j];
                 
-                // Обновляем второй момент (средний квадрат градиентов)
+                // Update the second moment (mean square of gradients)
                 optimizer->v[layer_index][i][j] = optimizer->b2 * optimizer->v[layer_index][i][j] + (1 - optimizer->b2) * pow(grads[layer_index][i][j], 2);
                 
-                // Исправляем смещение
+                // Correcting the bias
                 double m_hat = optimizer->m[layer_index][i][j] / (1 - pow(optimizer->b1, optimizer->epoch));
                 double v_hat = optimizer->v[layer_index][i][j] / (1 - pow(optimizer->b2, optimizer->epoch));
                 
-                // Обновляем веса
+                // Updating weights
                 weights[layer_index][i][j] -= optimizer->lr * m_hat / (sqrt(v_hat) + optimizer->eps);
 
                 if (isnan(weights[layer_index][i][j])) {

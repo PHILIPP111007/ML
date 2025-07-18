@@ -9,6 +9,7 @@
 #include "src/init.h"
 #include "src/json.h"
 #include "src/adam.h"
+#include "src/forward.h"
 
 
 void fit(
@@ -36,10 +37,10 @@ void fit(
     int num_cpu) {
     
     if (random_state != -1) {
-        srand(random_state); // устанавливаем начальное состояние генератора
+        srand(random_state); // set the initial state of the generator
     }
 
-    // Загрузка датасета
+    // Loading a dataset
     double*** samples = malloc(dataset_samples_rows * sizeof(double**));
     double** targets = malloc(dataset_targets_rows * sizeof(double*)); 
 
@@ -61,7 +62,7 @@ void fit(
         }
     }
 
-    // Инициализация смещений и весов
+    // Initialization of biases and weights
     double **biases = malloc(layer_sizes_rows * sizeof(double*));
     double ***weights = malloc(layer_sizes_rows * sizeof(double**));
 
@@ -71,7 +72,7 @@ void fit(
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
-        // Инициализировать смещение
+        // Initialize biases
         biases[layer_index] = malloc(n_neurons * sizeof(double));
         double *biases_arr = malloc(n_neurons * sizeof(double));
         biases_arr = init_bias(n_neurons, n_inputs);
@@ -80,7 +81,7 @@ void fit(
         }
         free(biases_arr);
 
-        // Инициализировать веса
+        // Initialize weights
         double **weights_arr = init_weights(n_neurons, n_inputs);
         weights[layer_index] = malloc(n_inputs * sizeof(double*));
         for (int i = 0; i < n_inputs; ++i) {
@@ -95,7 +96,7 @@ void fit(
         free(weights_arr);
     }
 
-    // Обучение
+    // Training
 
     // Create Adam
     struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-8, layer_sizes, layer_sizes_rows, layer_sizes_cols);
@@ -125,104 +126,9 @@ void fit(
             double ***X = malloc(layer_sizes_rows * sizeof(double**));
             double ***Y = malloc(layer_sizes_rows * sizeof(double**));
 
-            double **y = malloc(dataset_samples_cols * sizeof(double*));
-            for (int i = 0; i < dataset_samples_cols; i++) {
-                y[i] = malloc(n_neurons * sizeof(double));
-            }
-
-            matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons, threading, num_cpu);
-
-            for (int i = 0; i < dataset_samples_cols; ++i) {
-                for (int j = 0; j < n_neurons; ++j) {
-                    y[i][j] += biases[0][i];
-                }
-            }
-            int activation = (int)activations[0];
-            apply_activation_calc(y, dataset_samples_cols, n_neurons, activation);
-            dropout(y, dataset_samples_cols, n_neurons, keep_prob);
-
-            X[0] = malloc(dataset_samples_cols * sizeof(double*));
-            for (int i = 0; i < dataset_samples_cols; i++) {
-                X[0][i] = malloc(dataset_samples_depth * sizeof(double));
-                for (int j = 0; j < dataset_samples_depth; j++) {
-                    X[0][i][j] = sample[i][j];
-                }
-            }
-
-            for (int i = 0; i < dataset_samples_cols; i++) {
-                free(sample[i]);
-            }
-            free(sample);
-
-            Y[0] = malloc(dataset_samples_cols * sizeof(double*));
-            for (int i = 0; i < dataset_samples_cols; i++) {
-                Y[0][i] = malloc(n_neurons * sizeof(double));
-                for (int j = 0; j < n_neurons; j++) {
-                    Y[0][i][j] = y[i][j];
-                }
-            }
-            for (int i = 0; i < dataset_samples_cols; i++) {
-                free(y[i]);
-            }
-            free(y);
-
             int matrix_rows = dataset_samples_cols;
 
-            for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
-                double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
-                double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
-                int n_inputs = (int)n_inputs_double;
-                int n_neurons = (int)n_neurons_double;
-
-                double **x = malloc(matrix_rows * sizeof(double*));
-                for (int i = 0; i < matrix_rows; i++) {
-                    x[i] = malloc(n_inputs * sizeof(double));
-                    for (int j = 0; j < n_inputs; j++) {
-                        x[i][j] = Y[layer_index - 1][i][j];
-                    }
-                }
-
-                X[layer_index] = malloc(matrix_rows * sizeof(double*));
-                for (int i = 0; i < matrix_rows; i++) {
-                    X[layer_index][i] = malloc(n_inputs * sizeof(double));
-                    for (int j = 0; j < n_inputs; j++) {
-                        X[layer_index][i][j] = x[i][j];
-                    }
-                }
-
-                double **y = malloc(matrix_rows * sizeof(double*));
-                for (int i = 0; i < matrix_rows; i++) {
-                    y[i] = malloc(n_neurons * sizeof(double));
-                }
-                matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading, num_cpu);
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(x[i]);
-                }
-                free(x);
-
-                for (int i = 0; i < matrix_rows; ++i) {
-                    for (int j = 0; j < n_neurons; ++j) {
-                        y[i][j] += biases[layer_index][i];
-                    }
-                }
-                int activation = (int)activations[layer_index];
-                apply_activation_calc(y, matrix_rows, n_neurons, activation);
-                dropout(y, matrix_rows, n_neurons, keep_prob);
-
-                Y[layer_index] = malloc(matrix_rows * sizeof(double*));
-                for (int i = 0; i < matrix_rows; i++) {
-                    Y[layer_index][i] = malloc(n_neurons * sizeof(double));
-                    for (int j = 0; j < n_neurons; j++) {
-                        Y[layer_index][i][j] = y[i][j];
-                    }
-                }
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(y[i]);
-                }
-                free(y);
-
-                matrix_rows = matrix_rows;
-            }
+            forward_train(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, X, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, keep_prob, threading, num_cpu);
 
             // Backward pass
             double ***grad_w = malloc(layer_sizes_rows * sizeof(double**));
@@ -241,7 +147,6 @@ void fit(
             calc_loss(loss, target, Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
             free(target);
             double output_error = sum(delta, matrix_rows, n_neurons);
-            output_error /= matrix_rows + n_neurons;
             epoch_losses[dataset_index] = output_error;
 
             grad_b[layer_sizes_rows - 1] = sum_axis_0(delta, matrix_rows, n_neurons);
@@ -498,7 +403,7 @@ void fit(
     char *file_biases = "biases.json";
     save_biases_as_json(file_biases, biases, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
-    // Очищаем память
+    // Clearing memory
 
     destroy_adam(opt, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
@@ -580,99 +485,20 @@ void predict_one(
         total_bias_count += n_neurons;
     }
 
-    double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
-    double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
+    double ***Y = malloc(layer_sizes_rows * sizeof(double**));
+    
+    // Forward pass
+    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, threading, num_cpu);
+
+
+    double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
+    double n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
     int n_inputs = (int)n_inputs_double;
     int n_neurons = (int)n_neurons_double;
 
-    // Forward pass
-    double ***Y = malloc(layer_sizes_rows * sizeof(double**));
-
-    double **y = malloc(sample_rows * sizeof(double*));
-    for (int i = 0; i < sample_rows; i++) {
-        y[i] = malloc(n_neurons * sizeof(double));
-    }
-
-    matmul(sample, weights[0], y, sample_rows, sample_cols, n_inputs, n_neurons, threading, num_cpu);
-
-    for (int i = 0; i < sample_rows; ++i) {
-        for (int j = 0; j < n_neurons; ++j) {
-            y[i][j] += biases[0][i];
-        }
-    }
-    int activation = (int)activations[0];
-    apply_activation_calc(y, sample_rows, n_neurons, activation);
-
-    for (int i = 0; i < sample_rows; i++) {
-        free(sample[i]);
-    }
-    free(sample);
-
-    Y[0] = malloc(sample_rows * sizeof(double*));
-    for (int i = 0; i < sample_rows; i++) {
-        Y[0][i] = malloc(n_neurons * sizeof(double));
-        for (int j = 0; j < n_neurons; j++) {
-            Y[0][i][j] = y[i][j];
-        }
-    }
-    for (int i = 0; i < sample_rows; i++) {
-        free(y[i]);
-    }
-    free(y);
-
     int matrix_rows = sample_rows;
-    for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
-        double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
-        double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
-        int n_inputs = (int)n_inputs_double;
-        int n_neurons = (int)n_neurons_double;
 
-        double **x = malloc(matrix_rows * sizeof(double*));
-        for (int i = 0; i < matrix_rows; i++) {
-            x[i] = malloc(n_inputs * sizeof(double));
-            for (int j = 0; j < n_inputs; j++) {
-                x[i][j] = Y[layer_index - 1][i][j];
-            }
-        }
-
-        double **y = malloc(matrix_rows * sizeof(double*));
-        for (int i = 0; i < matrix_rows; i++) {
-            y[i] = malloc(n_neurons * sizeof(double));
-        }
-        matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading, num_cpu);
-
-        for (int i = 0; i < matrix_rows; i++) {
-            free(x[i]);
-        }
-        free(x);
-
-        for (int i = 0; i < matrix_rows; ++i) {
-            for (int j = 0; j < n_neurons; ++j) {
-                y[i][j] += biases[layer_index][i];
-            }
-        }
-        int activation = (int)activations[layer_index];
-        apply_activation_calc(y, matrix_rows, n_neurons, activation);
-
-        Y[layer_index] = malloc(matrix_rows * sizeof(double*));
-        for (int i = 0; i < matrix_rows; i++) {
-            Y[layer_index][i] = malloc(n_neurons * sizeof(double));
-            for (int j = 0; j < n_neurons; j++) {
-                Y[layer_index][i][j] = y[i][j];
-            }
-        }
-        for (int i = 0; i < matrix_rows; i++) {
-            free(y[i]);
-        }
-        free(y);
-    }
-
-    n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
-    n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
-    n_inputs = (int)n_inputs_double;
-    n_neurons = (int)n_neurons_double;
-
-    y = malloc(matrix_rows * sizeof(double*));
+    double **y = malloc(matrix_rows * sizeof(double*));
     for (int i = 0; i < matrix_rows; i++) {
         y[i] = malloc(n_neurons * sizeof(double));
         for (int j = 0; j < n_neurons; j++) {
@@ -691,7 +517,7 @@ void predict_one(
     }
     free(y);
     
-    // Очищаем память
+    // Clearing memory
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         for (int i = 0; i < matrix_rows; i++) {
             free(Y[layer_index][i]);
@@ -729,7 +555,7 @@ void predict(
     int threading,
     int num_cpu) {
 
-    // Загрузка датасета
+    // Loading a dataset
     double*** samples = malloc(dataset_samples_rows * sizeof(double**));
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = malloc(dataset_samples_cols * sizeof(double*));
@@ -780,99 +606,19 @@ void predict(
             }
         }
 
-        double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
-        double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
+        double ***Y = malloc(layer_sizes_rows * sizeof(double**));
+        
+        // Forward pass
+        forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, threading, num_cpu);
+
+        double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
+        double n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
-        // Forward pass
-        double ***Y = malloc(layer_sizes_rows * sizeof(double**));
-
-        double **y = malloc(dataset_samples_cols * sizeof(double*));
-        for (int i = 0; i < dataset_samples_cols; i++) {
-            y[i] = malloc(n_neurons * sizeof(double));
-        }
-
-        matmul(sample, weights[0], y, dataset_samples_cols, dataset_samples_depth, n_inputs, n_neurons, threading, num_cpu);
-
-        for (int i = 0; i < dataset_samples_cols; ++i) {
-            for (int j = 0; j < n_neurons; ++j) {
-                y[i][j] += biases[0][i];
-            }
-        }
-        int activation = (int)activations[0];
-        apply_activation_calc(y, dataset_samples_cols, n_neurons, activation);
-
-        for (int i = 0; i < dataset_samples_cols; i++) {
-            free(sample[i]);
-        }
-        free(sample);
-
-        Y[0] = malloc(dataset_samples_cols * sizeof(double*));
-        for (int i = 0; i < dataset_samples_cols; i++) {
-            Y[0][i] = malloc(n_neurons * sizeof(double));
-            for (int j = 0; j < n_neurons; j++) {
-                Y[0][i][j] = y[i][j];
-            }
-        }
-        for (int i = 0; i < dataset_samples_cols; i++) {
-            free(y[i]);
-        }
-        free(y);
-
         int matrix_rows = dataset_samples_cols;
-        for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
-            double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
-            double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
-            int n_inputs = (int)n_inputs_double;
-            int n_neurons = (int)n_neurons_double;
 
-            double **x = malloc(matrix_rows * sizeof(double*));
-            for (int i = 0; i < matrix_rows; i++) {
-                x[i] = malloc(n_inputs * sizeof(double));
-                for (int j = 0; j < n_inputs; j++) {
-                    x[i][j] = Y[layer_index - 1][i][j];
-                }
-            }
-
-            double **y = malloc(matrix_rows * sizeof(double*));
-            for (int i = 0; i < matrix_rows; i++) {
-                y[i] = malloc(n_neurons * sizeof(double));
-            }
-            matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading, num_cpu);
-
-            for (int i = 0; i < matrix_rows; i++) {
-                free(x[i]);
-            }
-            free(x);
-
-            for (int i = 0; i < matrix_rows; ++i) {
-                for (int j = 0; j < n_neurons; ++j) {
-                    y[i][j] += biases[layer_index][i];
-                }
-            }
-            int activation = (int)activations[layer_index];
-            apply_activation_calc(y, matrix_rows, n_neurons, activation);
-
-            Y[layer_index] = malloc(matrix_rows * sizeof(double*));
-            for (int i = 0; i < matrix_rows; i++) {
-                Y[layer_index][i] = malloc(n_neurons * sizeof(double));
-                for (int j = 0; j < n_neurons; j++) {
-                    Y[layer_index][i][j] = y[i][j];
-                }
-            }
-            for (int i = 0; i < matrix_rows; i++) {
-                free(y[i]);
-            }
-            free(y);
-        }
-
-        n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
-        n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
-        n_inputs = (int)n_inputs_double;
-        n_neurons = (int)n_neurons_double;
-
-        y = malloc(matrix_rows * sizeof(double*));
+        double **y = malloc(matrix_rows * sizeof(double*));
         for (int i = 0; i < matrix_rows; i++) {
             y[i] = malloc(n_neurons * sizeof(double));
             for (int j = 0; j < n_neurons; j++) {
@@ -899,7 +645,7 @@ void predict(
         free(y);
     }
 
-    // Очищаем память
+    // Clearing memory
     for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
         double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
         int n_inputs = (int)n_inputs_double;
