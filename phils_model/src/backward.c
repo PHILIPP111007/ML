@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "functions.h"
 #include "loss.h"
+#include "activations.h"
 
 
 void backward(

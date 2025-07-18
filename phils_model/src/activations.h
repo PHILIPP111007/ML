@@ -42,4 +42,18 @@ void softmax_derivative(
     int matrix_columns
 );
 
+void apply_activation_calc(
+    double **y,
+    int matrix_rows,
+    int matrix_columns,
+    int activation
+);
+
+void apply_activation_derivative(
+    double **y,
+    int matrix_rows,
+    int matrix_columns,
+    int activation
+);
+
 #endif

@@ -74,8 +74,6 @@ void adam_step(struct AdamOptimizer *optimizer, double ***weights, double ***gra
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
-
-
         for (int i = 0; i < n_inputs; i++) {
             for (int j = 0; j < n_neurons; j++) {
                 // Update the first moment (average of gradients)

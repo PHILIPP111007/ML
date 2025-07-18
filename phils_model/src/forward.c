@@ -3,6 +3,7 @@
 #include "forward.h"
 #include "functions.h"
 #include "loss.h"
+#include "activations.h"
 
 
 void forward(

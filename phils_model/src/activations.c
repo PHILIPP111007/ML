@@ -107,3 +107,29 @@ void softmax_derivative(double **y, int matrix_rows, int matrix_columns) {
         }
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+void apply_activation_calc(double **y, int matrix_rows, int matrix_columns, int activation) {
+    if (activation == 0) {
+        relu_calc(y, matrix_rows, matrix_columns);
+    } else if (activation == 1) {
+        sigmoid_calc(y, matrix_rows, matrix_columns);
+    } else if (activation == 2) {
+        softmax_calc(y, matrix_rows, matrix_columns);
+    } else if (activation == 3) {
+        return;
+    }
+}
+
+void apply_activation_derivative(double **y, int matrix_rows, int matrix_columns, int activation) {
+    if (activation == 0) {
+        relu_derivative(y, matrix_rows, matrix_columns);
+    } else if (activation == 1) {
+        sigmoid_derivative(y, matrix_rows, matrix_columns);
+    } else if (activation == 2) {
+        softmax_derivative(y, matrix_rows, matrix_columns);
+    } else if (activation == 3) {
+        return;
+    }
+}

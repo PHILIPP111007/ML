@@ -20,20 +20,6 @@ void cross_entropy_loss(
     int regression
 );
 
-void apply_activation_calc(
-    double **y,
-    int matrix_rows,
-    int matrix_columns,
-    int activation
-);
-
-void apply_activation_derivative(
-    double **y,
-    int matrix_rows,
-    int matrix_columns,
-    int activation
-);
-
 void calc_loss(
     int loss,
     double *target,
