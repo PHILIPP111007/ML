@@ -39,12 +39,12 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
         return;
     }
 
-    if (threading) {
+    if (threading && num_cpu > 1) {
         const int num_threads = num_cpu;
         pthread_t threads[num_threads];
         ThreadData thread_data[num_threads];
 
-        // Разделяем строки между потоками
+        // Splitting lines between threads
         int rowsPerThread = rows_A / num_threads;
         int remainder = rows_A % num_threads;
 
@@ -65,8 +65,6 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
             pthread_join(threads[t], NULL);
         }
     } else {
-
-        #pragma omp parallel for
         for (int i = 0; i < rows_A; i++) {
             for (int j = 0; j < cols_B; j++) {
                 C[i][j] = 0.0;
