@@ -27,4 +27,8 @@ void *backward(
     void *arg
 );
 
+void delete_backward_thread_data(
+    struct BackwardData *backward_thread_data
+);
+
 #endif

@@ -169,7 +169,6 @@ void fit(
                 target[i] = targets[dataset_index][i];
             }
 
-
             backward_thread_data[dataset_index].dataset_index = dataset_index;
             backward_thread_data[dataset_index].weights = weights;
             backward_thread_data[dataset_index].X = X;
@@ -183,7 +182,6 @@ void fit(
             backward_thread_data[dataset_index].layer_sizes_cols = layer_sizes_cols;
             backward_thread_data[dataset_index].matrix_rows = matrix_rows;
             backward_thread_data[dataset_index].loss = loss;
-
             backward_thread_data[dataset_index].activations = activations;
             backward_thread_data[dataset_index].threading = threading;
             backward_thread_data[dataset_index].num_cpu = num_cpu;
@@ -199,11 +197,8 @@ void fit(
 
         // Update weights and biases
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-            double ***X = backward_thread_data[dataset_index].X;
-            double ***Y = backward_thread_data[dataset_index].Y;
             double ***weights = backward_thread_data[dataset_index].weights;
             double ***grad_w = backward_thread_data[dataset_index].grad_w;
-            double ***grad_x = backward_thread_data[dataset_index].grad_x;
             double **grad_b = backward_thread_data[dataset_index].grad_b;
             
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols);
@@ -222,34 +217,7 @@ void fit(
                     }
                 }
             }
-
-            for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-                double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
-                int n_inputs = (int)n_inputs_double;
-
-                for (int i = 0; i < n_inputs; i++) {
-                    free(grad_w[layer_index][i]);
-                }
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(grad_x[layer_index][i]);
-                }
-                free(grad_w[layer_index]);
-                free(grad_x[layer_index]);
-                free(grad_b[layer_index]);
-            }
-            free(grad_w);
-            free(grad_x);
-            free(grad_b);
-            for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-                for (int i = 0; i < matrix_rows; i++) {
-                    free(X[layer_index][i]);
-                    free(Y[layer_index][i]);
-                }
-                free(X[layer_index]);
-                free(Y[layer_index]);
-            }
-            free(X);
-            free(Y);
+            delete_backward_thread_data(&backward_thread_data[dataset_index]);
         }
         double mean_loss = mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;
@@ -285,10 +253,6 @@ void fit(
         free(samples[dataset_index]);
     }
     free(samples);
-    for (int i = 0; i < dataset_targets_rows; ++i) {
-        free(targets[i]);
-    }
-    free(targets);
 }
 
 void predict_one(

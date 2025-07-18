@@ -122,7 +122,6 @@ void *backward(void *arg) {
         int activation = (int)activations[layer_index];
         apply_activation_derivative(y, matrix_rows, n_neurons, activation);
 
-
         double **grad = create_matrix(matrix_rows, n_neurons);
         for (int i = 0; i < matrix_rows; i++) {
             for (int j = 0; j < n_neurons; j++) {
@@ -176,7 +175,6 @@ void *backward(void *arg) {
         free(w);
         free(x_T);
 
-
         double **weight = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
             for (int j = 0; j < n_neurons; j++) {
@@ -215,4 +213,43 @@ void *backward(void *arg) {
     }
 
     return NULL;
+}
+
+void delete_backward_thread_data(BackwardData *backward_thread_data) {
+    double ***X = backward_thread_data->X;
+    double ***Y = backward_thread_data->Y;
+
+    double ***grad_w = backward_thread_data->grad_w;
+    double ***grad_x = backward_thread_data->grad_x;
+    double **grad_b = backward_thread_data->grad_b;
+
+    for (int layer_index = 0; layer_index < backward_thread_data->layer_sizes_rows; ++layer_index) {
+        double n_inputs_double = backward_thread_data->layer_sizes[layer_index * backward_thread_data->layer_sizes_cols + 0];
+        double n_neurons_double = backward_thread_data->layer_sizes[layer_index * backward_thread_data->layer_sizes_cols + 1];
+        int n_inputs = (int)n_inputs_double;
+        int n_neurons = (int)n_neurons_double;
+
+        for (int i = 0; i < n_inputs; i++) {
+            free(grad_w[layer_index][i]);
+        }
+        for (int i = 0; i < backward_thread_data->matrix_rows; i++) {
+            free(grad_x[layer_index][i]);
+        }
+        free(grad_w[layer_index]);
+        free(grad_x[layer_index]);
+        free(grad_b[layer_index]);
+
+        for (int i = 0; i < backward_thread_data->matrix_rows; i++) {
+            free(X[layer_index][i]);
+            free(Y[layer_index][i]);
+        }
+        free(X[layer_index]);
+        free(Y[layer_index]);
+    }
+    free(X);
+    free(Y);
+
+    free(grad_w);
+    free(grad_x);
+    free(grad_b);
 }
