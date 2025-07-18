@@ -1,31 +1,33 @@
 #include <stdlib.h>
+#include "backward.h"
 #include "functions.h"
 #include "loss.h"
 #include "activations.h"
 #include "functions.h"
 
 
-void backward(
-    double ***weights,
-    double ***Y,
-    double ***X,
-    double *target,
-    double ***grad_w,
-    double ***grad_x,
-    double **grad_b,
-    double *layer_sizes,
-    int layer_sizes_rows,
-    int layer_sizes_cols,
-    int matrix_rows,
-    int loss,
-    double *activations,
-    int threading,
-    int num_cpu,
-    double *epoch_losses,
-    int dataset_index,
-    int regression) {
+// Backward pass
+void *backward(void *arg) {
+    BackwardData *bd = (BackwardData *)arg;
 
-    // Backward pass
+    int dataset_index = bd->dataset_index;
+    double ***weights = bd->weights;
+    double ***X = bd->X;
+    double ***Y = bd->Y;
+    double *target = bd->target;
+    double ***grad_w = bd->grad_w;
+    double ***grad_x = bd->grad_x;
+    double **grad_b = bd->grad_b;
+    double *layer_sizes = bd->layer_sizes;
+    int layer_sizes_rows = bd->layer_sizes_rows;
+    int layer_sizes_cols = bd->layer_sizes_cols;
+    int matrix_rows = bd->matrix_rows;
+    double *activations = bd->activations;
+    int loss = bd->loss;
+    int threading = bd->threading;
+    int num_cpu = bd->num_cpu;
+    double *epoch_losses = bd->epoch_losses;
+    int regression = bd->regression;
 
     double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
     double n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
@@ -189,7 +191,6 @@ void backward(
         }
         free(weight);
 
-
         double **result_grad_x = create_matrix(matrix_rows, n_inputs);
         matmul(delta, w_T, result_grad_x, matrix_rows, n_neurons, n_neurons, n_inputs, threading, num_cpu);
         for (int i = 0; i < n_neurons; i++) {
@@ -212,4 +213,6 @@ void backward(
 
         matrix_rows = matrix_rows;
     }
+
+    return NULL;
 }

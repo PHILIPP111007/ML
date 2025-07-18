@@ -6,6 +6,7 @@
 #include "activations.h"
 
 
+// Forward pass
 void forward(
     double **sample,
     int sample_rows,
@@ -19,8 +20,6 @@ void forward(
     double *activations,
     int threading,
     int num_cpu) {
-
-    // Forward pass
 
     double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
     double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
@@ -43,7 +42,6 @@ void forward(
         free(sample[i]);
     }
     free(sample);
-
 
     Y[0] = create_matrix(sample_rows, n_neurons);
     for (int i = 0; i < sample_rows; i++) {
@@ -86,8 +84,6 @@ void forward(
         int activation = (int)activations[layer_index];
         apply_activation_calc(y, matrix_rows, n_neurons, activation);
 
-
-
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
         for (int i = 0; i < matrix_rows; i++) {
             for (int j = 0; j < n_neurons; j++) {
@@ -101,23 +97,25 @@ void forward(
     }
 }
 
-void forward_train(
-    double **sample,
-    int sample_rows,
-    int sample_cols,
-    double ***weights,
-    double **biases,
-    double ***X,
-    double ***Y,
-    double *layer_sizes,
-    int layer_sizes_rows,
-    int layer_sizes_cols,
-    double *activations,
-    double keep_prob,
-    int threading,
-    int num_cpu) {
+// Forward pass
+void *forward_train(void *arg) {
+    ForwardData *fd = (ForwardData *)arg;
 
-    // Forward pass
+    int dataset_index = fd->dataset_index;
+    double **sample = fd->sample;
+    int sample_rows = fd->sample_rows;
+    int sample_cols = fd->sample_cols;
+    double ***weights = fd->weights;
+    double **biases = fd->biases;
+    double ***X = fd->X;
+    double ***Y = fd->Y;
+    double *layer_sizes = fd->layer_sizes;
+    int layer_sizes_rows = fd->layer_sizes_rows;
+    int layer_sizes_cols = fd->layer_sizes_cols;
+    double *activations = fd->activations;
+    double keep_prob = fd->keep_prob;
+    int threading = fd->threading;
+    int num_cpu = fd->num_cpu;
 
     double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
     double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
@@ -210,4 +208,6 @@ void forward_train(
 
         matrix_rows = matrix_rows;
     }
+
+    return NULL;
 }
