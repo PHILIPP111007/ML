@@ -59,4 +59,9 @@ void dropout(
     double keep_prob
 );
 
+double **create_matrix(
+    int rows,
+    int cols
+);
+
 #endif

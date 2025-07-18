@@ -2,6 +2,7 @@
 #include "functions.h"
 #include "loss.h"
 #include "activations.h"
+#include "functions.h"
 
 
 void backward(
@@ -31,10 +32,8 @@ void backward(
     int n_inputs = (int)n_inputs_double;
     int n_neurons = (int)n_neurons_double;
 
-    double **delta = malloc(matrix_rows * sizeof(double*));
-    for (int i = 0; i < matrix_rows; i++) {
-        delta[i] = malloc(n_neurons * sizeof(double));
-    }
+    double **delta = create_matrix(matrix_rows, n_neurons);
+
     calc_loss(loss, target, Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
     free(target);
     double output_error = sum(delta, matrix_rows, n_neurons);
@@ -42,26 +41,20 @@ void backward(
 
     grad_b[layer_sizes_rows - 1] = sum_axis_0(delta, matrix_rows, n_neurons);
 
-    double **x = malloc(matrix_rows * sizeof(double*));
+    double **x = create_matrix(matrix_rows, n_inputs);
     for (int i = 0; i < matrix_rows; i++) {
-        x[i] = malloc(n_inputs * sizeof(double));
         for (int j = 0; j < n_inputs; j++) {
             x[i][j] = X[layer_sizes_rows - 1][i][j];
         }
     }
-    double **x_T = malloc(n_inputs * sizeof(double*));
-    for (int i = 0; i < n_inputs; i++) {
-        x_T[i] = malloc(matrix_rows * sizeof(double));
-    }
+
+    double **x_T = create_matrix(n_inputs, matrix_rows);
     x_T = transpose(x, matrix_rows, n_inputs);
-    double **w = malloc(n_inputs * sizeof(double*));
-    for (int i = 0; i < n_inputs; i++) {
-        w[i] = malloc(n_neurons * sizeof(double));
-    }
+    double **w = create_matrix(n_inputs, n_neurons);
     matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons, threading, num_cpu);
-    grad_w[layer_sizes_rows - 1] = malloc(n_inputs * sizeof(double*));
+
+    grad_w[layer_sizes_rows - 1] = create_matrix(n_inputs, n_neurons);
     for (int i = 0; i < n_inputs; i++) {
-        grad_w[layer_sizes_rows - 1][i] = malloc(n_neurons * sizeof(double));
         for (int j = 0; j < n_neurons; j++) {
             grad_w[layer_sizes_rows - 1][i][j] = w[i][j];
         }
@@ -77,27 +70,20 @@ void backward(
     }
     free(x);
 
-    double **weight = malloc(n_inputs * sizeof(double*));
+    double **weight = create_matrix(n_inputs, n_neurons);
     for (int i = 0; i < n_inputs; i++) {
-        weight[i] = malloc(n_neurons * sizeof(double));
         for (int j = 0; j < n_neurons; j++) {
             weight[i][j] = weights[layer_sizes_rows - 1][i][j];
         }
     }
 
-    double **w_T = malloc(n_neurons * sizeof(double*));
-    for (int i = 0; i < n_neurons; i++) {
-        w_T[i] = malloc(n_inputs * sizeof(double));
-    }
+    double **w_T = create_matrix(n_neurons, n_inputs);
     w_T = transpose(weight, n_inputs, n_neurons);
-    double **result = malloc(matrix_rows * sizeof(double*));
-    for (int i = 0; i < matrix_rows; i++) {
-        result[i] = malloc(n_inputs * sizeof(double));
-    }
+    double **result = create_matrix(matrix_rows, n_inputs);
     matmul(delta, w_T, result, matrix_rows, n_neurons, n_neurons, n_inputs, threading, num_cpu);
-    grad_x[layer_sizes_rows - 1] = malloc(matrix_rows * sizeof(double*));
+
+    grad_x[layer_sizes_rows - 1] = create_matrix(matrix_rows, n_inputs);
     for (int i = 0; i < matrix_rows; i++) {
-        grad_x[layer_sizes_rows - 1][i] = malloc(n_inputs * sizeof(double));
         for (int j = 0; j < n_inputs; j++) {
             grad_x[layer_sizes_rows - 1][i][j] = result[i][j];
         }
@@ -125,9 +111,8 @@ void backward(
         int n_inputs = (int)n_inputs_double;
         int n_neurons = (int)n_neurons_double;
 
-        double **y = malloc(matrix_rows * sizeof(double*));
+        double **y = create_matrix(matrix_rows, n_neurons);
         for (int i = 0; i < matrix_rows; i++) {
-            y[i] = malloc(n_neurons * sizeof(double));
             for (int j = 0; j < n_neurons; j++) {
                 y[i][j] = Y[layer_index][i][j];
             }
@@ -135,17 +120,16 @@ void backward(
         int activation = (int)activations[layer_index];
         apply_activation_derivative(y, matrix_rows, n_neurons, activation);
 
-        double **grad = malloc(matrix_rows * sizeof(double*));
+
+        double **grad = create_matrix(matrix_rows, n_neurons);
         for (int i = 0; i < matrix_rows; i++) {
-            grad[i] = malloc(n_neurons * sizeof(double));
             for (int j = 0; j < n_neurons; j++) {
                 grad[i][j] = grad_x[layer_index + 1][i][j];
             }
         }
 
-        double **delta = malloc(matrix_rows * sizeof(double*));
+        double **delta = create_matrix(matrix_rows, n_neurons);
         for (int i = 0; i < matrix_rows; i++) {
-            delta[i] = malloc(n_neurons * sizeof(double));
             for (int j = 0; j < n_neurons; j++) {
                 delta[i][j] = grad[i][j] * y[i][j];
             }
@@ -159,30 +143,26 @@ void backward(
 
         grad_b[layer_index] = sum_axis_0(delta, matrix_rows, n_neurons);
 
-        double **x = malloc(matrix_rows * sizeof(double*));
+
+        double **x = create_matrix(matrix_rows, n_inputs);
         for (int i = 0; i < matrix_rows; i++) {
-            x[i] = malloc(n_inputs * sizeof(double));
             for (int j = 0; j < n_inputs; j++) {
                 x[i][j] = X[layer_index][i][j];
             }
         }
-        double **x_T = malloc(n_inputs * sizeof(double*));
-        for (int i = 0; i < n_inputs; i++) {
-            x_T[i] = malloc(matrix_rows * sizeof(double));
-        }
+
+        double **x_T = create_matrix(n_inputs, matrix_rows);
         x_T = transpose(x, matrix_rows, n_inputs);
         for (int i = 0; i < matrix_rows; i++) {
             free(x[i]);
         }
         free(x);
-        double **w = malloc(n_inputs * sizeof(double*));
-        for (int i = 0; i < n_inputs; i++) {
-            w[i] = malloc(n_neurons * sizeof(double));
-        }
+
+        double **w = create_matrix(n_inputs, n_neurons);
         matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons, threading, num_cpu);
-        grad_w[layer_index] = malloc(n_inputs * sizeof(double*));
+
+        grad_w[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
-            grad_w[layer_index][i] = malloc(n_neurons * sizeof(double));
             for (int j = 0; j < n_neurons; j++) {
                 grad_w[layer_index][i][j] = w[i][j];
             }
@@ -194,34 +174,31 @@ void backward(
         free(w);
         free(x_T);
 
-        double **weight = malloc(n_inputs * sizeof(double*));
+
+        double **weight = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
-            weight[i] = malloc(n_neurons * sizeof(double));
             for (int j = 0; j < n_neurons; j++) {
                 weight[i][j] = weights[layer_index][i][j];
             }
         }
-        double **w_T = malloc(n_neurons * sizeof(double*));
-        for (int i = 0; i < n_neurons; i++) {
-            w_T[i] = malloc(n_inputs * sizeof(double));
-        }
+
+        double **w_T = create_matrix(n_neurons, n_inputs);
         w_T = transpose(weight, n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
             free(weight[i]);
         }
         free(weight);
-        double **result_grad_x = malloc(matrix_rows * sizeof(double*));
-        for (int i = 0; i < matrix_rows; i++) {
-            result_grad_x[i] = malloc(n_inputs * sizeof(double));
-        }
+
+
+        double **result_grad_x = create_matrix(matrix_rows, n_inputs);
         matmul(delta, w_T, result_grad_x, matrix_rows, n_neurons, n_neurons, n_inputs, threading, num_cpu);
         for (int i = 0; i < n_neurons; i++) {
             free(w_T[i]);
         }
         free(w_T);
-        grad_x[layer_index] = malloc(matrix_rows * sizeof(double*));
+
+        grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
         for (int i = 0; i < matrix_rows; i++) {
-            grad_x[layer_index][i] = malloc(n_inputs * sizeof(double));
             for (int j = 0; j < n_inputs; j++) {
                 grad_x[layer_index][i][j] = result_grad_x[i][j];
             }

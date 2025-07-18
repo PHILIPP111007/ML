@@ -161,3 +161,12 @@ void dropout(double **y, int matrix_rows, int n_neurons, double keep_prob) {
         }
     }
 }
+
+double **create_matrix(int rows, int cols) {
+    double **matrix = malloc(rows * sizeof(double*));
+
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = malloc(cols * sizeof(double));
+    }
+    return matrix;
+}

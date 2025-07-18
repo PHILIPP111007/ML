@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "activations.h"
+#include "functions.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -53,10 +54,9 @@ void sigmoid_calc(double **y, int matrix_rows, int matrix_columns) {
 }
 
 void sigmoid_derivative(double **y, int matrix_rows, int matrix_columns) {
-    double **f = malloc(matrix_rows * sizeof(double*));
+    double **f = create_matrix(matrix_rows, matrix_columns);
 
     for (int i = 0; i < matrix_rows; ++i) {
-        f[i] = malloc(matrix_columns * sizeof(double));
         for (int j = 0; j < matrix_columns; ++j) {
             f[i][j] = sigmoid(y[i][j]);
         }
