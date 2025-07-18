@@ -542,7 +542,7 @@ void predict_one(
     int threading,
     int num_cpu) {
 
-    double** sample = malloc(sample_rows * sizeof(double*));
+    double **sample = malloc(sample_rows * sizeof(double*));
     for (int i = 0; i < sample_rows; ++i) {
         sample[i] = malloc(sample_cols * sizeof(double));
         for (int j = 0; j < sample_cols; ++j) {
@@ -640,6 +640,7 @@ void predict_one(
             y[i] = malloc(n_neurons * sizeof(double));
         }
         matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading, num_cpu);
+
         for (int i = 0; i < matrix_rows; i++) {
             free(x[i]);
         }
@@ -839,6 +840,7 @@ void predict(
                 y[i] = malloc(n_neurons * sizeof(double));
             }
             matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons, threading, num_cpu);
+
             for (int i = 0; i < matrix_rows; i++) {
                 free(x[i]);
             }

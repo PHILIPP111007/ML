@@ -59,7 +59,7 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
             thread_data[t].rows_A = rows_A;
             thread_data[t].cols_A = cols_A;
             thread_data[t].cols_B = cols_B;
-            thread_data[t].startRow = t * rowsPerThread + ((t < remainder) ? t : remainder); 
+            thread_data[t].startRow = t * rowsPerThread + ((t < remainder) ? t : remainder);
             thread_data[t].endRow = (t + 1) * rowsPerThread + ((t + 1 <= remainder) ? (t + 1) : remainder);
             
             pthread_create(&threads[t], NULL, process_row, &thread_data[t]);
@@ -69,8 +69,9 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
             pthread_join(threads[t], NULL);
         }
     } else {
+
+        #pragma omp parallel for
         for (int i = 0; i < rows_A; i++) {
-            C[i] = malloc(cols_B * sizeof(double));
             for (int j = 0; j < cols_B; j++) {
                 C[i][j] = 0.0;
                 for (int k = 0; k < cols_A; k++) {
