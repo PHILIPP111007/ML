@@ -195,9 +195,42 @@ void fit(
                 }
             }
         }
-        for (int t = 0; t < num_threads; ++t) {
-            delete_backward_thread_data(&backward_thread_data[t]);
+
+        for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+            for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
+                double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
+                double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
+                int n_inputs = (int)n_inputs_double;
+                int n_neurons = (int)n_neurons_double;
+
+                for (int i = 0; i < n_inputs; i++) {
+                    free(grad_w_list[dataset_index][layer_index][i]);
+                }
+                for (int i = 0; i < matrix_rows; i++) {
+                    free(grad_x_list[dataset_index][layer_index][i]);
+                    free(X_list[dataset_index][layer_index][i]);
+                    free(Y_list[dataset_index][layer_index][i]);
+                }
+                free(grad_w_list[dataset_index][layer_index]);
+                free(grad_x_list[dataset_index][layer_index]);
+                free(grad_b_list[dataset_index][layer_index]);
+
+                free(X_list[dataset_index][layer_index]);
+                free(Y_list[dataset_index][layer_index]);
+            }
+            free(grad_w_list[dataset_index]);
+            free(grad_x_list[dataset_index]);
+            free(grad_b_list[dataset_index]);
+
+            free(X_list[dataset_index]);
+            free(Y_list[dataset_index]);
         }
+        free(grad_w_list);
+        free(grad_x_list);
+        free(grad_b_list);
+
+        free(X_list);
+        free(Y_list);
 
         double mean_loss = mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;

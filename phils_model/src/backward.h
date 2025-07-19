@@ -53,8 +53,4 @@ void backward_threading(
     int num_threads
 );
 
-void delete_backward_thread_data(
-    struct BackwardData *backward_thread_data
-);
-
 #endif

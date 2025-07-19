@@ -235,14 +235,6 @@ void *backward_worker(void *arg) {
     return NULL;
 }
 
-
-
-
-
-
-
-
-
 void backward_threading(
     struct BackwardData backward_thread_data[],
     double ***weights,
@@ -312,51 +304,4 @@ void backward_threading(
     for (int t = 0; t < num_threads; ++t) {
         pthread_join(backward_threads[t], NULL);
     }
-}
-
-void delete_backward_thread_data(BackwardData *bd) {
-    for (int dataset_index = 0; dataset_index < bd->dataset_samples_rows; ++dataset_index) {
-        double ***X = bd->X_list[dataset_index];
-        double ***Y = bd->Y_list[dataset_index];
-
-        double ***grad_w = bd->grad_w_list[dataset_index];
-        double ***grad_x = bd->grad_x_list[dataset_index];
-        double **grad_b = bd->grad_b_list[dataset_index];
-
-        for (int layer_index = 0; layer_index < bd->layer_sizes_rows; ++layer_index) {
-            double n_inputs_double = bd->layer_sizes[layer_index * bd->layer_sizes_cols + 0];
-            double n_neurons_double = bd->layer_sizes[layer_index * bd->layer_sizes_cols + 1];
-            int n_inputs = (int)n_inputs_double;
-            int n_neurons = (int)n_neurons_double;
-
-            for (int i = 0; i < n_inputs; i++) {
-                free(grad_w[layer_index][i]);
-            }
-            for (int i = 0; i < bd->matrix_rows; i++) {
-                free(grad_x[layer_index][i]);
-            }
-            free(grad_w[layer_index]);
-            free(grad_x[layer_index]);
-            free(grad_b[layer_index]);
-
-            for (int i = 0; i < bd->matrix_rows; i++) {
-                free(X[layer_index][i]);
-                free(Y[layer_index][i]);
-            }
-            free(X[layer_index]);
-            free(Y[layer_index]);
-        }
-        free(X);
-        free(Y);
-
-        free(grad_w);
-        free(grad_x);
-        free(grad_b);
-    }
-    free(bd->X_list);
-    free(bd->Y_list);
-
-    free(bd->grad_w_list);
-    free(bd->grad_x_list);
-    free(bd->grad_b_list);
 }
