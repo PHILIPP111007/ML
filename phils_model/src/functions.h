@@ -2,24 +2,6 @@
 #define FUNCTIONS_H
 
 
-typedef struct ThreadData {
-    double **A;
-    double **B;
-    double **C;
-    int row_A_index;
-    int cols_B_index;
-    int rows_A;
-    int cols_A;
-    int rows_B;
-    int cols_B;
-    int startRow;
-    int endRow;
-} ThreadData;
-
-void *process_row(
-    void *arg
-);
-
 void matmul(
     double **A,
     double **B,
@@ -27,9 +9,7 @@ void matmul(
     int rows_A,
     int cols_A,
     int rows_B,
-    int cols_B,
-    int threading,
-    int num_cpu
+    int cols_B
 );
 
 double **transpose(

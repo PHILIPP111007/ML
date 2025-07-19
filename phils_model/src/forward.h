@@ -2,22 +2,22 @@
 #define FORWARD_H
 
 
-typedef struct ForwardData {
-    int dataset_index;
-    double **sample;
+// Тип данных для параметра потока
+typedef struct ForwardData{
+    int start_idx;              // Начальный индекс выборки
+    int end_idx;                // Конечный индекс выборки
+    double ***samples;
     int sample_rows;
     int sample_cols;
+    double ****X_list;
+    double ****Y_list;
     double ***weights;
     double **biases;
-    double ***X;
-    double ***Y;
     double *layer_sizes;
     int layer_sizes_rows;
-    int layer_sizes_cols;
+    int layer_sizes_cols;       
     double *activations;
     double keep_prob;
-    int threading;
-    int num_cpu;
 } ForwardData;
 
 void forward(
@@ -31,12 +31,29 @@ void forward(
     int layer_sizes_rows,
     int layer_sizes_cols,
     double *activations,
-    int threading,
     int num_cpu
 );
 
-void *forward_train(
+void *forward_worker(
     void *arg
+);
+
+void forward_threading(
+    struct ForwardData forward_thread_data[],
+    double ***samples,
+    double ***weights,
+    double **biases,
+    double ****X_list,
+    double ****Y_list,
+    int dataset_samples_rows,
+    int dataset_samples_cols,
+    int dataset_samples_depth,
+    double *layer_sizes,
+    int layer_sizes_rows,
+    int layer_sizes_cols,
+    double *activations,
+    double keep_prob,
+    int num_threads
 );
 
 #endif

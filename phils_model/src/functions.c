@@ -4,59 +4,17 @@
 #include "functions.h"
 
 
-void *process_row(void *arg) {
-    ThreadData *td = (ThreadData *)arg;
-
-    for (int i = td->startRow; i < td->endRow; i++) {
-        for (int j = 0; j < td->cols_B; j++) {
-            double sum = 0.0;
-            for (int k = 0; k < td->cols_A; k++) {
-                sum += td->A[i][k] * td->B[k][j];
-            }
-            td->C[i][j] = sum;
-        }
-    }
-    return NULL;
-}
-
-void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows_B, int cols_B, int threading, int num_cpu) {
+void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows_B, int cols_B) {
     if (cols_A != rows_B) {
         fprintf(stderr, "Cols first != rows second!\n");
         return;
     }
 
-    if (threading && num_cpu > 1) {
-        const int num_threads = num_cpu;
-        pthread_t threads[num_threads];
-        ThreadData thread_data[num_threads];
-
-        // Splitting lines between threads
-        int rowsPerThread = rows_A / num_threads;
-        int remainder = rows_A % num_threads;
-
-        for (int t = 0; t < num_threads; t++) {
-            thread_data[t].A = A;
-            thread_data[t].B = B;
-            thread_data[t].C = C;
-            thread_data[t].rows_A = rows_A;
-            thread_data[t].cols_A = cols_A;
-            thread_data[t].cols_B = cols_B;
-            thread_data[t].startRow = t * rowsPerThread + ((t < remainder) ? t : remainder);
-            thread_data[t].endRow = (t + 1) * rowsPerThread + ((t + 1 <= remainder) ? (t + 1) : remainder);
-            
-            pthread_create(&threads[t], NULL, process_row, &thread_data[t]);
-        }
-
-        for (int t = 0; t < num_threads; t++) {
-            pthread_join(threads[t], NULL);
-        }
-    } else {
-        for (int i = 0; i < rows_A; i++) {
-            for (int j = 0; j < cols_B; j++) {
-                C[i][j] = 0.0;
-                for (int k = 0; k < cols_A; k++) {
-                    C[i][j] += A[i][k] * B[k][j];
-                }
+    for (int i = 0; i < rows_A; i++) {
+        for (int j = 0; j < cols_B; j++) {
+            C[i][j] = 0.0;
+            for (int k = 0; k < cols_A; k++) {
+                C[i][j] += A[i][k] * B[k][j];
             }
         }
     }

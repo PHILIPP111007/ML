@@ -35,7 +35,6 @@ void fit(
     int random_state,
     double keep_prob,
     int regression,
-    int threading,
     int num_cpu) {
     
     if (random_state != -1) {
@@ -43,8 +42,8 @@ void fit(
     }
 
     // Loading a dataset
-    double*** samples = malloc(dataset_samples_rows * sizeof(double**));
-    double** targets = malloc(dataset_targets_rows * sizeof(double*)); 
+    double ***samples = malloc(dataset_samples_rows * sizeof(double**));
+    double **targets = malloc(dataset_targets_rows * sizeof(double*)); 
 
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = malloc(dataset_samples_cols * sizeof(double*));
@@ -108,101 +107,81 @@ void fit(
         double *epoch_losses = malloc(dataset_samples_rows * sizeof(double));
         int matrix_rows = dataset_samples_cols;
 
-        const int num_threads = dataset_samples_rows;
-        pthread_t forward_threads[num_threads];
-        pthread_t backward_threads[num_threads];
-        
+
+        const int num_threads = (dataset_samples_rows < num_cpu) ? dataset_samples_rows : num_cpu;
         struct ForwardData forward_thread_data[num_threads];
         struct BackwardData backward_thread_data[num_threads];
         
         // Forward pass
-        for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-            double **sample = malloc(dataset_samples_cols * sizeof(double*));
-            for (int i = 0; i < dataset_samples_cols; i++) {
-                sample[i] = malloc(dataset_samples_depth * sizeof(double));
-                for (int j = 0; j < dataset_samples_depth; j++) {
-                    sample[i][j] = samples[dataset_index][i][j];
-                }
-            }
 
-            double ***X = malloc(layer_sizes_rows * sizeof(double**));
-            double ***Y = malloc(layer_sizes_rows * sizeof(double**));
+        double ****X_list_intermediate = malloc(dataset_samples_rows * sizeof(double***));
+        double ****Y_list_intermediate = malloc(dataset_samples_rows * sizeof(double***));
+        double ****X_list = malloc(dataset_samples_rows * sizeof(double***));
+        double ****Y_list = malloc(dataset_samples_rows * sizeof(double***));
 
-            forward_thread_data[dataset_index].dataset_index = dataset_index;
-            forward_thread_data[dataset_index].sample = sample;
-            forward_thread_data[dataset_index].sample_rows = dataset_samples_cols;
-            forward_thread_data[dataset_index].sample_cols = dataset_samples_depth;
-            forward_thread_data[dataset_index].weights = weights;
-            forward_thread_data[dataset_index].biases = biases;
-            forward_thread_data[dataset_index].X = X;
-            forward_thread_data[dataset_index].Y = Y;
-            forward_thread_data[dataset_index].layer_sizes = layer_sizes;
-            forward_thread_data[dataset_index].layer_sizes_rows = layer_sizes_rows;
-            forward_thread_data[dataset_index].layer_sizes_cols = layer_sizes_cols;
-            forward_thread_data[dataset_index].activations = activations;
-            forward_thread_data[dataset_index].keep_prob = keep_prob;
-            forward_thread_data[dataset_index].threading = threading;
-            forward_thread_data[dataset_index].num_cpu = num_cpu;
+        forward_threading(
+            forward_thread_data,
+            samples,
+            weights,
+            biases,
+            X_list_intermediate,
+            Y_list_intermediate,
+            dataset_samples_rows,
+            dataset_samples_cols,
+            dataset_samples_depth,
+            layer_sizes,
+            layer_sizes_rows,
+            layer_sizes_cols,
+            activations,
+            keep_prob,
+            num_threads
+        );
 
-            pthread_create(&forward_threads[dataset_index], NULL, forward_train, &forward_thread_data[dataset_index]);
-        }
         for (int t = 0; t < num_threads; ++t) {
-            pthread_join(forward_threads[t], NULL);
+            for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+                X_list[dataset_index] = forward_thread_data[t].X_list[dataset_index];
+                Y_list[dataset_index] = forward_thread_data[t].Y_list[dataset_index];
+            }
         }
+
+        double ****grad_w_list = malloc(dataset_samples_rows * sizeof(double***));
+        double ****grad_x_list = malloc(dataset_samples_rows * sizeof(double***));
+        double ***grad_b_list = malloc(dataset_samples_rows * sizeof(double**));
 
         // Backward pass
-        for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-            double ***X = forward_thread_data[dataset_index].X;
-            double ***Y = forward_thread_data[dataset_index].Y;
+        backward_threading(
+            backward_thread_data,
+            weights,
+            targets,
+            biases,
+            X_list,
+            Y_list,
+            grad_w_list,
+            grad_x_list,
+            grad_b_list,
+            layer_sizes,
+            layer_sizes_rows,
+            layer_sizes_cols,
+            dataset_samples_rows,
+            dataset_samples_cols,
+            dataset_targets_cols,
+            matrix_rows,
+            activations,
+            loss,
+            epoch_losses,
+            regression,
+            num_threads
+        );
 
-            double ***grad_w = malloc(layer_sizes_rows * sizeof(double**));
-            double ***grad_x = malloc(layer_sizes_rows * sizeof(double**));
-            double **grad_b = malloc(layer_sizes_rows * sizeof(double*));
 
-            double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
-            double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
-            int n_inputs = (int)n_inputs_double;
-            int n_neurons = (int)n_neurons_double;
-
-            double *target = malloc(dataset_targets_cols * sizeof(double));
-            for (int i = 0; i < dataset_targets_cols; i++) {
-                target[i] = targets[dataset_index][i];
-            }
-
-            backward_thread_data[dataset_index].dataset_index = dataset_index;
-            backward_thread_data[dataset_index].weights = weights;
-            backward_thread_data[dataset_index].X = X;
-            backward_thread_data[dataset_index].Y = Y;
-            backward_thread_data[dataset_index].target = target;
-            backward_thread_data[dataset_index].grad_w = grad_w;
-            backward_thread_data[dataset_index].grad_x = grad_x;
-            backward_thread_data[dataset_index].grad_b = grad_b;
-            backward_thread_data[dataset_index].layer_sizes = layer_sizes;
-            backward_thread_data[dataset_index].layer_sizes_rows = layer_sizes_rows;
-            backward_thread_data[dataset_index].layer_sizes_cols = layer_sizes_cols;
-            backward_thread_data[dataset_index].matrix_rows = matrix_rows;
-            backward_thread_data[dataset_index].loss = loss;
-            backward_thread_data[dataset_index].activations = activations;
-            backward_thread_data[dataset_index].threading = threading;
-            backward_thread_data[dataset_index].num_cpu = num_cpu;
-            backward_thread_data[dataset_index].epoch_losses = epoch_losses;
-            backward_thread_data[dataset_index].regression = regression;
-
-            pthread_create(&backward_threads[dataset_index], NULL, backward, &backward_thread_data[dataset_index]);
-
-        }
-        for (int t = 0; t < num_threads; ++t) {
-            pthread_join(backward_threads[t], NULL);
-        }
 
         // Update weights and biases
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-            double ***weights = backward_thread_data[dataset_index].weights;
-            double ***grad_w = backward_thread_data[dataset_index].grad_w;
-            double **grad_b = backward_thread_data[dataset_index].grad_b;
-            
+            double ***grad_w = grad_w_list[dataset_index];
+            double **grad_b = grad_b_list[dataset_index];
+
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols);
-            
+
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 double n_inputs_double = layer_sizes[layer_index * layer_sizes_cols + 0];
                 double n_neurons_double = layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -217,8 +196,11 @@ void fit(
                     }
                 }
             }
-            delete_backward_thread_data(&backward_thread_data[dataset_index]);
         }
+        for (int t = 0; t < num_threads; ++t) {
+            delete_backward_thread_data(&backward_thread_data[t]);
+        }
+
         double mean_loss = mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;
         if (verbose) {
@@ -311,7 +293,7 @@ void predict_one(
     double ***Y = malloc(layer_sizes_rows * sizeof(double**));
     
     // Forward pass
-    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, threading, num_cpu);
+    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, num_cpu);
 
 
     double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
@@ -432,7 +414,7 @@ void predict(
         double ***Y = malloc(layer_sizes_rows * sizeof(double**));
         
         // Forward pass
-        forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, threading, num_cpu);
+        forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, num_cpu);
 
         double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
         double n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
