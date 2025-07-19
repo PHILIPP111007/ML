@@ -157,14 +157,6 @@ void fit(
             num_threads
         );
 
-        for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-            for (int i = 0; i < dataset_samples_cols; ++i) {
-                free(samples[dataset_index][i]);
-            }
-            free(samples[dataset_index]);
-        }
-        free(samples);
-
         for (int t = 0; t < num_threads; ++t) {
             for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
                 X_list[dataset_index] = forward_thread_data[t].X_list[dataset_index];
@@ -240,6 +232,14 @@ void fit(
     save_biases_as_json(file_biases, biases, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
     // Clearing memory
+
+    for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+        for (int i = 0; i < dataset_samples_cols; ++i) {
+            free(samples[dataset_index][i]);
+        }
+        free(samples[dataset_index]);
+    }
+    free(samples);
 
     destroy_adam(opt, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
