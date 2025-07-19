@@ -14,6 +14,27 @@
 #include "src/backward.h"
 
 
+char* get_time() {
+    // Выделяем статический буфер для хранения строки времени
+    static char time_str[30];
+
+    // Получаем текущее время
+    time_t raw_time;
+    struct tm *time_info;
+    time(&raw_time);
+    time_info = localtime(&raw_time);
+
+    // Получаем миллисекунды
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    long milliseconds = ts.tv_nsec / 1000000;
+
+    // Форматируем строку времени
+    strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_info);
+
+    return time_str;
+}
+
 void fit(
     double *dataset_samples,
     double *dataset_targets,
@@ -209,7 +230,8 @@ void fit(
         double mean_loss = mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;
         if (verbose) {
-            printf("Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
+            const char *time = get_time();
+            printf("[%s] - INFO - Epoch %d / %d. Loss: %f\n", time, epoch + 1, n_epoch, mean_loss);
         }
     }
     char *file_weights = "weights.json";
