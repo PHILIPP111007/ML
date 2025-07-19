@@ -30,8 +30,7 @@ void forward(
     double *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
-    double *activations,
-    int num_cpu
+    double *activations
 );
 
 void *forward_worker(

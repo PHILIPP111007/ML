@@ -107,7 +107,6 @@ void fit(
         double *epoch_losses = malloc(dataset_samples_rows * sizeof(double));
         int matrix_rows = dataset_samples_cols;
 
-
         const int num_threads = (dataset_samples_rows < num_cpu) ? dataset_samples_rows : num_cpu;
         struct ForwardData forward_thread_data[num_threads];
         struct BackwardData backward_thread_data[num_threads];
@@ -136,6 +135,14 @@ void fit(
             keep_prob,
             num_threads
         );
+
+        for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+            for (int i = 0; i < dataset_samples_cols; ++i) {
+                free(samples[dataset_index][i]);
+            }
+            free(samples[dataset_index]);
+        }
+        free(samples);
 
         for (int t = 0; t < num_threads; ++t) {
             for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
@@ -172,8 +179,6 @@ void fit(
             regression,
             num_threads
         );
-
-
 
         // Update weights and biases
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
@@ -228,13 +233,6 @@ void fit(
     }
     free(biases);
     free(weights);
-    for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-        for (int i = 0; i < dataset_samples_cols; ++i) {
-            free(samples[dataset_index][i]);
-        }
-        free(samples[dataset_index]);
-    }
-    free(samples);
 }
 
 void predict_one(
@@ -248,9 +246,7 @@ void predict_one(
     int layer_sizes_cols,
     double *activations,
     int activations_len,
-    double *prediction,
-    int threading,
-    int num_cpu) {
+    double *prediction) {
 
     double **sample = malloc(sample_rows * sizeof(double*));
     for (int i = 0; i < sample_rows; ++i) {
@@ -293,7 +289,7 @@ void predict_one(
     double ***Y = malloc(layer_sizes_rows * sizeof(double**));
     
     // Forward pass
-    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, num_cpu);
+    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
 
 
     double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
@@ -356,9 +352,7 @@ void predict(
     int layer_sizes_cols,
     double *activations,
     int activations_len,
-    double *predictions,
-    int threading,
-    int num_cpu) {
+    double *predictions) {
 
     // Loading a dataset
     double*** samples = malloc(dataset_samples_rows * sizeof(double**));
@@ -414,7 +408,7 @@ void predict(
         double ***Y = malloc(layer_sizes_rows * sizeof(double**));
         
         // Forward pass
-        forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, num_cpu);
+        forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
 
         double n_inputs_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
         double n_neurons_double = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];

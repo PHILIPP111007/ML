@@ -301,9 +301,6 @@ void backward_threading(
         backward_thread_data[t].dataset_targets_cols = dataset_targets_cols;
 
 
-
-
-
         // Создание нового потока
         pthread_create(&backward_threads[t], NULL, backward_worker, &backward_thread_data[t]);
 
@@ -356,4 +353,10 @@ void delete_backward_thread_data(BackwardData *bd) {
         free(grad_x);
         free(grad_b);
     }
+    free(bd->X_list);
+    free(bd->Y_list);
+
+    free(bd->grad_w_list);
+    free(bd->grad_x_list);
+    free(bd->grad_b_list);
 }

@@ -18,8 +18,7 @@ void forward(
     double *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
-    double *activations,
-    int num_cpu) {
+    double *activations) {
 
     double n_inputs_double = layer_sizes[0 * layer_sizes_cols + 0];
     double n_neurons_double = layer_sizes[0 * layer_sizes_cols + 1];
