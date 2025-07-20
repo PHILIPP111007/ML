@@ -11,12 +11,10 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
     }
 
     for (int i = 0; i < rows_A; i++) {
-        for (int j = 0; j < cols_B; j++) {
-            double sum = 0.0;
-            for (int k = 0; k < cols_A; k++) {
-                sum += A[i][k] * B[k][j];
+        for (int k = 0; k < cols_A; k++) {
+            for (int j = 0; j < cols_B; j++) {
+                C[i][j] += A[i][k] * B[k][j];
             }
-            C[i][j] = sum;
         }
     }
 }
