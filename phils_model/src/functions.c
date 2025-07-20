@@ -6,7 +6,7 @@
 
 void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows_B, int cols_B) {
     if (cols_A != rows_B) {
-        fprintf(stderr, "Cols first != rows second!\n");
+        fprintf(stderr, "Matrix dimensions mismatch: %d != %d\n", cols_A, rows_B);
         return;
     }
 
