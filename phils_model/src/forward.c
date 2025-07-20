@@ -113,7 +113,7 @@ void *forward_worker(void *arg) {
     int layer_sizes_rows = fd->layer_sizes_rows;
     int layer_sizes_cols = fd->layer_sizes_cols;
     double *activations = fd->activations;
-    double keep_prob = fd->keep_prob;
+    double keep_probs = fd->keep_probs;
 
     for (int dataset_index = start_idx; dataset_index < end_idx; ++dataset_index) {
 
@@ -143,6 +143,7 @@ void *forward_worker(void *arg) {
         }
         int activation = (int)activations[0];
         apply_activation_calc(y, sample_rows, n_neurons, activation);
+        double keep_prob = keep_probs[0];
         dropout(y, sample_rows, n_neurons, keep_prob);
 
         X[0] = create_matrix(sample_rows, sample_cols);
@@ -204,6 +205,7 @@ void *forward_worker(void *arg) {
             }
             int activation = (int)activations[layer_index];
             apply_activation_calc(y, matrix_rows, n_neurons, activation);
+            double keep_prob = keep_probs[layer_index];
             dropout(y, matrix_rows, n_neurons, keep_prob);
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
@@ -241,7 +243,7 @@ void forward_threading(
     int layer_sizes_rows,
     int layer_sizes_cols,
     double *activations,
-    double keep_prob,
+    double *keep_probs,
     int num_threads) {
 
     pthread_t forward_threads[num_threads];
@@ -270,7 +272,7 @@ void forward_threading(
         forward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
         forward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
         forward_thread_data[t].activations = activations;
-        forward_thread_data[t].keep_prob = keep_prob;
+        forward_thread_data[t].keep_probs = keep_probs;
 
         // Создание нового потока
         pthread_create(&forward_threads[t], NULL, forward_worker, &forward_thread_data[t]);

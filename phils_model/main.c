@@ -34,9 +34,9 @@ void fit(
     int verbose,
     double max_change,
     int random_state,
-    double keep_prob,
     int regression,
-    int num_cpu) {
+    int num_cpu,
+    double *keep_probs) {
     
     if (random_state != -1) {
         srand(random_state); // set the initial state of the generator
@@ -133,7 +133,7 @@ void fit(
             layer_sizes_rows,
             layer_sizes_cols,
             activations,
-            keep_prob,
+            keep_probs,
             num_threads
         );
 
