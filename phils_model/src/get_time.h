@@ -2,6 +2,6 @@
 #define TIME_H
 
 
-char* get_time();
+char *get_time();
 
 #endif
