@@ -75,27 +75,10 @@ void fit(
         int n_neurons = (int)n_neurons_double;
 
         // Initialize biases
-        biases[layer_index] = malloc(n_neurons * sizeof(double));
-        double *biases_arr = malloc(n_neurons * sizeof(double));
-        biases_arr = init_bias(n_neurons, n_inputs);
-        for (int i = 0; i < n_neurons; ++i) {
-            biases[layer_index][i] = biases_arr[i];
-        }
-        free(biases_arr);
+        biases[layer_index] = init_bias(n_neurons, n_inputs);
 
         // Initialize weights
-        double **weights_arr = init_weights(n_neurons, n_inputs);
-        weights[layer_index] = malloc(n_inputs * sizeof(double*));
-        for (int i = 0; i < n_inputs; ++i) {
-            weights[layer_index][i] = malloc(n_neurons * sizeof(double));
-            for (int j = 0; j < n_neurons; ++j) {
-                weights[layer_index][i][j] = weights_arr[i][j];
-            }
-        }
-        for (int i = 0; i < n_inputs; ++i) {
-            free(weights_arr[i]);
-        }
-        free(weights_arr);
+        weights[layer_index] = init_weights(n_neurons, n_inputs);
     }
 
     // Training
