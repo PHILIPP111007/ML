@@ -113,7 +113,7 @@ void *forward_worker(void *arg) {
     int layer_sizes_rows = fd->layer_sizes_rows;
     int layer_sizes_cols = fd->layer_sizes_cols;
     double *activations = fd->activations;
-    double keep_probs = fd->keep_probs;
+    double *keep_probs = fd->keep_probs;
 
     for (int dataset_index = start_idx; dataset_index < end_idx; ++dataset_index) {
 
@@ -259,20 +259,20 @@ void forward_threading(
         int end_idx = start_idx + block_size + (t < remainder ? 1 : 0);
 
         // Устанавливаем данные для текущего потока
-        forward_thread_data[t].start_idx = start_idx;
-        forward_thread_data[t].end_idx = end_idx;
-        forward_thread_data[t].samples = samples;
-        forward_thread_data[t].sample_rows = dataset_samples_cols;
-        forward_thread_data[t].sample_cols = dataset_samples_depth;
         forward_thread_data[t].X_list = X_list;
         forward_thread_data[t].Y_list = Y_list;
+        forward_thread_data[t].samples = samples;
         forward_thread_data[t].weights = weights;
         forward_thread_data[t].biases = biases;
         forward_thread_data[t].layer_sizes = layer_sizes;
-        forward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
-        forward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
         forward_thread_data[t].activations = activations;
         forward_thread_data[t].keep_probs = keep_probs;
+        forward_thread_data[t].start_idx = start_idx;
+        forward_thread_data[t].end_idx = end_idx;
+        forward_thread_data[t].sample_rows = dataset_samples_cols;
+        forward_thread_data[t].sample_cols = dataset_samples_depth;
+        forward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
+        forward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
 
         // Создание нового потока
         pthread_create(&forward_threads[t], NULL, forward_worker, &forward_thread_data[t]);

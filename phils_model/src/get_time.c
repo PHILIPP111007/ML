@@ -5,7 +5,7 @@
 #include "get_time.h"
 
 
-char* get_time() {
+char *get_time() {
     // Выделяем статический буфер для хранения строки времени
     static char time_str[30];
 

@@ -4,20 +4,20 @@
 
 // Тип данных для параметра потока
 typedef struct ForwardData{
-    int start_idx;              // Начальный индекс выборки
-    int end_idx;                // Конечный индекс выборки
-    double ***samples;
-    int sample_rows;
-    int sample_cols;
     double ****X_list;
     double ****Y_list;
+    double ***samples;
     double ***weights;
     double **biases;
     double *layer_sizes;
-    int layer_sizes_rows;
-    int layer_sizes_cols;       
     double *activations;
     double *keep_probs;
+    int start_idx;
+    int end_idx;
+    int sample_rows;
+    int sample_cols;
+    int layer_sizes_rows;
+    int layer_sizes_cols;
 } ForwardData;
 
 void forward(
