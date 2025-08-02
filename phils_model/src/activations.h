@@ -3,54 +3,54 @@
 
 
 void relu_calc(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns
 );
 
 void relu_derivative(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns
 );
 
-double sigmoid(
-    double x
+float sigmoid(
+    float x
 );
 
 void sigmoid_calc(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns
 );
 
 void sigmoid_derivative(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns
 );
 
 void softmax_calc(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns
 );
 
 void softmax_derivative(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns
 );
 
 void apply_activation_calc(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns,
     int activation
 );
 
 void apply_activation_derivative(
-    double **y,
+    float **y,
     int matrix_rows,
     int matrix_columns,
     int activation

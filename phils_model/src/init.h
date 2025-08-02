@@ -2,12 +2,12 @@
 #define INIT_H
 
 
-double *init_bias(
+float *init_bias(
     int n_neurons,
     int n_inputs
 );
 
-double **init_weights(
+float **init_weights(
     int n_neurons,
     int n_inputs
 );

@@ -3,30 +3,30 @@
 
 
 void mse_loss(
-    double **prediction,
+    float **prediction,
     int prediction_rows,
     int prediction_cols,
-    double *target,
-    double **output_error,
+    float *target,
+    float **output_error,
     int regression
 );
 
 void cross_entropy_loss(
-    double **prediction,
+    float **prediction,
     int prediction_rows,
     int prediction_cols,
-    double *target,
-    double **output_error,
+    float *target,
+    float **output_error,
     int regression
 );
 
 void calc_loss(
     int loss,
-    double *target,
-    double **prediction,
+    float *target,
+    float **prediction,
     int prediction_rows,
     int prediction_cols,
-    double **output_error,
+    float **output_error,
     int regression
 );
 

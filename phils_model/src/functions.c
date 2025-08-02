@@ -4,7 +4,7 @@
 #include "functions.h"
 
 
-void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows_B, int cols_B) {
+void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B, int cols_B) {
     if (cols_A != rows_B) {
         fprintf(stderr, "Matrix dimensions mismatch: %d != %d\n", cols_A, rows_B);
         return;
@@ -21,10 +21,10 @@ void matmul(double **A, double **B, double **C, int rows_A, int cols_A, int rows
     }
 }
 
-double **transpose(double **original_matrix, int rows, int cols) {
-    double **transposed_matrix = (double**)malloc(cols * sizeof(double*));
+float **transpose(float **original_matrix, int rows, int cols) {
+    float **transposed_matrix = (float**)malloc(cols * sizeof(float*));
     for (int i = 0; i < cols; i++) {
-        transposed_matrix[i] = (double*)malloc(rows * sizeof(double));
+        transposed_matrix[i] = (float*)malloc(rows * sizeof(float));
     }
 
     for (int i = 0; i < rows; i++) {
@@ -35,8 +35,8 @@ double **transpose(double **original_matrix, int rows, int cols) {
     return transposed_matrix;
 }
 
-double sum(double **matrix, int rows, int cols) {
-    double n = 0.0;
+float sum(float **matrix, int rows, int cols) {
+    float n = 0.0;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             n += matrix[i][j];
@@ -45,8 +45,8 @@ double sum(double **matrix, int rows, int cols) {
     return n;
 }
 
-double *sum_axis_0(double **matrix, int rows, int cols) {
-    double *result = malloc(cols * sizeof(double));
+float *sum_axis_0(float **matrix, int rows, int cols) {
+    float *result = malloc(cols * sizeof(float));
 
     for (int j = 0; j < cols; ++j) {
         result[j] = 0;
@@ -57,18 +57,18 @@ double *sum_axis_0(double **matrix, int rows, int cols) {
     return result;
 }
 
-double mean(double *arr, int len) {
+float mean(float *arr, int len) {
     if (len == 0) {
         return 0.0;
     }
-    double sum = 0.0;
+    float sum = 0.0;
     for (int i = 0; i < len; ++i) {
         sum += arr[i];
     }
     return sum / len;
 }
 
-int argmax(double *arr, int size) {
+int argmax(float *arr, int size) {
     if (size <= 0) {
         return -1;
     }
@@ -82,8 +82,8 @@ int argmax(double *arr, int size) {
     return max_idx;
 }
 
-double safe_update(double delta, double learning_rate, double max_change) {
-    double change = delta * learning_rate;
+float safe_update(float delta, float learning_rate, float max_change) {
+    float change = delta * learning_rate;
     if (change > max_change) {
         change = max_change;
     }
@@ -94,10 +94,10 @@ double safe_update(double delta, double learning_rate, double max_change) {
     return change;
 }
 
-void dropout(double **y, int matrix_rows, int n_neurons, double keep_prob) {
+void dropout(float **y, int matrix_rows, int n_neurons, float keep_prob) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < n_neurons; j++) {
-            double random = (double)rand() / RAND_MAX;
+            float random = (double)rand() / RAND_MAX;
             if (random > keep_prob) {
                 y[i][j] = 0.0;
             }
@@ -105,11 +105,11 @@ void dropout(double **y, int matrix_rows, int n_neurons, double keep_prob) {
     }
 }
 
-double **create_matrix(int rows, int cols) {
-    double **matrix = malloc(rows * sizeof(double*));
+float **create_matrix(int rows, int cols) {
+    float **matrix = malloc(rows * sizeof(float*));
 
     for (int i = 0; i < rows; i++) {
-        matrix[i] = malloc(cols * sizeof(double));
+        matrix[i] = malloc(cols * sizeof(float));
     }
     return matrix;
 }

@@ -3,7 +3,7 @@
 #include "json.h"
 
 
-void save_weights_as_json(char *fname, double ***weights_result, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
+void save_weights_as_json(char *fname, float ***weights_result, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     FILE *fp = fopen(fname, "w");
 
     if (!fp) {
@@ -14,10 +14,10 @@ void save_weights_as_json(char *fname, double ***weights_result, double *layer_s
     fprintf(fp, "[");
 
     for (int layer_size = 0; layer_size < layer_sizes_rows; ++layer_size) { 
-        double n_inputs_double = layer_sizes[layer_size * layer_sizes_cols + 0];
-        double n_neurons_double = layer_sizes[layer_size * layer_sizes_cols + 1];
-        int n_inputs = (int)n_inputs_double;
-        int n_neurons = (int)n_neurons_double;
+        float n_inputs_float = layer_sizes[layer_size * layer_sizes_cols + 0];
+        float n_neurons_float = layer_sizes[layer_size * layer_sizes_cols + 1];
+        int n_inputs = (int)n_inputs_float;
+        int n_neurons = (int)n_neurons_float;
 
         fprintf(fp, "[");
         for (int i = 0; i < n_inputs; i++) {
@@ -46,7 +46,7 @@ void save_weights_as_json(char *fname, double ***weights_result, double *layer_s
     fclose(fp);
 }
 
-void save_biases_as_json(char *fname, double **biases, double *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
+void save_biases_as_json(char *fname, float **biases, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     FILE *fp = fopen(fname, "w");
 
     if (!fp) {
@@ -57,8 +57,8 @@ void save_biases_as_json(char *fname, double **biases, double *layer_sizes, int 
     fprintf(fp, "[");
 
     for (int layer_size = 0; layer_size < layer_sizes_rows; ++layer_size) { 
-        double n_neurons_double = layer_sizes[layer_size * layer_sizes_cols + 1];
-        int n_neurons = (int)n_neurons_double;
+        float n_neurons_float = layer_sizes[layer_size * layer_sizes_cols + 1];
+        int n_neurons = (int)n_neurons_float;
 
         fprintf(fp, "[");
         for (size_t neuron = 0; neuron < n_neurons; neuron++) {

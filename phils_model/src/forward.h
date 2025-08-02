@@ -4,14 +4,14 @@
 
 // Тип данных для параметра потока
 typedef struct ForwardData{
-    double ****X_list;
-    double ****Y_list;
-    double ***samples;
-    double ***weights;
-    double **biases;
-    double *layer_sizes;
-    double *activations;
-    double *keep_probs;
+    float ****X_list;
+    float ****Y_list;
+    float ***samples;
+    float ***weights;
+    float **biases;
+    float *layer_sizes;
+    float *activations;
+    float *keep_probs;
     int start_idx;
     int end_idx;
     int sample_rows;
@@ -21,16 +21,16 @@ typedef struct ForwardData{
 } ForwardData;
 
 void forward(
-    double **sample,
+    float **sample,
     int sample_rows,
     int sample_cols,
-    double ***weights,
-    double **biases,
-    double ***Y,
-    double *layer_sizes,
+    float ***weights,
+    float **biases,
+    float ***Y,
+    float *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
-    double *activations
+    float *activations
 );
 
 void *forward_worker(
@@ -39,19 +39,19 @@ void *forward_worker(
 
 void forward_threading(
     struct ForwardData forward_thread_data[],
-    double ***samples,
-    double ***weights,
-    double **biases,
-    double ****X_list,
-    double ****Y_list,
+    float ***samples,
+    float ***weights,
+    float **biases,
+    float ****X_list,
+    float ****Y_list,
     int dataset_samples_rows,
     int dataset_samples_cols,
     int dataset_samples_depth,
-    double *layer_sizes,
+    float *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
-    double *activations,
-    double *keep_probs,
+    float *activations,
+    float *keep_probs,
     int num_threads
 );
 

@@ -3,57 +3,57 @@
 
 
 void matmul(
-    double **A,
-    double **B,
-    double **C,
+    float **A,
+    float **B,
+    float **C,
     int rows_A,
     int cols_A,
     int rows_B,
     int cols_B
 );
 
-double **transpose(
-    double **original_matrix,
+float **transpose(
+    float **original_matrix,
     int rows,
     int cols
 );
 
-double sum(
-    double **matrix,
+float sum(
+    float **matrix,
     int rows,
     int cols
 );
 
-double *sum_axis_0(
-    double **matrix,
+float *sum_axis_0(
+    float **matrix,
     int rows,
     int cols
 );
 
-double mean(
-    double *arr,
+float mean(
+    float *arr,
     int len
 );
 
 int argmax(
-    double *arr,
+    float *arr,
     int size
 );
 
-double safe_update(
-    double delta,
-    double learning_rate,
-    double max_change
+float safe_update(
+    float delta,
+    float learning_rate,
+    float max_change
 );
 
 void dropout(
-    double **y,
+    float **y,
     int matrix_rows,
     int n_neurons,
-    double keep_prob
+    float keep_prob
 );
 
-double **create_matrix(
+float **create_matrix(
     int rows,
     int cols
 );
