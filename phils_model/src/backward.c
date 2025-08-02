@@ -59,69 +59,28 @@ void *backward_worker(void *arg) {
 
         grad_b[layer_sizes_rows - 1] = sum_axis_0(delta, matrix_rows, n_neurons);
 
-        float **x = create_matrix(matrix_rows, n_inputs);
-        for (int i = 0; i < matrix_rows; i++) {
-            for (int j = 0; j < n_inputs; j++) {
-                x[i][j] = X[layer_sizes_rows - 1][i][j];
-            }
-        }
-
         float **x_T = create_matrix(n_inputs, matrix_rows);
-        x_T = transpose(x, matrix_rows, n_inputs);
-        float **w = create_matrix(n_inputs, n_neurons);
-        matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons);
-
+        x_T = transpose(X[layer_sizes_rows - 1], matrix_rows, n_inputs);
         grad_w[layer_sizes_rows - 1] = create_matrix(n_inputs, n_neurons);
-        for (int i = 0; i < n_inputs; i++) {
-            for (int j = 0; j < n_neurons; j++) {
-                grad_w[layer_sizes_rows - 1][i][j] = w[i][j];
-            }
-        }
+        matmul(x_T, delta, grad_w[layer_sizes_rows - 1], n_inputs, matrix_rows, matrix_rows, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
             free(x_T[i]);
-            free(w[i]);
         }
         free(x_T);
-        free(w);
-        for (int i = 0; i < matrix_rows; i++) {
-            free(x[i]);
-        }
-        free(x);
-
-        float **weight = create_matrix(n_inputs, n_neurons);
-        for (int i = 0; i < n_inputs; i++) {
-            for (int j = 0; j < n_neurons; j++) {
-                weight[i][j] = weights[layer_sizes_rows - 1][i][j];
-            }
-        }
 
         float **w_T = create_matrix(n_neurons, n_inputs);
-        w_T = transpose(weight, n_inputs, n_neurons);
-        float **result = create_matrix(matrix_rows, n_inputs);
-        matmul(delta, w_T, result, matrix_rows, n_neurons, n_neurons, n_inputs);
-
+        w_T = transpose(weights[layer_sizes_rows - 1], n_inputs, n_neurons);
         grad_x[layer_sizes_rows - 1] = create_matrix(matrix_rows, n_inputs);
-        for (int i = 0; i < matrix_rows; i++) {
-            for (int j = 0; j < n_inputs; j++) {
-                grad_x[layer_sizes_rows - 1][i][j] = result[i][j];
-            }
-        }
-        for (int i = 0; i < n_inputs; i++) {
-            free(weight[i]);
-        }
-        free(weight);
+        matmul(delta, w_T, grad_x[layer_sizes_rows - 1], matrix_rows, n_neurons, n_neurons, n_inputs);
+
         for (int i = 0; i < n_neurons; i++) {
             free(w_T[i]);
         }
         free(w_T);
         for (int i = 0; i < matrix_rows; i++) {
-            free(result[i]);
             free(delta[i]);
         }
-        free(result);
         free(delta);
-
-        matrix_rows = matrix_rows;
 
         for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
             float n_inputs_float = layer_sizes[layer_index * layer_sizes_cols + 0];
@@ -129,108 +88,47 @@ void *backward_worker(void *arg) {
             int n_inputs = (int)n_inputs_float;
             int n_neurons = (int)n_neurons_float;
 
-            float **y = create_matrix(matrix_rows, n_neurons);
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_neurons; j++) {
-                    y[i][j] = Y[layer_index][i][j];
-                }
-            }
             int activation = (int)activations[layer_index];
-            apply_activation_derivative(y, matrix_rows, n_neurons, activation);
-
-            float **grad = create_matrix(matrix_rows, n_neurons);
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_neurons; j++) {
-                    grad[i][j] = grad_x[layer_index + 1][i][j];
-                }
-            }
+            apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, activation);
 
             float **delta = create_matrix(matrix_rows, n_neurons);
             for (int i = 0; i < matrix_rows; i++) {
+
+                #pragma omp simd
                 for (int j = 0; j < n_neurons; j++) {
-                    delta[i][j] = grad[i][j] * y[i][j];
+                    delta[i][j] = grad_x[layer_index + 1][i][j] * Y[layer_index][i][j];
                 }
             }
-            for (int i = 0; i < matrix_rows; i++) {
-                free(grad[i]);
-                free(y[i]);
-            }
-            free(grad);
-            free(y);
 
             grad_b[layer_index] = sum_axis_0(delta, matrix_rows, n_neurons);
 
-
-            float **x = create_matrix(matrix_rows, n_inputs);
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_inputs; j++) {
-                    x[i][j] = X[layer_index][i][j];
-                }
-            }
-
             float **x_T = create_matrix(n_inputs, matrix_rows);
-            x_T = transpose(x, matrix_rows, n_inputs);
-            for (int i = 0; i < matrix_rows; i++) {
-                free(x[i]);
-            }
-            free(x);
-
-            float **w = create_matrix(n_inputs, n_neurons);
-            matmul(x_T, delta, w, n_inputs, matrix_rows, matrix_rows, n_neurons);
+            x_T = transpose(X[layer_index], matrix_rows, n_inputs);
 
             grad_w[layer_index] = create_matrix(n_inputs, n_neurons);
+            matmul(x_T, delta, grad_w[layer_index], n_inputs, matrix_rows, matrix_rows, n_neurons);
             for (int i = 0; i < n_inputs; i++) {
-                for (int j = 0; j < n_neurons; j++) {
-                    grad_w[layer_index][i][j] = w[i][j];
-                }
-            }
-            for (int i = 0; i < n_inputs; i++) {
-                free(w[i]);
                 free(x_T[i]);
             }
-            free(w);
             free(x_T);
 
-            float **weight = create_matrix(n_inputs, n_neurons);
-            for (int i = 0; i < n_inputs; i++) {
-                for (int j = 0; j < n_neurons; j++) {
-                    weight[i][j] = weights[layer_index][i][j];
-                }
-            }
-
             float **w_T = create_matrix(n_neurons, n_inputs);
-            w_T = transpose(weight, n_inputs, n_neurons);
-            for (int i = 0; i < n_inputs; i++) {
-                free(weight[i]);
-            }
-            free(weight);
+            w_T = transpose(weights[layer_index], n_inputs, n_neurons);
 
-            float **result_grad_x = create_matrix(matrix_rows, n_inputs);
-            matmul(delta, w_T, result_grad_x, matrix_rows, n_neurons, n_neurons, n_inputs);
+            grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
+            matmul(delta, w_T, grad_x[layer_index], matrix_rows, n_neurons, n_neurons, n_inputs);
             for (int i = 0; i < n_neurons; i++) {
                 free(w_T[i]);
             }
             free(w_T);
-
-            grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
             for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_inputs; j++) {
-                    grad_x[layer_index][i][j] = result_grad_x[i][j];
-                }
-            }
-            for (int i = 0; i < matrix_rows; i++) {
-                free(result_grad_x[i]);
                 free(delta[i]);
             }
-            free(result_grad_x);
             free(delta);
-
-            matrix_rows = matrix_rows;
         }
         grad_w_list[dataset_index] = grad_w;
         grad_x_list[dataset_index] = grad_x;
         grad_b_list[dataset_index] = grad_b;
-
     }
     return NULL;
 }
@@ -260,17 +158,15 @@ void backward_threading(
 
     pthread_t backward_threads[num_threads];
 
-    // Разбиение всего набора данных на части для каждого потока
+    // Splitting the entire data set into parts for each thread
     int block_size = dataset_samples_rows / num_threads;
     int remainder = dataset_samples_rows % num_threads;
 
-    // Начинаем раздавать задания потокам
     int start_idx = 0;
     for (int t = 0; t < num_threads; ++t) {
-        // Размер блока для текущего потока
+        // Block size for the current thread
         int end_idx = start_idx + block_size + (t < remainder ? 1 : 0);
 
-        // Устанавливаем данные для текущего потока
         backward_thread_data[t].start_idx = start_idx;
         backward_thread_data[t].end_idx = end_idx;
         backward_thread_data[t].weights = weights;
@@ -292,15 +188,12 @@ void backward_threading(
         backward_thread_data[t].dataset_samples_cols = dataset_samples_cols;
         backward_thread_data[t].dataset_targets_cols = dataset_targets_cols;
 
-
-        // Создание нового потока
         pthread_create(&backward_threads[t], NULL, backward_worker, &backward_thread_data[t]);
 
-        // Следующий кусок данных начинается там, где закончился предыдущий
+        // The next piece of data starts where the previous one ended.
         start_idx = end_idx;
     }
 
-    // Ожидаем завершения всех потоков
     for (int t = 0; t < num_threads; ++t) {
         pthread_join(backward_threads[t], NULL);
     }

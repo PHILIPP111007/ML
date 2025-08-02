@@ -25,33 +25,22 @@ void forward(
     int n_inputs = (int)n_inputs_float;
     int n_neurons = (int)n_neurons_float;
 
-    float **y = create_matrix(sample_rows, n_neurons);
+    Y[0] = create_matrix(sample_rows, n_neurons);
 
-    matmul(sample, weights[0], y, sample_rows, sample_cols, n_inputs, n_neurons);
+    matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
 
     for (int i = 0; i < sample_rows; ++i) {
         for (int j = 0; j < n_neurons; ++j) {
-            y[i][j] += biases[0][i];
+            Y[0][i][j] += biases[0][i];
         }
     }
     int activation = (int)activations[0];
-    apply_activation_calc(y, sample_rows, n_neurons, activation);
+    apply_activation_calc(Y[0], sample_rows, n_neurons, activation);
 
     for (int i = 0; i < sample_rows; i++) {
         free(sample[i]);
     }
     free(sample);
-
-    Y[0] = create_matrix(sample_rows, n_neurons);
-    for (int i = 0; i < sample_rows; i++) {
-        for (int j = 0; j < n_neurons; j++) {
-            Y[0][i][j] = y[i][j];
-        }
-    }
-    for (int i = 0; i < sample_rows; i++) {
-        free(y[i]);
-    }
-    free(y);
 
     int matrix_rows = sample_rows;
     for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
@@ -60,39 +49,16 @@ void forward(
         int n_inputs = (int)n_inputs_float;
         int n_neurons = (int)n_neurons_float;
 
-        float **x = create_matrix(matrix_rows, n_inputs);
-        for (int i = 0; i < matrix_rows; i++) {
-            for (int j = 0; j < n_inputs; j++) {
-                x[i][j] = Y[layer_index - 1][i][j];
-            }
-        }
-
-        float **y = create_matrix(matrix_rows, n_neurons);
-        matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons);
-
-        for (int i = 0; i < matrix_rows; i++) {
-            free(x[i]);
-        }
-        free(x);
+        Y[layer_index] = create_matrix(matrix_rows, n_neurons);
+        matmul(Y[layer_index - 1], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
 
         for (int i = 0; i < matrix_rows; ++i) {
             for (int j = 0; j < n_neurons; ++j) {
-                y[i][j] += biases[layer_index][i];
+                Y[layer_index][i][j] += biases[layer_index][i];
             }
         }
         int activation = (int)activations[layer_index];
-        apply_activation_calc(y, matrix_rows, n_neurons, activation);
-
-        Y[layer_index] = create_matrix(matrix_rows, n_neurons);
-        for (int i = 0; i < matrix_rows; i++) {
-            for (int j = 0; j < n_neurons; j++) {
-                Y[layer_index][i][j] = y[i][j];
-            }
-        }
-        for (int i = 0; i < matrix_rows; i++) {
-            free(y[i]);
-        }
-        free(y);
+        apply_activation_calc(Y[layer_index], matrix_rows, n_neurons, activation);
     }
 }
 
@@ -133,18 +99,17 @@ void *forward_worker(void *arg) {
         int n_inputs = (int)n_inputs_float;
         int n_neurons = (int)n_neurons_float;
 
-        float **y = create_matrix(sample_rows, n_neurons);
-        matmul(sample, weights[0], y, sample_rows, sample_cols, n_inputs, n_neurons);
-
+        Y[0] = create_matrix(sample_rows, n_neurons);
+        matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
         for (int i = 0; i < sample_rows; ++i) {
             for (int j = 0; j < n_neurons; ++j) {
-                y[i][j] += biases[0][i];
+                Y[0][i][j] += biases[0][i];
             }
         }
         int activation = (int)activations[0];
-        apply_activation_calc(y, sample_rows, n_neurons, activation);
+        apply_activation_calc(Y[0], sample_rows, n_neurons, activation);
         float dropout = dropouts[0];
-        apply_dropout(y, sample_rows, n_neurons, dropout);
+        apply_dropout(Y[0], sample_rows, n_neurons, dropout);
 
         X[0] = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
@@ -158,17 +123,6 @@ void *forward_worker(void *arg) {
         }
         free(sample);
 
-        Y[0] = create_matrix(sample_rows, n_neurons);
-        for (int i = 0; i < sample_rows; i++) {
-            for (int j = 0; j < n_neurons; j++) {
-                Y[0][i][j] = y[i][j];
-            }
-        }
-        for (int i = 0; i < sample_rows; i++) {
-            free(y[i]);
-        }
-        free(y);
-
         int matrix_rows = sample_rows;
 
         for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
@@ -177,54 +131,29 @@ void *forward_worker(void *arg) {
             int n_inputs = (int)n_inputs_float;
             int n_neurons = (int)n_neurons_float;
 
-            float **x = create_matrix(matrix_rows, n_inputs);
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_inputs; j++) {
-                    x[i][j] = Y[layer_index - 1][i][j];
-                }
-            }
-
             X[layer_index] = create_matrix(matrix_rows, n_inputs);
             for (int i = 0; i < matrix_rows; i++) {
                 for (int j = 0; j < n_inputs; j++) {
-                    X[layer_index][i][j] = x[i][j];
+                    X[layer_index][i][j] = Y[layer_index - 1][i][j];
                 }
             }
 
-            float **y = create_matrix(matrix_rows, n_neurons);
-            matmul(x, weights[layer_index], y, matrix_rows, n_inputs, n_inputs, n_neurons);
-            for (int i = 0; i < matrix_rows; i++) {
-                free(x[i]);
-            }
-            free(x);
+            Y[layer_index] = create_matrix(matrix_rows, n_neurons);
+            matmul(X[layer_index], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
 
             for (int i = 0; i < matrix_rows; ++i) {
                 for (int j = 0; j < n_neurons; ++j) {
-                    y[i][j] += biases[layer_index][i];
+                    Y[layer_index][i][j] += biases[layer_index][i];
                 }
             }
             int activation = (int)activations[layer_index];
-            apply_activation_calc(y, matrix_rows, n_neurons, activation);
+            apply_activation_calc(Y[layer_index], matrix_rows, n_neurons, activation);
             float dropout = dropouts[layer_index];
-            apply_dropout(y, matrix_rows, n_neurons, dropout);
-
-            Y[layer_index] = create_matrix(matrix_rows, n_neurons);
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_neurons; j++) {
-                    Y[layer_index][i][j] = y[i][j];
-                }
-            }
-            for (int i = 0; i < matrix_rows; i++) {
-                free(y[i]);
-            }
-            free(y);
-
-            matrix_rows = matrix_rows;
+            apply_dropout(Y[layer_index], matrix_rows, n_neurons, dropout);
         }
 
         X_list[dataset_index] = X;
         Y_list[dataset_index] = Y;
-
     }
     return NULL;
 }
