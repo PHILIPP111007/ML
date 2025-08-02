@@ -10,11 +10,11 @@ void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B,
         return;
     }
 
-    for (int i = 0; i < rows_A; i++) {
-        for (int k = 0; k < cols_A; k++) {
+    for (register int i = 0; i < rows_A; i++) {
+        for (register int k = 0; k < cols_A; k++) {
             
             #pragma omp simd
-            for (int j = 0; j < cols_B; j++) {
+            for (register int j = 0; j < cols_B; j++) {
                 C[i][j] += A[i][k] * B[k][j];
             }
         }
