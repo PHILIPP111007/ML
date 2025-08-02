@@ -6,20 +6,9 @@
 // Adam
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct {
-    float ***m;    // Накопленный средний градиент
-    float ***v;    // Накопленный квадратный градиент
-    float lr;      // Скорость обучения
-    float b1;      // Коэффициент для среднего градиента
-    float b2;      // Коэффициент для квадрата градиента
-    float eps;     // Маленькое значение для избежания деления на ноль
-    int epoch;          // Текущая эпоха
-} AdamOptimizer;
-
 // Freeing up optimizer resources
 void destroy_adam(struct AdamOptimizer *opt, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-
         float n_inputs_float = layer_sizes[layer_index * layer_sizes_cols + 0];
         int n_inputs = (int)n_inputs_float;
 
@@ -35,7 +24,7 @@ void destroy_adam(struct AdamOptimizer *opt, float *layer_sizes, int layer_sizes
 
 // Creating a new instance of the optimizer
 struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
-    struct AdamOptimizer *optimizer = malloc(sizeof(AdamOptimizer));
+    struct AdamOptimizer *optimizer = malloc(sizeof(struct AdamOptimizer));
     optimizer->lr = lr;
     optimizer->b1 = b1;
     optimizer->b2 = b2;
