@@ -309,7 +309,6 @@ void predict_one(
     // Forward pass
     forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
 
-
     float n_inputs_float = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
     float n_neurons_float = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
     int n_inputs = (int)n_inputs_float;
