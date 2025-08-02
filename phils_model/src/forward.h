@@ -11,7 +11,7 @@ typedef struct ForwardData{
     float **biases;
     float *layer_sizes;
     float *activations;
-    float *keep_probs;
+    float *dropouts;
     int start_idx;
     int end_idx;
     int sample_rows;
@@ -51,7 +51,7 @@ void forward_threading(
     int layer_sizes_rows,
     int layer_sizes_cols,
     float *activations,
-    float *keep_probs,
+    float *dropouts,
     int num_threads
 );
 

@@ -94,11 +94,11 @@ float safe_update(float delta, float learning_rate, float max_change) {
     return change;
 }
 
-void dropout(float **y, int matrix_rows, int n_neurons, float keep_prob) {
+void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropout) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < n_neurons; j++) {
             float random = (double)rand() / RAND_MAX;
-            if (random > keep_prob) {
+            if (random > dropout) {
                 y[i][j] = 0.0;
             }
         }

@@ -46,11 +46,11 @@ float safe_update(
     float max_change
 );
 
-void dropout(
+void apply_dropout(
     float **y,
     int matrix_rows,
     int n_neurons,
-    float keep_prob
+    float dropout
 );
 
 float **create_matrix(

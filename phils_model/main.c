@@ -36,7 +36,7 @@ void fit(
     int random_state,
     int regression,
     int num_cpu,
-    float *keep_probs) {
+    float *dropouts) {
     
     if (random_state != -1) {
         srand(random_state); // set the initial state of the generator
@@ -116,7 +116,7 @@ void fit(
             layer_sizes_rows,
             layer_sizes_cols,
             activations,
-            keep_probs,
+            dropouts,
             num_threads
         );
 

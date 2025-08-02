@@ -113,7 +113,7 @@ void *forward_worker(void *arg) {
     int layer_sizes_rows = fd->layer_sizes_rows;
     int layer_sizes_cols = fd->layer_sizes_cols;
     float *activations = fd->activations;
-    float *keep_probs = fd->keep_probs;
+    float *dropouts = fd->dropouts;
 
     for (int dataset_index = start_idx; dataset_index < end_idx; ++dataset_index) {
 
@@ -143,8 +143,8 @@ void *forward_worker(void *arg) {
         }
         int activation = (int)activations[0];
         apply_activation_calc(y, sample_rows, n_neurons, activation);
-        float keep_prob = keep_probs[0];
-        dropout(y, sample_rows, n_neurons, keep_prob);
+        float dropout = dropouts[0];
+        apply_dropout(y, sample_rows, n_neurons, dropout);
 
         X[0] = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
@@ -205,8 +205,8 @@ void *forward_worker(void *arg) {
             }
             int activation = (int)activations[layer_index];
             apply_activation_calc(y, matrix_rows, n_neurons, activation);
-            float keep_prob = keep_probs[layer_index];
-            dropout(y, matrix_rows, n_neurons, keep_prob);
+            float dropout = dropouts[layer_index];
+            apply_dropout(y, matrix_rows, n_neurons, dropout);
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
             for (int i = 0; i < matrix_rows; i++) {
@@ -243,7 +243,7 @@ void forward_threading(
     int layer_sizes_rows,
     int layer_sizes_cols,
     float *activations,
-    float *keep_probs,
+    float *dropouts,
     int num_threads) {
 
     pthread_t forward_threads[num_threads];
@@ -266,7 +266,7 @@ void forward_threading(
         forward_thread_data[t].biases = biases;
         forward_thread_data[t].layer_sizes = layer_sizes;
         forward_thread_data[t].activations = activations;
-        forward_thread_data[t].keep_probs = keep_probs;
+        forward_thread_data[t].dropouts = dropouts;
         forward_thread_data[t].start_idx = start_idx;
         forward_thread_data[t].end_idx = end_idx;
         forward_thread_data[t].sample_rows = dataset_samples_cols;
