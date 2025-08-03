@@ -170,6 +170,7 @@ void fit(
             logger_info("Update weights and biases step\n");
         }
 
+        #pragma omp parallel for schedule(dynamic)
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
@@ -178,10 +179,13 @@ void fit(
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+                float *bias_layer = biases[layer_index];
+                float *grad_b_layer = grad_b[layer_index];
 
+                #pragma omp simd
                 for (int i = 0; i < n_neurons; ++i) {
-                    float change = grad_b[layer_index][i] * learning_rate;
-                    biases[layer_index][i] -= safe_update(change, max_change);
+                    float change = grad_b_layer[i] * learning_rate;
+                    bias_layer[i] -= safe_update(change, max_change);
 
                     // Handle NaN
                     if (isnan(biases[layer_index][i])) {
