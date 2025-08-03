@@ -1,4 +1,4 @@
-// clang -shared -fopenmp -o main.so -fPIC -O3 main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/get_time.c
+// clang -shared -fopenmp -o main.so -fPIC -O3 main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/get_time.c src/predict.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -13,6 +13,7 @@
 #include "src/forward.h"
 #include "src/backward.h"
 #include "src/get_time.h"
+#include "src/predict.h"
 
 
 void fit(
@@ -369,10 +370,11 @@ void predict(
     int layer_sizes_cols,
     float *activations,
     int activations_len,
-    float *predictions) {
+    float *predictions,
+    int num_cpu) {
 
     // Loading a dataset
-    float*** samples = malloc(dataset_samples_rows * sizeof(float**));
+    float ***samples = malloc(dataset_samples_rows * sizeof(float**));
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = malloc(dataset_samples_cols * sizeof(float*));
         for (int i = 0; i < dataset_samples_cols; ++i) {
@@ -413,59 +415,60 @@ void predict(
         total_bias_count += n_neurons;
     }
 
-    for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-        float **sample = malloc(dataset_samples_cols * sizeof(float*));
-        for (int i = 0; i < dataset_samples_cols; i++) {
-            sample[i] = malloc(dataset_samples_depth * sizeof(float));
-            for (int j = 0; j < dataset_samples_depth; j++) {
-                sample[i][j] = samples[dataset_index][i][j];
-            }
-        }
-
-        float ***Y = malloc(layer_sizes_rows * sizeof(float**));
-
-        // Forward pass
-        forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
-
-        float n_inputs_float = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
-        float n_neurons_float = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
-        int n_inputs = (int)n_inputs_float;
-        int n_neurons = (int)n_neurons_float;
-
-        int matrix_rows = dataset_samples_cols;
-
-        float **y = malloc(matrix_rows * sizeof(float*));
-        for (int i = 0; i < matrix_rows; i++) {
-            y[i] = malloc(n_neurons * sizeof(float));
-            for (int j = 0; j < n_neurons; j++) {
-                y[i][j] = Y[layer_sizes_rows - 1][i][j];
-            }
-        }
-
-        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-            for (int i = 0; i < matrix_rows; i++) {
-                free(Y[layer_index][i]);
-            }
-            free(Y[layer_index]);
-        }
-        free(Y);
-
-        // Return predict
-        for (int i = 0; i < n_neurons; i++) {
-            predictions[dataset_index * n_neurons + i] = y[0][i];
-        }
-
-        for (int i = 0; i < matrix_rows; i++) {
-            free(y[i]);
-        }
-        free(y);
+    if (num_cpu > dataset_samples_rows) {
+        num_cpu = dataset_samples_rows;
     }
 
-    // Clearing memory
-    for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
-        float n_inputs_float = layer_sizes[layer_index * layer_sizes_cols + 0];
-        int n_inputs = (int)n_inputs_float;
+    pthread_t *threads = malloc(num_cpu * sizeof(pthread_t));
+    PredictTask *tasks = malloc(dataset_samples_rows * sizeof(PredictTask));
 
+    // Get neurons count in last layer
+    int n_neurons_last_layer = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
+
+    // Process samples in parallel
+    for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+        tasks[dataset_index].sample = samples[dataset_index];
+        tasks[dataset_index].weights = weights;
+        tasks[dataset_index].biases = biases;
+        tasks[dataset_index].layer_sizes = layer_sizes;
+        tasks[dataset_index].layer_sizes_rows = layer_sizes_rows;
+        tasks[dataset_index].layer_sizes_cols = layer_sizes_cols;
+        tasks[dataset_index].activations = activations;
+        tasks[dataset_index].predictions = predictions;
+        tasks[dataset_index].dataset_index = dataset_index;
+        tasks[dataset_index].dataset_samples_cols = dataset_samples_cols;
+        tasks[dataset_index].dataset_samples_depth = dataset_samples_depth;
+        tasks[dataset_index].n_neurons_last_layer = n_neurons_last_layer;
+    }
+
+    // Create threads
+    int samples_per_thread = dataset_samples_rows / num_cpu;
+    int remaining_samples = dataset_samples_rows % num_cpu;
+
+    for (int i = 0; i < num_cpu; i++) {
+        int start_idx = i * samples_per_thread + (i < remaining_samples ? i : remaining_samples);
+        int end_idx = start_idx + samples_per_thread + (i < remaining_samples ? 1 : 0);
+        
+        ThreadRange *range = malloc(sizeof(ThreadRange));
+        range->start = start_idx;
+        range->end = end_idx;
+        range->tasks = tasks;
+        
+        pthread_create(&threads[i], NULL, predict_thread, range);
+    }
+
+    // Wait for all threads to complete
+    for (int i = 0; i < num_cpu; ++i) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // Free memory
+    free(threads);
+    free(tasks);
+
+    for (int layer_index = 0; layer_index < layer_sizes_rows; ++layer_index) {
+        int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols + 0];
+        
         for (int i = 0; i < n_inputs; i++) {
             free(weights[layer_index][i]);
         }
@@ -474,6 +477,7 @@ void predict(
     }
     free(weights);
     free(biases);
+
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         for (int i = 0; i < dataset_samples_cols; ++i) {
             free(samples[dataset_index][i]);

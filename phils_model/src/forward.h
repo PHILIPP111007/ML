@@ -2,7 +2,6 @@
 #define FORWARD_H
 
 
-// Тип данных для параметра потока
 typedef struct ForwardData{
     float ****X_list;
     float ****Y_list;
