@@ -59,18 +59,18 @@ void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads
     const float b2 = optimizer->b2;
     const float lr = optimizer->lr;
     const float eps = optimizer->eps;
-    const float b1_minus_1 = optimizer->b1_minus_1;
-    const float b2_minus_1 = optimizer->b2_minus_1;
     const int epoch = ++optimizer->epoch;
-    const float b1_pow = optimizer->b1_pow;
-    const float b2_pow = optimizer->b2_pow;
-    const float inv_1mb1 = optimizer->inv_1mb1;
-    const float inv_1mb2 = optimizer->inv_1mb2;
+    const float b1_pow = powf(b1, epoch);
+    const float b2_pow = powf(b2, epoch);
+    const float inv_1mb1 = 1.0f / (1.0f - b1_pow);
+    const float inv_1mb2 = 1.0f / (1.0f - b2_pow);
+    const float b1_minus_1 = 1.0f - b1;
+    const float b2_minus_1 = 1.0f - b2;
 
-    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+    for(int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-        
+
         float **layer_weights = weights[layer_index];
         float **layer_grads = grads[layer_index];
         float **layer_m = optimizer->m[layer_index];
@@ -81,19 +81,19 @@ void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads
             for (int j = 0; j < n_neurons; j++) {
                 const float grad = layer_grads[i][j];
                 const float grad_sq = grad * grad;
-                
+
                 // Update moments
                 layer_m[i][j] = b1 * layer_m[i][j] + b1_minus_1 * grad;
                 layer_v[i][j] = b2 * layer_v[i][j] + b2_minus_1 * grad_sq;
-                
+
                 // Compute bias-corrected moments
                 const float m_hat = layer_m[i][j] * inv_1mb1;
                 const float v_hat = layer_v[i][j] * inv_1mb2;
-                
+
                 // Update weights
                 float delta = lr * m_hat / (sqrtf(v_hat) + eps);
                 layer_weights[i][j] -= delta;
-                
+
                 // Handle NaN
                 layer_weights[i][j] = isnan(layer_weights[i][j]) ? 0.0f : layer_weights[i][j];
             }

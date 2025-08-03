@@ -10,13 +10,6 @@ typedef struct AdamOptimizer {
     float b2;      // Коэффициент для квадрата градиента
     float eps;     // Маленькое значение для избежания деления на ноль
     int epoch;          // Текущая эпоха
-
-    float b1_minus_1;
-    float b2_minus_1;
-    float b1_pow;
-    float b2_pow;
-    float inv_1mb1;
-    float inv_1mb2;
 } AdamOptimize;
 
 

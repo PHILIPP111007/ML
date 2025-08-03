@@ -175,22 +175,6 @@ void fit(
             printf("[%s] - INFO - Update weights and biases step\n", time);
         }
 
-        const float b1 = opt->b1;
-        const float b2 = opt->b2;
-        const float b1_minus_1 = 1.0f - b1;
-        const float b2_minus_1 = 1.0f - b2;
-        const float b1_pow = powf(b1, epoch);
-        const float b2_pow = powf(b2, epoch);
-        const float inv_1mb1 = 1.0f / (1.0f - b1_pow);
-        const float inv_1mb2 = 1.0f / (1.0f - b2_pow);
-
-        opt->b1_minus_1 = b1_minus_1;
-        opt->b2_minus_1 = b2_minus_1;
-        opt->b1_pow = b1_pow;
-        opt->b2_pow = b2_pow;
-        opt->inv_1mb1 = inv_1mb1;
-        opt->inv_1mb2 = inv_1mb2;
-
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
