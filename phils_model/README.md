@@ -5,7 +5,7 @@ To run the `main.ipynb` file, use this:
 ```sh
 brew install llvm
 
-clang -shared -o main.so -fPIC -O3 -fopenmp main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/get_time.c
+clang -shared -o main.so -fPIC -O3 -fopenmp -ffast-math -march=native main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 ```
 
 You may donate to ML project:
