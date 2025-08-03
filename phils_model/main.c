@@ -299,13 +299,13 @@ void predict_one(
             int index = total_bias_count + i;
             biases[layer_index][i] = biases_input[index];
         }
-        
+
         current_weight_offset += n_inputs * n_neurons;
         total_bias_count += n_neurons;
     }
 
     float ***Y = malloc(layer_sizes_rows * sizeof(float**));
-    
+
     // Forward pass
     forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
 
@@ -334,7 +334,7 @@ void predict_one(
         free(y[i]);
     }
     free(y);
-    
+
     // Clearing memory
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         for (int i = 0; i < matrix_rows; i++) {
@@ -423,7 +423,7 @@ void predict(
         }
 
         float ***Y = malloc(layer_sizes_rows * sizeof(float**));
-        
+
         // Forward pass
         forward(sample, dataset_samples_cols, dataset_samples_depth, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
 
