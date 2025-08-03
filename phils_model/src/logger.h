@@ -4,4 +4,8 @@
 
 char *get_time();
 
+void logger_info(
+    char *s
+);
+
 #endif

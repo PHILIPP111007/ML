@@ -1,4 +1,4 @@
-// clang -shared -fopenmp -o main.so -fPIC -O3 main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/get_time.c src/predict.c
+// clang -shared -fopenmp -o main.so -fPIC -O3 main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -12,7 +12,7 @@
 #include "src/adam.h"
 #include "src/forward.h"
 #include "src/backward.h"
-#include "src/get_time.h"
+#include "src/logger.h"
 #include "src/predict.h"
 
 
@@ -97,8 +97,7 @@ void fit(
         // Forward pass
 
         if (verbose) {
-            const char *time = get_time();
-            printf("[%s] - INFO - Forward step\n", time);
+            logger_info("Forward step\n");
         }
 
         float ****X_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
@@ -138,8 +137,7 @@ void fit(
         // Backward pass
 
         if (verbose) {
-            const char *time = get_time();
-            printf("[%s] - INFO - Backward step\n", time);
+            logger_info("Backward step\n");
         }
 
         backward_threading(
@@ -169,8 +167,7 @@ void fit(
         // Update weights and biases
 
         if (verbose) {
-            const char *time = get_time();
-            printf("[%s] - INFO - Update weights and biases step\n", time);
+            logger_info("Update weights and biases step\n");
         }
 
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
@@ -229,8 +226,9 @@ void fit(
         float mean_loss = mean(epoch_losses, dataset_samples_rows);
         losses_by_epoch[epoch] = mean_loss;
         if (verbose) {
-            const char *time = get_time();
-            printf("[%s] - INFO - Epoch %d / %d. Loss: %f\n", time, epoch + 1, n_epoch, mean_loss);
+            char *s = (char*)malloc(100 * sizeof(char));
+            sprintf(s, "Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
+            logger_info(s);
         }
     }
     char *file_weights = "weights.json";

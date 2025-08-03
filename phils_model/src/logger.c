@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <time.h>
-#include "get_time.h"
+#include "logger.h"
 
 
 char *get_time() {
@@ -24,4 +23,10 @@ char *get_time() {
     strftime(time_str, sizeof(time_str), "%d-%m-%Y %H:%M:%S", time_info);
 
     return time_str;
+}
+
+void logger_info(char *s) {
+    const char *time = get_time();
+
+    printf("[%s] - INFO - %s", time, s);
 }
