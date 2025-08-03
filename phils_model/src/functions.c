@@ -11,22 +11,26 @@ void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B,
     }
 
     for (register int i = 0; i < rows_A; i++) {
+        float *a = A[i];
+        
         for (register int k = 0; k < cols_A; k++) {
+            float *b = B[k];
 
             #pragma omp simd
             for (register int j = 0; j < cols_B; j++) {
-                C[i][j] += A[i][k] * B[k][j];
+                C[i][j] += a[k] * b[j];
             }
         }
     }
 }
 
 float **transpose(float **original_matrix, int rows, int cols) {
-    float **transposed_matrix = (float**)malloc(cols * sizeof(float*));
+    float **transposed_matrix = malloc(cols * sizeof(float*));
     for (int i = 0; i < cols; i++) {
-        transposed_matrix[i] = (float*)malloc(rows * sizeof(float));
+        transposed_matrix[i] = malloc(rows * sizeof(float));
     }
 
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             transposed_matrix[j][i] = original_matrix[i][j];
