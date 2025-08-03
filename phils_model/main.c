@@ -170,7 +170,7 @@ void fit(
             logger_info("Update weights and biases step\n");
         }
 
-        #pragma omp parallel for schedule(dynamic)
+        #pragma omp for schedule(dynamic)
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
