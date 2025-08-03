@@ -11,12 +11,12 @@
 void mse_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
     float **loss = malloc(prediction_rows * sizeof(float*));
 
-    for (int i = 0; i < prediction_rows; ++i) {
+    for (int i = 0; i < prediction_rows; i++) {
         loss[i] =  malloc(prediction_cols * sizeof(float));
 
         int max_target_index = argmax(target, prediction_cols);
 
-        for (int j = 0; j < prediction_cols; ++j) {
+        for (int j = 0; j < prediction_cols; j++) {
             if (j == max_target_index && !regression) {
                 loss[i][j] = 0.0;
             } else {
@@ -27,8 +27,8 @@ void mse_loss(float **prediction, int prediction_rows, int prediction_cols, floa
         }
     }
 
-    for (int i = 0; i < prediction_rows; ++i) {
-        for (int j = 0; j < prediction_cols; ++j) {
+    for (int i = 0; i < prediction_rows; i++) {
+        for (int j = 0; j < prediction_cols; j++) {
             output_error[i][j] = loss[i][j];
         }
         free(loss[i]);
@@ -39,12 +39,12 @@ void mse_loss(float **prediction, int prediction_rows, int prediction_cols, floa
 void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
     float **loss = malloc(prediction_rows * sizeof(float*));
 
-    for (int i = 0; i < prediction_rows; ++i) {
+    for (int i = 0; i < prediction_rows; i++) {
         loss[i] =  malloc(prediction_cols * sizeof(float));
 
         int max_target_index = argmax(target, prediction_cols);
 
-        for (int j = 0; j < prediction_cols; ++j) {
+        for (int j = 0; j < prediction_cols; j++) {
             if (j == max_target_index && !regression) {
                 loss[i][j] = 0.0;
             } else {
@@ -57,13 +57,13 @@ void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_
         }
     }
 
-    for (int i = 0; i < prediction_rows; ++i) {
-        for (int j = 0; j < prediction_cols; ++j) {
+    for (int i = 0; i < prediction_rows; i++) {
+        for (int j = 0; j < prediction_cols; j++) {
             output_error[i][j] = loss[i][j];
         }
     }
 
-    for (int i = 0; i < prediction_rows; ++i) {
+    for (int i = 0; i < prediction_rows; i++) {
         free(loss[i]);
     }
     free(loss);

@@ -7,7 +7,7 @@ float *init_bias(int n_neurons, int n_inputs) {
     float* bias = malloc(n_neurons * sizeof(float));
     float std_dev = sqrtf(2.0 / (n_neurons + n_inputs));
 
-    for (int i = 0; i < n_neurons; ++i) {
+    for (int i = 0; i < n_neurons; i++) {
         bias[i] = (float)((double)rand() / RAND_MAX) * std_dev * sqrtf(2.0 / (n_neurons + n_inputs)) * 2.0 - std_dev * sqrtf(2.0 / (n_neurons + n_inputs));
         bias[i] *= 100.0;
     }

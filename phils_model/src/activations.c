@@ -9,8 +9,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 void relu_calc(float **y, int matrix_rows, int matrix_columns) {
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             if (y[i] > 0) {
                 y[i][j] = y[i][j];
             }
@@ -22,8 +22,8 @@ void relu_calc(float **y, int matrix_rows, int matrix_columns) {
 }
 
 void relu_derivative(float **y, int matrix_rows, int matrix_columns) {
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             if (y[i] > 0) {
                 y[i][j] = y[i][j];
             }
@@ -46,8 +46,8 @@ float sigmoid(float x) {
 }
 
 void sigmoid_calc(float **y, int matrix_rows, int matrix_columns) {
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = sigmoid(y[i][j]);
         }
     }
@@ -56,14 +56,14 @@ void sigmoid_calc(float **y, int matrix_rows, int matrix_columns) {
 void sigmoid_derivative(float **y, int matrix_rows, int matrix_columns) {
     float **f = create_matrix(matrix_rows, matrix_columns);
 
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             f[i][j] = sigmoid(y[i][j]);
         }
     }
 
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = f[i][j] * (1.0 - f[i][j]);
         }
     }
@@ -75,8 +75,8 @@ void sigmoid_derivative(float **y, int matrix_rows, int matrix_columns) {
 void softmax_calc(float **y, int matrix_rows, int matrix_columns) {
     float max_val = y[0][0];
 
-    for (int i = 1; i < matrix_rows; ++i) {
-        for (int j = 1; j < matrix_columns; ++j) {
+    for (int i = 1; i < matrix_rows; i++) {
+        for (int j = 1; j < matrix_columns; j++) {
             if (y[i][j] > max_val) {
                 max_val = y[i][j];
             }
@@ -85,24 +85,24 @@ void softmax_calc(float **y, int matrix_rows, int matrix_columns) {
 
     // Let's subtract the maximum from each element to stabilize the exponent
     float sum_exp = 0.0;
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = exp(y[i][j] - max_val);
             sum_exp += y[i][j];
         }
     }
 
     // Normalization by dividing each element by the sum of the exponents
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             y[i][j] /= sum_exp;
         }
     }
 }
 
 void softmax_derivative(float **y, int matrix_rows, int matrix_columns) {
-    for (int i = 0; i < matrix_rows; ++i) {
-        for (int j = 0; j < matrix_columns; ++j) {
+    for (int i = 0; i < matrix_rows; i++) {
+        for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = y[i][j];
         }
     }

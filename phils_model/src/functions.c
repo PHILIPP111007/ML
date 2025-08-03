@@ -48,9 +48,9 @@ float sum(float **matrix, int rows, int cols) {
 float *sum_axis_0(float **matrix, int rows, int cols) {
     float *result = malloc(cols * sizeof(float));
 
-    for (int j = 0; j < cols; ++j) {
+    for (int j = 0; j < cols; j++) {
         result[j] = 0;
-        for (int i = 0; i < rows; ++i) {
+        for (int i = 0; i < rows; i++) {
             result[j] += matrix[i][j];
         }
     }
@@ -62,7 +62,7 @@ float mean(float *arr, int len) {
         return 0.0;
     }
     float sum = 0.0;
-    for (int i = 0; i < len; ++i) {
+    for (int i = 0; i < len; i++) {
         sum += arr[i];
     }
     return sum / len;
@@ -74,7 +74,7 @@ int argmax(float *arr, int size) {
     }
 
     int max_idx = 0;
-    for (int i = 1; i < size; ++i) {
+    for (int i = 1; i < size; i++) {
         if (arr[i] > arr[max_idx]) {
             max_idx = i;
         }

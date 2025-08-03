@@ -32,7 +32,7 @@ void *backward_worker(void *arg) {
     int dataset_samples_cols = bd->dataset_samples_cols;
     int dataset_targets_cols = bd->dataset_targets_cols;
 
-    for (int dataset_index = start_idx; dataset_index < end_idx; ++dataset_index) {
+    for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float ***X = X_list[dataset_index];
         float ***Y = Y_list[dataset_index];
 
@@ -45,10 +45,8 @@ void *backward_worker(void *arg) {
         float ***grad_x = malloc(layer_sizes_rows * sizeof(float**));
         float **grad_b = malloc(layer_sizes_rows * sizeof(float*));
 
-        float n_inputs_float = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 0];
-        float n_neurons_float = layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
-        int n_inputs = (int)n_inputs_float;
-        int n_neurons = (int)n_neurons_float;
+        const int n_inputs = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
 
         float **delta = create_matrix(matrix_rows, n_neurons);
 
@@ -83,10 +81,8 @@ void *backward_worker(void *arg) {
         free(delta);
 
         for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
-            float n_inputs_float = layer_sizes[layer_index * layer_sizes_cols + 0];
-            float n_neurons_float = layer_sizes[layer_index * layer_sizes_cols + 1];
-            int n_inputs = (int)n_inputs_float;
-            int n_neurons = (int)n_neurons_float;
+            const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
             int activation = (int)activations[layer_index];
             apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, activation);
@@ -163,7 +159,7 @@ void backward_threading(
     int remainder = dataset_samples_rows % num_threads;
 
     int start_idx = 0;
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; t++) {
         // Block size for the current thread
         int end_idx = start_idx + block_size + (t < remainder ? 1 : 0);
 
@@ -194,7 +190,7 @@ void backward_threading(
         start_idx = end_idx;
     }
 
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; t++) {
         pthread_join(backward_threads[t], NULL);
     }
 }
