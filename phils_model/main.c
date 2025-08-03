@@ -98,6 +98,11 @@ void fit(
         
         // Forward pass
 
+        if (verbose) {
+            const char *time = get_time();
+            printf("[%s] - INFO - Forward step\n", time);
+        }
+
         float ****X_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
         float ****Y_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
         float ****X_list = malloc(dataset_samples_rows * sizeof(float***));
@@ -133,6 +138,12 @@ void fit(
         float ***grad_b_list = malloc(dataset_samples_rows * sizeof(float**));
 
         // Backward pass
+
+        if (verbose) {
+            const char *time = get_time();
+            printf("[%s] - INFO - Backward step\n", time);
+        }
+
         backward_threading(
             backward_thread_data,
             weights,
@@ -158,6 +169,28 @@ void fit(
         );
 
         // Update weights and biases
+
+        if (verbose) {
+            const char *time = get_time();
+            printf("[%s] - INFO - Update weights and biases step\n", time);
+        }
+
+        const float b1 = opt->b1;
+        const float b2 = opt->b2;
+        const float b1_minus_1 = 1.0f - b1;
+        const float b2_minus_1 = 1.0f - b2;
+        const float b1_pow = powf(b1, epoch);
+        const float b2_pow = powf(b2, epoch);
+        const float inv_1mb1 = 1.0f / (1.0f - b1_pow);
+        const float inv_1mb2 = 1.0f / (1.0f - b2_pow);
+
+        opt->b1_minus_1 = b1_minus_1;
+        opt->b2_minus_1 = b2_minus_1;
+        opt->b1_pow = b1_pow;
+        opt->b2_pow = b2_pow;
+        opt->inv_1mb1 = inv_1mb1;
+        opt->inv_1mb2 = inv_1mb2;
+
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
@@ -173,6 +206,7 @@ void fit(
                 for (int i = 0; i < n_neurons; ++i) {
                     biases[layer_index][i] -= safe_update(grad_b[layer_index][i], learning_rate, max_change);
 
+                    // Handle NaN
                     if (isnan(biases[layer_index][i])) {
                         biases[layer_index][i] = 0.0;
                     }

@@ -55,32 +55,47 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 }
 
 void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols) {
-    optimizer->epoch++;
+    const float b1 = optimizer->b1;
+    const float b2 = optimizer->b2;
+    const float lr = optimizer->lr;
+    const float eps = optimizer->eps;
+    const float b1_minus_1 = optimizer->b1_minus_1;
+    const float b2_minus_1 = optimizer->b2_minus_1;
+    const int epoch = ++optimizer->epoch;
+    const float b1_pow = optimizer->b1_pow;
+    const float b2_pow = optimizer->b2_pow;
+    const float inv_1mb1 = optimizer->inv_1mb1;
+    const float inv_1mb2 = optimizer->inv_1mb2;
 
-    for(int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        float n_inputs_float = layer_sizes[layer_index * layer_sizes_cols + 0];
-        float n_neurons_float = layer_sizes[layer_index * layer_sizes_cols + 1];
-        int n_inputs = (int)n_inputs_float;
-        int n_neurons = (int)n_neurons_float;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        
+        float **layer_weights = weights[layer_index];
+        float **layer_grads = grads[layer_index];
+        float **layer_m = optimizer->m[layer_index];
+        float **layer_v = optimizer->v[layer_index];
 
+        #pragma omp parallel for collapse(2)
         for (int i = 0; i < n_inputs; i++) {
             for (int j = 0; j < n_neurons; j++) {
-                // Update the first moment (average of gradients)
-                optimizer->m[layer_index][i][j] = optimizer->b1 * optimizer->m[layer_index][i][j] + (1 - optimizer->b1) * grads[layer_index][i][j];
+                const float grad = layer_grads[i][j];
+                const float grad_sq = grad * grad;
                 
-                // Update the second moment (mean square of gradients)
-                optimizer->v[layer_index][i][j] = optimizer->b2 * optimizer->v[layer_index][i][j] + (1 - optimizer->b2) * pow(grads[layer_index][i][j], 2);
+                // Update moments
+                layer_m[i][j] = b1 * layer_m[i][j] + b1_minus_1 * grad;
+                layer_v[i][j] = b2 * layer_v[i][j] + b2_minus_1 * grad_sq;
                 
-                // Correcting the bias
-                float m_hat = optimizer->m[layer_index][i][j] / (1 - pow(optimizer->b1, optimizer->epoch));
-                float v_hat = optimizer->v[layer_index][i][j] / (1 - pow(optimizer->b2, optimizer->epoch));
+                // Compute bias-corrected moments
+                const float m_hat = layer_m[i][j] * inv_1mb1;
+                const float v_hat = layer_v[i][j] * inv_1mb2;
                 
-                // Updating weights
-                weights[layer_index][i][j] -= optimizer->lr * m_hat / (sqrt(v_hat) + optimizer->eps);
-
-                if (isnan(weights[layer_index][i][j])) {
-                    weights[layer_index][i][j] = 0.0;
-                }
+                // Update weights
+                float delta = lr * m_hat / (sqrtf(v_hat) + eps);
+                layer_weights[i][j] -= delta;
+                
+                // Handle NaN
+                layer_weights[i][j] = isnan(layer_weights[i][j]) ? 0.0f : layer_weights[i][j];
             }
         }
     }
