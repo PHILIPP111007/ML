@@ -177,20 +177,18 @@ void fit(
 
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
+            #pragma omp parallel for
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
                 float *bias_layer = biases[layer_index];
                 float *grad_b_layer = grad_b[layer_index];
 
-                #pragma omp simd
                 for (int i = 0; i < n_neurons; ++i) {
-                    float change = grad_b_layer[i] * learning_rate;
-                    bias_layer[i] -= safe_update(change, max_change);
+                    const float change = grad_b_layer[i] * learning_rate;
+                    const float updated = bias_layer[i] - safe_update(change, max_change);
 
                     // Handle NaN
-                    if (isnan(biases[layer_index][i])) {
-                        biases[layer_index][i] = 0.0;
-                    }
+                    bias_layer[i] = isnan(updated) ? 0.0f : updated;
                 }
             }
         }

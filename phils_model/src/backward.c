@@ -88,6 +88,8 @@ void *backward_worker(void *arg) {
             apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, activation);
 
             float **delta = create_matrix(matrix_rows, n_neurons);
+
+            #pragma omp parallel for
             for (int i = 0; i < matrix_rows; i++) {
 
                 #pragma omp simd
