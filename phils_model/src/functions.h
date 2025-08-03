@@ -41,8 +41,7 @@ int argmax(
 );
 
 float safe_update(
-    float delta,
-    float learning_rate,
+    float number,
     float max_change
 );
 

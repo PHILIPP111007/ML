@@ -174,13 +174,14 @@ void fit(
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
 
-            adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols);
+            adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
                 for (int i = 0; i < n_neurons; ++i) {
-                    biases[layer_index][i] -= safe_update(grad_b[layer_index][i], learning_rate, max_change);
+                    float change = grad_b[layer_index][i] * learning_rate;
+                    biases[layer_index][i] -= safe_update(change, max_change);
 
                     // Handle NaN
                     if (isnan(biases[layer_index][i])) {

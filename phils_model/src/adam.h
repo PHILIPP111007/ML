@@ -36,7 +36,8 @@ void adam_step(
     float ***grads,
     float *layer_sizes,
     int layer_sizes_rows,
-    int layer_sizes_cols
+    int layer_sizes_cols,
+    float max_change
 );
 
 #endif

@@ -82,16 +82,14 @@ int argmax(float *arr, int size) {
     return max_idx;
 }
 
-float safe_update(float delta, float learning_rate, float max_change) {
-    float change = delta * learning_rate;
-    if (change > max_change) {
-        change = max_change;
-    }
-    else if (change < -max_change) {
-        change = -max_change;
+float safe_update(float number, float max_change) {
+    if (number > max_change) {
+        number = max_change;
+    } else if (number < -max_change) {
+        number = -max_change;
     }
 
-    return change;
+    return number;
 }
 
 void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropout) {
