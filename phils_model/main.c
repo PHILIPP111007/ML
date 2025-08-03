@@ -330,11 +330,10 @@ void predict_one(
     }
 
     // Return predict
-    for (int i = 0; i < 1; i++) {
-        for (int j = 0; j < n_neurons; j++) {
-            prediction[j] = y[i][j];
-        }
+    for (int j = 0; j < n_neurons; j++) {
+        prediction[j] = y[0][j];
     }
+
     for (int i = 0; i < matrix_rows; i++) {
         free(y[i]);
     }
