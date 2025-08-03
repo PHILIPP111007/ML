@@ -61,9 +61,6 @@ void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_
         for (int j = 0; j < prediction_cols; j++) {
             output_error[i][j] = loss[i][j];
         }
-    }
-
-    for (int i = 0; i < prediction_rows; i++) {
         free(loss[i]);
     }
     free(loss);
