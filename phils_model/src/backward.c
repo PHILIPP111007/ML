@@ -36,11 +36,6 @@ void *backward_worker(void *arg) {
         float ***X = X_list[dataset_index];
         float ***Y = Y_list[dataset_index];
 
-        float *target = malloc(dataset_targets_cols * sizeof(float));
-        for (int i = 0; i < dataset_targets_cols; i++) {
-            target[i] = targets[dataset_index][i];
-        }
-
         float ***grad_w = malloc(layer_sizes_rows * sizeof(float**));
         float ***grad_x = malloc(layer_sizes_rows * sizeof(float**));
         float **grad_b = malloc(layer_sizes_rows * sizeof(float*));
@@ -50,8 +45,7 @@ void *backward_worker(void *arg) {
 
         float **delta = create_matrix(matrix_rows, n_neurons);
 
-        calc_loss(loss, target, Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
-        free(target);
+        calc_loss(loss, targets[dataset_index], Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
         float output_error = sum(delta, matrix_rows, n_neurons);
         epoch_losses[dataset_index] = output_error;
 

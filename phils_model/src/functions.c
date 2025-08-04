@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <pthread.h>
 #include "functions.h"
 
 
-void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B, int cols_B) {
+inline void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B, int cols_B) {
     if (cols_A != rows_B) {
         fprintf(stderr, "Matrix dimensions mismatch: %d != %d\n", cols_A, rows_B);
         return;
@@ -24,7 +25,7 @@ void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B,
     }
 }
 
-float **transpose(float **original_matrix, int rows, int cols) {
+inline float **transpose(float **original_matrix, int rows, int cols) {
     float **transposed_matrix = malloc(cols * sizeof(float*));
     for (int i = 0; i < cols; i++) {
         transposed_matrix[i] = malloc(rows * sizeof(float));
@@ -86,17 +87,11 @@ int argmax(float *arr, int size) {
     return max_idx;
 }
 
-float safe_update(float number, float max_change) {
-    if (number > max_change) {
-        number = max_change;
-    } else if (number < -max_change) {
-        number = -max_change;
-    }
-
-    return number;
+inline float safe_update(float number, float max_change) {
+    return fmaxf(fminf(number, max_change), -max_change);
 }
 
-void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropout) {
+inline void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropout) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < n_neurons; j++) {
             float random = (double)rand() / RAND_MAX;
@@ -107,7 +102,7 @@ void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropout) {
     }
 }
 
-float **create_matrix(int rows, int cols) {
+inline float **create_matrix(int rows, int cols) {
     float **matrix = malloc(rows * sizeof(float*));
 
     for (int i = 0; i < rows; i++) {

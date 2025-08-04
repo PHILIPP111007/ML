@@ -8,7 +8,7 @@
 // Activation functions
 ///////////////////////////////////////////////////////////////////////////////
 
-void relu_calc(float **y, int matrix_rows, int matrix_columns) {
+inline void relu_calc(float **y, int matrix_rows, int matrix_columns) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < matrix_columns; j++) {
             if (y[i] > 0) {
@@ -21,7 +21,7 @@ void relu_calc(float **y, int matrix_rows, int matrix_columns) {
     }
 }
 
-void relu_derivative(float **y, int matrix_rows, int matrix_columns) {
+inline void relu_derivative(float **y, int matrix_rows, int matrix_columns) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < matrix_columns; j++) {
             if (y[i] > 0) {
@@ -36,7 +36,7 @@ void relu_derivative(float **y, int matrix_rows, int matrix_columns) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-float sigmoid(float x) {
+inline float sigmoid(float x) {
     float n = exp(x);
     if (x >= 0) {
         return 1.0 / (1.0 + n);
@@ -45,7 +45,7 @@ float sigmoid(float x) {
     }
 }
 
-void sigmoid_calc(float **y, int matrix_rows, int matrix_columns) {
+inline void sigmoid_calc(float **y, int matrix_rows, int matrix_columns) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = sigmoid(y[i][j]);
@@ -53,7 +53,7 @@ void sigmoid_calc(float **y, int matrix_rows, int matrix_columns) {
     }
 }
 
-void sigmoid_derivative(float **y, int matrix_rows, int matrix_columns) {
+inline void sigmoid_derivative(float **y, int matrix_rows, int matrix_columns) {
     float **f = create_matrix(matrix_rows, matrix_columns);
 
     for (int i = 0; i < matrix_rows; i++) {
@@ -72,7 +72,7 @@ void sigmoid_derivative(float **y, int matrix_rows, int matrix_columns) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // The softmax method (returns normalized class probabilities)
-void softmax_calc(float **y, int matrix_rows, int matrix_columns) {
+inline void softmax_calc(float **y, int matrix_rows, int matrix_columns) {
     float max_val = y[0][0];
 
     for (int i = 1; i < matrix_rows; i++) {
@@ -100,7 +100,7 @@ void softmax_calc(float **y, int matrix_rows, int matrix_columns) {
     }
 }
 
-void softmax_derivative(float **y, int matrix_rows, int matrix_columns) {
+inline void softmax_derivative(float **y, int matrix_rows, int matrix_columns) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = y[i][j];
@@ -110,7 +110,7 @@ void softmax_derivative(float **y, int matrix_rows, int matrix_columns) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void apply_activation_calc(float **y, int matrix_rows, int matrix_columns, int activation) {
+inline void apply_activation_calc(float **y, int matrix_rows, int matrix_columns, int activation) {
     if (activation == 0) {
         relu_calc(y, matrix_rows, matrix_columns);
     } else if (activation == 1) {
@@ -122,7 +122,7 @@ void apply_activation_calc(float **y, int matrix_rows, int matrix_columns, int a
     }
 }
 
-void apply_activation_derivative(float **y, int matrix_rows, int matrix_columns, int activation) {
+inline void apply_activation_derivative(float **y, int matrix_rows, int matrix_columns, int activation) {
     if (activation == 0) {
         relu_derivative(y, matrix_rows, matrix_columns);
     } else if (activation == 1) {

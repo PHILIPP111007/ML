@@ -8,7 +8,7 @@
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
 
-void mse_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
+inline void mse_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
     float **loss = malloc(prediction_rows * sizeof(float*));
 
     for (int i = 0; i < prediction_rows; i++) {
@@ -36,7 +36,7 @@ void mse_loss(float **prediction, int prediction_rows, int prediction_cols, floa
     free(loss);
 }
 
-void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
+inline void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
     float **loss = malloc(prediction_rows * sizeof(float*));
 
     for (int i = 0; i < prediction_rows; i++) {
@@ -66,7 +66,7 @@ void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_
     free(loss);
 }
 
-void calc_loss(int loss, float *target, float **prediction, int prediction_rows, int prediction_cols, float **output_error, int regression) {
+inline void calc_loss(int loss, float *target, float **prediction, int prediction_rows, int prediction_cols, float **output_error, int regression) {
     if (loss == 0) {
         return mse_loss(prediction, prediction_rows, prediction_cols, target, output_error, regression);
     } else if (loss == 1) {

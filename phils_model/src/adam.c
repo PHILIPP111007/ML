@@ -4,7 +4,7 @@
 #include "adam.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// Adam
+// Adam optimizer
 ///////////////////////////////////////////////////////////////////////////////
 
 // Freeing up optimizer resources
@@ -52,7 +52,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
     return optimizer;
 }
 
-void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
+inline void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
     const float b1 = optimizer->b1;
     const float b2 = optimizer->b2;
     const float lr = optimizer->lr;
@@ -91,9 +91,6 @@ void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads
                 // Update weights
                 float delta = lr * m_hat / (sqrtf(v_hat) + eps);
                 layer_weights[i][j] -= safe_update(delta, max_change);
-
-                // Handle NaN
-                layer_weights[i][j] = isnan(layer_weights[i][j]) ? 0.0f : layer_weights[i][j];
             }
         }
     }

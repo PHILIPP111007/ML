@@ -185,11 +185,30 @@ void fit(
 
                 for (int i = 0; i < n_neurons; ++i) {
                     const float change = grad_b_layer[i] * learning_rate;
-                    const float updated = bias_layer[i] - safe_update(change, max_change);
-
-                    // Handle NaN
-                    bias_layer[i] = isnan(updated) ? 0.0f : updated;
+                    bias_layer[i] -= safe_update(change, max_change);
                 }
+            }
+        }
+
+        // Handle NaN
+
+        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+            const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+
+            #pragma omp parallel for collapse(2)
+            for (int i = 0; i < n_inputs; i++) {
+                for (int j = 0; j < n_neurons; j++) {
+                    weights[layer_index][i][j] = isnan(weights[layer_index][i][j]) ? 0.0f : weights[layer_index][i][j];
+                }
+            }
+        }
+
+        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+
+            for (int i = 0; i < n_neurons; i++) {
+                biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }
         }
 
