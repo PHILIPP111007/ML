@@ -37,7 +37,8 @@ void fit(
     int random_state,
     int regression,
     int num_cpu,
-    float *dropouts) {
+    float *dropouts,
+    float *losses) {
     
     if (random_state != -1) {
         srand(random_state); // set the initial state of the generator
@@ -85,7 +86,6 @@ void fit(
     // Create Adam
     struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-8, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
-    float losses_by_epoch[n_epoch];
     for (int epoch = 0; epoch < n_epoch; epoch++) {
         float *epoch_losses = malloc(dataset_samples_rows * sizeof(float));
         int matrix_rows = dataset_samples_cols;
@@ -246,7 +246,7 @@ void fit(
         free(Y_list);
 
         float mean_loss = mean(epoch_losses, dataset_samples_rows);
-        losses_by_epoch[epoch] = mean_loss;
+        losses[epoch] = mean_loss;
         if (verbose) {
             char *s = (char*)malloc(100 * sizeof(char));
             sprintf(s, "Epoch %d / %d. Loss: %f\n", epoch + 1, n_epoch, mean_loss);
