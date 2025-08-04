@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "functions.h"
 #include "forward.h"
 #include "predict.h"
 
@@ -11,16 +12,8 @@ void *predict_thread(void *arg) {
 
         float ***Y = malloc(task->layer_sizes_rows * sizeof(float**));
 
-        float **sample = malloc(task->dataset_samples_cols * sizeof(float*));
-        for (int j = 0; j < task->dataset_samples_cols; j++) {
-            sample[j] = malloc(task->dataset_samples_depth * sizeof(float));
-            for (int k = 0; k < task->dataset_samples_depth; k++) {
-                sample[j][k] = task->sample[j][k];
-            }
-        }
-
         // Forward pass
-        forward(sample, task->dataset_samples_cols, task->dataset_samples_depth, task->weights, task->biases, Y, task->layer_sizes, task->layer_sizes_rows, task->layer_sizes_cols, task->activations);
+        forward(task->sample, task->dataset_samples_cols, task->dataset_samples_depth, task->weights, task->biases, Y, task->layer_sizes, task->layer_sizes_rows, task->layer_sizes_cols, task->activations);
 
         // Get predictions from last layer
         for (int j = 0; j < task->n_neurons_last_layer; j++) {

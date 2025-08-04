@@ -297,9 +297,8 @@ void predict_one(
     int activations_len,
     float *prediction) {
 
-    float **sample = malloc(sample_rows * sizeof(float*));
+    float **sample = create_matrix(sample_rows, sample_cols);
     for (int i = 0; i < sample_rows; i++) {
-        sample[i] = malloc(sample_cols * sizeof(float));
         for (int j = 0; j < sample_cols; j++) {
             sample[i][j] = sample_input[i + j];
         }
@@ -337,6 +336,8 @@ void predict_one(
 
     // Forward pass
     forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
+
+    free_matrix(sample);
 
     const int n_inputs = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
     const int n_neurons = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];

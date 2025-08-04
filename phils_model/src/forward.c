@@ -36,11 +36,6 @@ void forward(
     int activation = (int)activations[0];
     apply_activation_calc(Y[0], sample_rows, n_neurons, activation);
 
-    for (int i = 0; i < sample_rows; i++) {
-        free(sample[i]);
-    }
-    free(sample);
-
     int matrix_rows = sample_rows;
     for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
@@ -90,9 +85,8 @@ void *forward_worker(void *arg) {
     float *dropouts = fd->dropouts;
 
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
-        float **sample = malloc(sample_rows * sizeof(float*));
+        float **sample = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
-            sample[i] = malloc(sample_cols * sizeof(float));
             for (int j = 0; j < sample_cols; j++) {
                 sample[i][j] = samples[dataset_index][i][j];
             }
@@ -124,11 +118,7 @@ void *forward_worker(void *arg) {
                 X[0][i][j] = sample[i][j];
             }
         }
-
-        for (int i = 0; i < sample_rows; i++) {
-            free(sample[i]);
-        }
-        free(sample);
+        free_matrix(sample);
 
         int matrix_rows = sample_rows;
 
