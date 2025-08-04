@@ -7,7 +7,7 @@ void save_weights_as_json(char *fname, float ***weights_result, float *layer_siz
     FILE *fp = fopen(fname, "w");
 
     if (!fp) {
-        fprintf(stderr, "Ошибка открытия файла '%s'\n", fname);
+        fprintf(stderr, "Error opening file '%s'\n", fname);
         return;
     }
 
@@ -48,7 +48,7 @@ void save_biases_as_json(char *fname, float **biases, float *layer_sizes, int la
     FILE *fp = fopen(fname, "w");
 
     if (!fp) {
-        fprintf(stderr, "Ошибка открытия файла '%s'\\n", fname);
+        fprintf(stderr, "Error opening file '%s'\n", fname);
         return;
     }
 
