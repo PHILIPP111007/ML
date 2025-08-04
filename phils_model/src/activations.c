@@ -21,10 +21,7 @@ inline void relu_calc(float **y, int matrix_rows, int matrix_columns) {
 inline void relu_derivative(float **y, int matrix_rows, int matrix_columns) {
     for (int i = 0; i < matrix_rows; i++) {
         for (int j = 0; j < matrix_columns; j++) {
-            if (y[i] > 0) {
-                y[i][j] = y[i][j];
-            }
-            else {
+            if (y[i] <= 0) {
                 y[i][j] = 0.0;
             }
         }
