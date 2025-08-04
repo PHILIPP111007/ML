@@ -272,11 +272,6 @@ void fit(
     destroy_adam(opt, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-
-        for (int i = 0; i < n_inputs; i++) {
-            free(weights[layer_index][i]);
-        }
         free(weights[layer_index]);
         free(biases[layer_index]);
     }
