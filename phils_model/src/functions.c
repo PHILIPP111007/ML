@@ -156,7 +156,9 @@ inline float **create_matrix(int rows, int cols) {
 }
 
 inline void free_matrix(float **matrix) {
-    free(matrix[0]);
+    for (int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
+        free(matrix[i]);
+    }
     free(matrix);
 }
 
