@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
-#include "forward.h"
 #include "functions.h"
 #include "loss.h"
 #include "activations.h"
+#include "forward.h"
 
 
 // Forward pass

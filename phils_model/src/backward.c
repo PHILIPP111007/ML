@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <pthread.h>
-#include "backward.h"
 #include "functions.h"
 #include "loss.h"
 #include "activations.h"
 #include "functions.h"
+#include "backward.h"
 
 
 // Backward pass

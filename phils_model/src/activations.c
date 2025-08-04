@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
-#include "activations.h"
 #include "functions.h"
+#include "activations.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,10 +57,13 @@ inline void sigmoid_derivative(float **y, int matrix_rows, int matrix_columns) {
     }
 
     for (int i = 0; i < matrix_rows; i++) {
+        #pragma omp simd
         for (int j = 0; j < matrix_columns; j++) {
             y[i][j] = f[i][j] * (1.0 - f[i][j]);
         }
     }
+
+    free_matrix(f);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
