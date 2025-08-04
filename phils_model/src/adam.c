@@ -9,7 +9,7 @@
     #include <immintrin.h>
 
 
-    inline float fast_sqrt(float x) {
+    static inline float fast_sqrt(float x) {
         return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
     }
 #elif defined(__aarch64__) || defined(__ARM_NEON)
@@ -17,12 +17,12 @@
     #include <arm_neon.h>
 
 
-    inline float fast_sqrt(float x) {
+    static inline float fast_sqrt(float x) {
         return vgetq_lane_f32(vsqrtq_f32(vdupq_n_f32(x)), 0);
     }
 #else
     // Universal implementation
-    inline float fast_sqrt(float x) {
+    static inline float fast_sqrt(float x) {
         return sqrtf(x);
     }
 #endif
@@ -103,20 +103,34 @@ inline void adam_step(struct AdamOptimizer *optimizer, float ***weights, float *
         float **layer_v = optimizer->v[layer_index];
 
         // Universal scalar processing
-        #pragma omp parallel for collapse(2) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < n_inputs; i++) {
+            float* __restrict weights_row = layer_weights[i];
+            float* __restrict grads_row = layer_grads[i];
+            float* __restrict m_row = layer_m[i];
+            float* __restrict v_row = layer_v[i];
+
             for (int j = 0; j < n_neurons; j++) {
-                const float grad = layer_grads[i][j];
+                const float grad = grads_row[j];
                 const float grad_sq = grad * grad;
 
-                layer_m[i][j] = b1 * layer_m[i][j] + b1_minus_1 * grad;
-                layer_v[i][j] = b2 * layer_v[i][j] + b2_minus_1 * grad_sq;
+                // Calculation of moments
+                const float new_m = b1 * m_row[j] + b1_minus_1 * grad;
+                const float new_v = b2 * v_row[j] + b2_minus_1 * grad_sq;
 
-                const float m_hat = layer_m[i][j] * inv_1mb1;
-                const float v_hat = layer_v[i][j] * inv_1mb2;
+                // Offset correction
+                const float m_hat = new_m * inv_1mb1;
+                const float v_hat = new_v * inv_1mb2;
 
-                const float delta = lr * m_hat / (fast_sqrt(v_hat) + eps);
-                layer_weights[i][j] -= fminf(fmaxf(delta, -max_change), max_change);
+                // Update of weights
+                const float sqrt_v_hat = fast_sqrt(v_hat);
+                const float delta = lr * m_hat / (sqrt_v_hat + eps);
+                const float clipped_delta = fminf(fmaxf(delta, -max_change), max_change);
+
+                // Saving results
+                m_row[j] = new_m;
+                v_row[j] = new_v;
+                weights_row[j] -= clipped_delta;
             }
         }
     }

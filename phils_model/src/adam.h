@@ -35,10 +35,6 @@ float fast_pow(
     int b
 );
 
-float fast_sqrt(
-    float x
-);
-
 void adam_step(
     struct AdamOptimizer *optimizer,
     float ***weights,
