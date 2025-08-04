@@ -179,8 +179,6 @@ void fit(
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
 
-            printf("%d\n", dataset_index);
-
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
             #pragma omp parallel for schedule(static)
