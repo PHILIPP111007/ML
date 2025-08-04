@@ -174,14 +174,14 @@ void fit(
             logger_info("Update weights and biases step\n");
         }
 
-        #pragma omp for schedule(dynamic)
+        #pragma omp for schedule(static)
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
 
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
-            #pragma omp parallel for
+            #pragma omp parallel for schedule(static)
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
                 float *bias_layer = biases[layer_index];
@@ -200,7 +200,7 @@ void fit(
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-            #pragma omp parallel for collapse(2)
+            #pragma omp parallel for collapse(2) schedule(static)
             for (int i = 0; i < n_inputs; i++) {
                 for (int j = 0; j < n_neurons; j++) {
                     weights[layer_index][i][j] = isnan(weights[layer_index][i][j]) ? 0.0f : weights[layer_index][i][j];
@@ -211,7 +211,7 @@ void fit(
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-            #pragma omp parallel for
+            #pragma omp parallel for schedule(static)
             for (int i = 0; i < n_neurons; i++) {
                 biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }
@@ -221,11 +221,7 @@ void fit(
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
 
-                for (int i = 0; i < n_inputs; i++) {
-                    free(grad_w_list[dataset_index][layer_index][i]);
-                }
                 for (int i = 0; i < matrix_rows; i++) {
-                    free(grad_x_list[dataset_index][layer_index][i]);
                     free(X_list[dataset_index][layer_index][i]);
                     free(Y_list[dataset_index][layer_index][i]);
                 }

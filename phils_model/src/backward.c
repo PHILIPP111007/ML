@@ -73,7 +73,7 @@ void *backward_worker(void *arg) {
 
             float **delta = create_matrix(matrix_rows, n_neurons);
 
-            #pragma omp parallel for collapse(2)
+            #pragma omp parallel for simd collapse(2) schedule(static)
             for (int i = 0; i < matrix_rows; i++) {
                 for (int j = 0; j < n_neurons; j++) {
                     delta[i][j] = grad_x[layer_index + 1][i][j] * Y[layer_index][i][j];

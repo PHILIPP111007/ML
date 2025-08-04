@@ -21,7 +21,7 @@ inline void matmul(float **restrict A, float **restrict B, float **restrict C, i
         return;
     }
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows_A; i++) {
         float *restrict a_row = A[i];
         float *restrict c_row = C[i];
@@ -81,7 +81,7 @@ inline void matmul(float **restrict A, float **restrict B, float **restrict C, i
     }
 }
 
-float sum(float **matrix, int rows, int cols) {
+inline float sum(float **matrix, int rows, int cols) {
     float n = 0.0;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -91,7 +91,7 @@ float sum(float **matrix, int rows, int cols) {
     return n;
 }
 
-float *sum_axis_0(float **matrix, int rows, int cols) {
+inline float *sum_axis_0(float **matrix, int rows, int cols) {
     float *result = malloc(cols * sizeof(float));
 
     for (int j = 0; j < cols; j++) {
@@ -103,7 +103,7 @@ float *sum_axis_0(float **matrix, int rows, int cols) {
     return result;
 }
 
-float mean(float *arr, int len) {
+inline float mean(float *arr, int len) {
     if (len == 0) {
         return 0.0;
     }
@@ -114,7 +114,7 @@ float mean(float *arr, int len) {
     return sum / len;
 }
 
-int argmax(float *arr, int size) {
+inline int argmax(float *arr, int size) {
     if (size <= 0) {
         return -1;
     }
@@ -145,18 +145,18 @@ inline void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropo
 
 inline float **create_matrix(int rows, int cols) {
     float **matrix = malloc(rows * sizeof(float*));
+    float *data = malloc(rows * cols * sizeof(float));
     
+    // Setting up line pointers
     for (int i = 0; i < rows; i++) {
-        matrix[i] = malloc(cols * sizeof(float));
+        matrix[i] = &data[i * cols];
     }
 
     return matrix;
 }
 
 inline void free_matrix(float **matrix) {
-    for (int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
-        free(matrix[i]);
-    }
+    free(matrix[0]);
     free(matrix);
 }
 
