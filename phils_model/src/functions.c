@@ -4,24 +4,80 @@
 #include <pthread.h>
 #include "functions.h"
 
+// Platform-dependent optimizations
+#if defined(__x86_64__) || defined(__i386__)
+    #define USE_x86
+    #include <immintrin.h>
+#elif defined(__aarch64__) || defined(__ARM_NEON)
+    #define USE_ARM
+    #include <arm_neon.h>
+#endif
 
-inline void matmul(float **A, float **B, float **C, int rows_A, int cols_A, int rows_B, int cols_B) {
+
+inline void matmul(float **restrict A, float **restrict B, float **restrict C, int rows_A, int cols_A, int rows_B, int cols_B) {
+    // Checking compatibility of matrix sizes
     if (cols_A != rows_B) {
         fprintf(stderr, "Matrix dimensions mismatch: %d != %d\n", cols_A, rows_B);
         return;
     }
 
-    for (register int i = 0; i < rows_A; i++) {
-        float *a = A[i];
-        
-        for (register int k = 0; k < cols_A; k++) {
-            float *b = B[k];
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < rows_A; i++) {
+        float *restrict a_row = A[i];
+        float *restrict c_row = C[i];
 
-            #pragma omp simd
-            for (register int j = 0; j < cols_B; j++) {
-                C[i][j] += a[k] * b[j];
+        #ifdef USE_x86
+            // AVX2 implementation for x86 (8 elements)
+            for (int k = 0; k < cols_A; k++) {
+                float *restrict b_row = B[k];
+                __m256 a_val = _mm256_set1_ps(a_row[k]);
+
+                int j = 0;
+                for (; j <= cols_B - 8; j += 8) {
+                    __m256 c = _mm256_loadu_ps(&c_row[j]);
+                    __m256 b = _mm256_loadu_ps(&b_row[j]);
+                    c = _mm256_fmadd_ps(a_val, b, c);
+                    _mm256_storeu_ps(&c_row[j], c);
+                }
+
+                // Remaining elements
+                #pragma omp simd
+                for (int i = j; i < cols_B; i++) {
+                    c_row[i] += a_row[k] * b_row[i];
+                }
             }
-        }
+        #elif defined(USE_ARM)
+            // Implementation for ARM (4 elements)
+            for (int k = 0; k < cols_A; k++) {
+                float *restrict b_row = B[k];
+                float32x4_t a_val = vdupq_n_f32(a_row[k]);
+
+                int j = 0;
+                for (; j <= cols_B - 4; j += 4) {
+                    float32x4_t c = vld1q_f32(&c_row[j]);
+                    float32x4_t b = vld1q_f32(&b_row[j]);
+                    c = vmlaq_f32(c, a_val, b);
+                    vst1q_f32(&c_row[j], c);
+                }
+
+                // Remaining elements
+                #pragma omp simd
+                for (int i = j; i < cols_B; i++) {
+                    c_row[i] += a_row[k] * b_row[i];
+                }
+            }
+        #else
+            // Universal scalar implementation
+            for (int k = 0; k < cols_A; k++) {
+                float *b_row = B[k];
+                float a_val = a_row[k];
+
+                #pragma omp simd
+                for (int j = 0; j < cols_B; j++) {
+                    c_row[j] += a_val * b_row[j];
+                }
+            }
+        #endif
     }
 }
 
