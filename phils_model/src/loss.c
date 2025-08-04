@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
-#include "loss.h"
 #include "functions.h"
+#include "loss.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
