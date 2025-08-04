@@ -17,13 +17,13 @@ inline void mse_loss(float **prediction, int prediction_rows, int prediction_col
         int max_target_index = argmax(target, prediction_cols);
 
         for (int j = 0; j < prediction_cols; j++) {
-            // if (j == max_target_index && !regression) {
-            //     loss[i][j] = 0.0;
-            // } else {
-            //     loss[i][j] = pow(target[max_target_index] - prediction[i][j], 2);
-            // }
+            if (j == max_target_index && !regression) {
+                loss[i][j] = 0.0;
+            } else {
+                loss[i][j] = pow(target[max_target_index] - prediction[i][j], 2);
+            }
 
-            loss[i][j] = pow(target[j] - prediction[i][j], 2);
+            // loss[i][j] = pow(target[j] - prediction[i][j], 2);
 
             loss[i][j] = isnan(loss[i][j]) ? 0.0f : loss[i][j];
         }
@@ -47,15 +47,15 @@ inline void cross_entropy_loss(float **prediction, int prediction_rows, int pred
         int max_target_index = argmax(target, prediction_cols);
 
         for (int j = 0; j < prediction_cols; j++) {
-            // if (j == max_target_index && !regression) {
-            //     loss[i][j] = 0.0;
-            // } else {
-            //     float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
-            //     loss[i][j] = target[max_target_index] * log(p);
-            // }
+            if (j == max_target_index && !regression) {
+                loss[i][j] = 0.0;
+            } else {
+                float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
+                loss[i][j] = target[max_target_index] * log(p);
+            }
 
-            float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
-            loss[i][j] = target[j] * log(p);
+            // float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
+            // loss[i][j] = target[j] * log(p);
 
             loss[i][j] = isnan(loss[i][j]) ? 0.0f : loss[i][j];
         }
