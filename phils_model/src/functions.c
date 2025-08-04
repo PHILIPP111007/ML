@@ -81,21 +81,6 @@ inline void matmul(float **restrict A, float **restrict B, float **restrict C, i
     }
 }
 
-inline float **transpose(float **original_matrix, int rows, int cols) {
-    float **transposed_matrix = malloc(cols * sizeof(float*));
-    for (int i = 0; i < cols; i++) {
-        transposed_matrix[i] = malloc(rows * sizeof(float));
-    }
-
-    #pragma omp parallel for collapse(2) schedule(static)
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            transposed_matrix[j][i] = original_matrix[i][j];
-        }
-    }
-    return transposed_matrix;
-}
-
 float sum(float **matrix, int rows, int cols) {
     float n = 0.0;
     for (int i = 0; i < rows; i++) {
@@ -173,4 +158,17 @@ inline void free_matrix(float **matrix) {
         free(matrix[i]);
     }
     free(matrix);
+}
+
+inline float **transpose(float **original_matrix, int rows, int cols) {
+    float **transposed_matrix = create_matrix(cols, rows);
+
+    #pragma omp parallel for schedule(static)
+    for (int j = 0; j < cols; j++) {
+        #pragma omp simd
+        for (int i = 0; i < rows; i++) {
+            transposed_matrix[j][i] = original_matrix[i][j];
+        }
+    }
+    return transposed_matrix;
 }
