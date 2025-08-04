@@ -160,9 +160,17 @@ inline void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropo
 
 inline float **create_matrix(int rows, int cols) {
     float **matrix = malloc(rows * sizeof(float*));
-
+    
     for (int i = 0; i < rows; i++) {
         matrix[i] = malloc(cols * sizeof(float));
     }
+
     return matrix;
+}
+
+inline void free_matrix(float **matrix) {
+    for (int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
+        free(matrix[i]);
+    }
+    free(matrix);
 }

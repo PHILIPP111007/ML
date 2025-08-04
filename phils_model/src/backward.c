@@ -55,24 +55,14 @@ void *backward_worker(void *arg) {
         x_T = transpose(X[layer_sizes_rows - 1], matrix_rows, n_inputs);
         grad_w[layer_sizes_rows - 1] = create_matrix(n_inputs, n_neurons);
         matmul(x_T, delta, grad_w[layer_sizes_rows - 1], n_inputs, matrix_rows, matrix_rows, n_neurons);
-        for (int i = 0; i < n_inputs; i++) {
-            free(x_T[i]);
-        }
-        free(x_T);
+        free_matrix(x_T);
 
         float **w_T = create_matrix(n_neurons, n_inputs);
         w_T = transpose(weights[layer_sizes_rows - 1], n_inputs, n_neurons);
         grad_x[layer_sizes_rows - 1] = create_matrix(matrix_rows, n_inputs);
         matmul(delta, w_T, grad_x[layer_sizes_rows - 1], matrix_rows, n_neurons, n_neurons, n_inputs);
-
-        for (int i = 0; i < n_neurons; i++) {
-            free(w_T[i]);
-        }
-        free(w_T);
-        for (int i = 0; i < matrix_rows; i++) {
-            free(delta[i]);
-        }
-        free(delta);
+        free_matrix(w_T);
+        free_matrix(delta);
 
         for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
@@ -97,24 +87,15 @@ void *backward_worker(void *arg) {
 
             grad_w[layer_index] = create_matrix(n_inputs, n_neurons);
             matmul(x_T, delta, grad_w[layer_index], n_inputs, matrix_rows, matrix_rows, n_neurons);
-            for (int i = 0; i < n_inputs; i++) {
-                free(x_T[i]);
-            }
-            free(x_T);
+            free_matrix(x_T);
 
             float **w_T = create_matrix(n_neurons, n_inputs);
             w_T = transpose(weights[layer_index], n_inputs, n_neurons);
 
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
             matmul(delta, w_T, grad_x[layer_index], matrix_rows, n_neurons, n_neurons, n_inputs);
-            for (int i = 0; i < n_neurons; i++) {
-                free(w_T[i]);
-            }
-            free(w_T);
-            for (int i = 0; i < matrix_rows; i++) {
-                free(delta[i]);
-            }
-            free(delta);
+            free_matrix(w_T);
+            free_matrix(delta);
         }
         grad_w_list[dataset_index] = grad_w;
         grad_x_list[dataset_index] = grad_x;

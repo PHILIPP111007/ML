@@ -57,4 +57,8 @@ float **create_matrix(
     int cols
 );
 
+void free_matrix(
+    float **matrix
+);
+
 #endif
