@@ -4,29 +4,6 @@
 #include "adam.h"
 
 
-#if defined(__x86_64__) || defined(__i386__)
-    #define USE_x86
-    #include <immintrin.h>
-
-
-    static inline float fast_sqrt(float x) {
-        return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
-    }
-#elif defined(__aarch64__) || defined(__ARM_NEON)
-    #define USE_ARM
-    #include <arm_neon.h>
-
-
-    static inline float fast_sqrt(float x) {
-        return vgetq_lane_f32(vsqrtq_f32(vdupq_n_f32(x)), 0);
-    }
-#else
-    // Universal implementation
-    static inline float fast_sqrt(float x) {
-        return sqrtf(x);
-    }
-#endif
-
 inline float fast_pow(float a, int b) {
     return expf(b * logf(a));
 }
@@ -110,6 +87,7 @@ inline void adam_step(struct AdamOptimizer *optimizer, float ***weights, float *
             float* __restrict m_row = layer_m[i];
             float* __restrict v_row = layer_v[i];
 
+            #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
                 const float grad = grads_row[j];
                 const float grad_sq = grad * grad;
@@ -123,7 +101,7 @@ inline void adam_step(struct AdamOptimizer *optimizer, float ***weights, float *
                 const float v_hat = new_v * inv_1mb2;
 
                 // Update of weights
-                const float sqrt_v_hat = fast_sqrt(v_hat);
+                const float sqrt_v_hat = sqrtf(v_hat);
                 const float delta = lr * m_hat / (sqrt_v_hat + eps);
                 const float clipped_delta = fminf(fmaxf(delta, -max_change), max_change);
 
