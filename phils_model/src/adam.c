@@ -160,7 +160,7 @@ inline void adam_step(struct AdamOptimizer *optimizer, float ***weights, float *
             }
         #else
             // Universal scalar processing
-            #pragma omp simd collapse(2)
+            #pragma omp for collapse(2)
             for (int i = 0; i < n_inputs; i++) {
                 for (int j = 0; j < n_neurons; j++) {
                     const float grad = layer_grads[i][j];
