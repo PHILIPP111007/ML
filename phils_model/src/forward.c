@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <pthread.h>
 #include "forward.h"
 #include "functions.h"
@@ -56,6 +57,17 @@ void forward(
         int activation = (int)activations[layer_index];
         apply_activation_calc(Y[layer_index], matrix_rows, n_neurons, activation);
     }
+
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+
+        for (int i = 0; i < matrix_rows; i++) {
+            for (int j = 0; j < n_neurons; j++) {
+                Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
+            }
+        }
+
+    }
 }
 
 // Forward pass
@@ -97,6 +109,8 @@ void *forward_worker(void *arg) {
         for (int i = 0; i < sample_rows; i++) {
             for (int j = 0; j < n_neurons; j++) {
                 Y[0][i][j] += biases[0][i];
+
+                Y[0][i][j] = isnan(Y[0][i][j]) ? 0.0f : Y[0][i][j];
             }
         }
         int activation = (int)activations[0];
@@ -135,6 +149,8 @@ void *forward_worker(void *arg) {
             for (int i = 0; i < matrix_rows; i++) {
                 for (int j = 0; j < n_neurons; j++) {
                     Y[layer_index][i][j] += biases[layer_index][i];
+
+                    Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
                 }
             }
             int activation = (int)activations[layer_index];
