@@ -1,4 +1,4 @@
-// clang -shared -o main.so -fPIC -O3 -fopenmp -ffast-math main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
+// clang -shared -o main.so -fPIC -O3 -fopenmp -ffast-math -march=native main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -178,6 +178,8 @@ void fit(
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***grad_w = grad_w_list[dataset_index];
             float **grad_b = grad_b_list[dataset_index];
+
+            printf("%d\n", dataset_index);
 
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
