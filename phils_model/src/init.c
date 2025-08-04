@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
+#include "functions.h"
 #include "init.h"
 
 
@@ -15,10 +16,7 @@ float *init_bias(int n_neurons, int n_inputs) {
 }
 
 float **init_weights(int n_neurons, int n_inputs) {
-    float **weights = malloc(n_inputs * sizeof(float*));
-    for (int i = 0; i < n_inputs; i++) {
-        weights[i] = malloc(n_neurons * sizeof(float));
-    }
+    float **weights = create_matrix(n_inputs, n_neurons);
 
     float std_dev = sqrtf(2.0 / (n_neurons + n_inputs));
 
