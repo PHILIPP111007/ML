@@ -91,8 +91,9 @@ void fit(
         int matrix_rows = dataset_samples_cols;
 
         const int num_threads = (dataset_samples_rows < num_cpu) ? dataset_samples_rows : num_cpu;
-        struct ForwardData forward_thread_data[num_threads];
-        struct BackwardData backward_thread_data[num_threads];
+        ForwardData *forward_thread_data = malloc(num_threads * sizeof(ForwardData));
+        BackwardData *backward_thread_data = malloc(num_threads * sizeof(BackwardData));
+
         
         // Forward pass
 
@@ -129,6 +130,7 @@ void fit(
                 Y_list[dataset_index] = forward_thread_data[t].Y_list[dataset_index];
             }
         }
+        free(forward_thread_data);
 
         float ****grad_w_list = malloc(dataset_samples_rows * sizeof(float***));
         float ****grad_x_list = malloc(dataset_samples_rows * sizeof(float***));
@@ -163,6 +165,8 @@ void fit(
             regression,
             num_threads
         );
+
+        free(backward_thread_data);
 
         // Update weights and biases
 
@@ -207,6 +211,7 @@ void fit(
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
+            #pragma omp parallel for
             for (int i = 0; i < n_neurons; i++) {
                 biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }

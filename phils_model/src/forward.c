@@ -166,7 +166,7 @@ void *forward_worker(void *arg) {
 }
 
 void forward_threading(
-    struct ForwardData forward_thread_data[],
+    ForwardData *forward_thread_data,
     float ***samples,
     float ***weights,
     float **biases,

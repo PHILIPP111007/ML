@@ -124,7 +124,7 @@ void *backward_worker(void *arg) {
 }
 
 void backward_threading(
-    struct BackwardData backward_thread_data[],
+    BackwardData *backward_thread_data,
     float ***weights,
     float **targets,
     float **biases,
