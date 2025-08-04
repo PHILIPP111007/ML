@@ -431,7 +431,7 @@ void predict(
             int index = total_bias_count + i;
             biases[layer_index][i] = biases_input[index];
         }
-        
+
         current_weight_offset += n_inputs * n_neurons;
         total_bias_count += n_neurons;
     }
@@ -469,12 +469,12 @@ void predict(
     for (int i = 0; i < num_cpu; i++) {
         int start_idx = i * samples_per_thread + (i < remaining_samples ? i : remaining_samples);
         int end_idx = start_idx + samples_per_thread + (i < remaining_samples ? 1 : 0);
-        
+
         ThreadRange *range = malloc(sizeof(ThreadRange));
         range->start = start_idx;
         range->end = end_idx;
         range->tasks = tasks;
-        
+
         pthread_create(&threads[i], NULL, predict_thread, range);
     }
 
