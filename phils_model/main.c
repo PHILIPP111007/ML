@@ -49,23 +49,23 @@ void fit(
     float **__restrict targets = malloc(dataset_targets_rows * sizeof(float*)); 
 
     #pragma omp parallel for schedule(static)
-    for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
+    for (register int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = create_matrix(dataset_samples_cols, dataset_samples_depth);
         for (int i = 0; i < dataset_samples_cols; i++) {
 
-            #pragma omp simd
-            for (int j = 0; j < dataset_samples_depth; j++) {
+            #pragma omp parallel for simd
+            for (register int j = 0; j < dataset_samples_depth; j++) {
                 int index = dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j;
                 samples[dataset_index][i][j] = (float)dataset_samples[index];
             }
         }
     }
 
-    for (int i = 0; i < dataset_targets_rows; i++) {
+    for (register int i = 0; i < dataset_targets_rows; i++) {
         targets[i] = malloc(dataset_targets_cols * sizeof(float));
 
-        #pragma omp simd
-        for (int j = 0; j < dataset_targets_cols; j++) {
+        #pragma omp parallel for simd
+        for (register int j = 0; j < dataset_targets_cols; j++) {
             targets[i][j] = (float)dataset_targets[i * dataset_targets_cols + j];
         }
     }
@@ -187,6 +187,8 @@ void fit(
             float ***__restrict grad_w = grad_w_list[dataset_index];
             float **__restrict grad_b = grad_b_list[dataset_index];
 
+            printf("%d\n", dataset_index);
+
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -304,8 +306,10 @@ void predict_one(
     float *prediction) {
 
     float **__restrict sample = create_matrix(sample_rows, sample_cols);
-    for (int i = 0; i < sample_rows; i++) {
-        for (int j = 0; j < sample_cols; j++) {
+    for (register int i = 0; i < sample_rows; i++) {
+
+        #pragma omp parallel for simd
+        for (register int j = 0; j < sample_cols; j++) {
             sample[i][j] = sample_input[i + j];
         }
     }
@@ -319,9 +323,10 @@ void predict_one(
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-        weights[layer_index] = malloc(n_inputs * sizeof(float*));
+        weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
-            weights[layer_index][i] = malloc(n_neurons * sizeof(float));
+
+            #pragma omp parallel for simd
             for (int j = 0; j < n_neurons; j++) {
                 int index = current_weight_offset + i * n_neurons + j;
                 weights[layer_index][i][j] = weights_input[index];
@@ -329,6 +334,8 @@ void predict_one(
         }
 
         biases[layer_index] = malloc(n_neurons * sizeof(float));
+
+        #pragma omp parallel for simd
         for (int i = 0; i < n_neurons; i++) {
             int index = total_bias_count + i;
             biases[layer_index][i] = biases_input[index];
@@ -352,12 +359,15 @@ void predict_one(
 
     float **__restrict y = create_matrix(matrix_rows, n_neurons);
     for (int i = 0; i < matrix_rows; i++) {
+
+        #pragma omp parallel for simd
         for (int j = 0; j < n_neurons; j++) {
             y[i][j] = Y[layer_sizes_rows - 1][i][j];
         }
     }
 
     // Return predict
+    #pragma omp parallel for simd
     for (int j = 0; j < n_neurons; j++) {
         prediction[j] = y[0][j];
     }
@@ -376,11 +386,6 @@ void predict_one(
     }
     free(Y);
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-
-        for (int i = 0; i < n_inputs; i++) {
-            free(weights[layer_index][i]);
-        }
         free(weights[layer_index]);
         free(biases[layer_index]);
     }
@@ -406,9 +411,8 @@ void predict(
     // Loading a dataset
     float ***__restrict samples = malloc(dataset_samples_rows * sizeof(float**));
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
-        samples[dataset_index] = malloc(dataset_samples_cols * sizeof(float*));
+        samples[dataset_index] = create_matrix(dataset_samples_cols, dataset_samples_depth);
         for (int i = 0; i < dataset_samples_cols; i++) {
-            samples[dataset_index][i] = malloc(dataset_samples_depth * sizeof(float));
             for (int j = 0; j < dataset_samples_depth; j++) {
                 samples[dataset_index][i][j] = (float)dataset_samples[dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j];
             }
@@ -426,6 +430,8 @@ void predict(
 
         weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; ++i) {
+
+            #pragma omp parallel for simd
             for (int j = 0; j < n_neurons; ++j) {
                 int index = current_weight_offset + i * n_neurons + j;
                 weights[layer_index][i][j] = weights_input[index];
@@ -433,6 +439,8 @@ void predict(
         }
 
         biases[layer_index] = malloc(n_neurons * sizeof(float));
+
+        #pragma omp parallel for simd
         for (int i = 0; i < n_neurons; ++i) {
             int index = total_bias_count + i;
             biases[layer_index][i] = biases_input[index];
@@ -453,7 +461,7 @@ void predict(
     int n_neurons_last_layer = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
 
     // Process samples in parallel
-    for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+    for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
         tasks[dataset_index].sample = samples[dataset_index];
         tasks[dataset_index].weights = weights;
         tasks[dataset_index].biases = biases;
@@ -502,8 +510,8 @@ void predict(
     free(weights);
     free(biases);
 
-    for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
-        for (int i = 0; i < dataset_samples_cols; i++) {
+    for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+        for (register int i = 0; i < dataset_samples_cols; i++) {
             free(samples[dataset_index][i]);
         }
         free(samples[dataset_index]);
