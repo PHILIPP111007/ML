@@ -23,8 +23,8 @@ void *predict_thread(void *arg) {
 
         // Free memory
 
-        for (int layer_index = 0; layer_index < task->layer_sizes_rows; layer_index++) {
-            for (int i = 0; i < task->dataset_samples_cols; i++) {
+        for (register int layer_index = 0; layer_index < task->layer_sizes_rows; layer_index++) {
+            for (register int i = 0; i < task->dataset_samples_cols; i++) {
                 free(Y[layer_index][i]);
             }
             free(Y[layer_index]);
