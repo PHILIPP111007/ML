@@ -189,7 +189,7 @@ void fit(
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-                int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+                const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
                 float *__restrict bias_layer = biases[layer_index];
                 float *__restrict grad_b_layer = grad_b[layer_index];
 
@@ -221,7 +221,7 @@ void fit(
 
         for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-                const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+                const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
 
                 for (register int i = 0; i < matrix_rows; i++) {
                     free(X_list[dataset_index][layer_index][i]);
