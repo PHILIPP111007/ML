@@ -22,17 +22,17 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
     }
 
     #pragma omp parallel for schedule(static)
-    for (int i = 0; i < rows_A; i++) {
+    for (register int i = 0; i < rows_A; i++) {
         float *__restrict a_row = A[i];
         float *__restrict c_row = C[i];
 
         #ifdef USE_x86
             // AVX2 implementation for x86 (8 elements)
-            for (int k = 0; k < cols_A; k++) {
+            for (register int k = 0; k < cols_A; k++) {
                 float *__restrict b_row = B[k];
                 __m256 a_val = _mm256_set1_ps(a_row[k]);
 
-                int j = 0;
+                register int j = 0;
                 for (; j <= cols_B - 8; j += 8) {
                     __m256 c = _mm256_loadu_ps(&c_row[j]);
                     __m256 b = _mm256_loadu_ps(&b_row[j]);
@@ -48,11 +48,11 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
             }
         #elif defined(USE_ARM)
             // Implementation for ARM (4 elements)
-            for (int k = 0; k < cols_A; k++) {
+            for (register int k = 0; k < cols_A; k++) {
                 float *__restrict b_row = B[k];
                 float32x4_t a_val = vdupq_n_f32(a_row[k]);
 
-                int j = 0;
+                register int j = 0;
                 for (; j <= cols_B - 4; j += 4) {
                     float32x4_t c = vld1q_f32(&c_row[j]);
                     float32x4_t b = vld1q_f32(&b_row[j]);
@@ -62,18 +62,18 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 
                 // Remaining elements
                 #pragma omp simd
-                for (int i = j; i < cols_B; i++) {
+                for (register int i = j; i < cols_B; i++) {
                     c_row[i] += a_row[k] * b_row[i];
                 }
             }
         #else
             // Universal scalar implementation
-            for (int k = 0; k < cols_A; k++) {
+            for (register int k = 0; k < cols_A; k++) {
                 float *b_row = B[k];
                 float a_val = a_row[k];
 
                 #pragma omp simd
-                for (int j = 0; j < cols_B; j++) {
+                for (register int j = 0; j < cols_B; j++) {
                     c_row[j] += a_val * b_row[j];
                 }
             }
@@ -82,8 +82,10 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 }
 
 inline float sum(float **__restrict matrix, int rows, int cols) {
-    float n = 0.0;
+    register float n = 0.0f;
     for (int i = 0; i < rows; i++) {
+
+        #pragma omp simd
         for (int j = 0; j < cols; j++) {
             n += matrix[i][j];
         }
@@ -95,7 +97,9 @@ inline float *sum_axis_0(float **__restrict matrix, int rows, int cols) {
     float *result = malloc(cols * sizeof(float));
 
     for (int j = 0; j < cols; j++) {
-        result[j] = 0;
+        result[j] = 0.0f;
+
+        #pragma omp simd
         for (int i = 0; i < rows; i++) {
             result[j] += matrix[i][j];
         }
@@ -105,9 +109,11 @@ inline float *sum_axis_0(float **__restrict matrix, int rows, int cols) {
 
 inline float mean(float *__restrict arr, int len) {
     if (len == 0) {
-        return 0.0;
+        return 0.0f;
     }
-    float sum = 0.0;
+    register float sum = 0.0f;
+
+    #pragma omp simd
     for (int i = 0; i < len; i++) {
         sum += arr[i];
     }
@@ -136,10 +142,10 @@ inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, 
     for (int i = 0; i < matrix_rows; i++) {
 
         #pragma omp parallel for schedule(static)
-        for (int j = 0; j < n_neurons; j++) {
+        for (register int j = 0; j < n_neurons; j++) {
             float random = (double)rand() / RAND_MAX;
             if (random > dropout) {
-                y[i][j] = 0.0;
+                y[i][j] = 0.0f;
             }
         }
     }
