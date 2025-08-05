@@ -58,14 +58,14 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 }
 
 inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
-    // Cache optimizer parameters
+    // Cache optimizer parameters in registers
     const register float b1 = optimizer->b1;
     const register float b2 = optimizer->b2;
     const register float lr = optimizer->lr;
     const register float eps = optimizer->eps;
     const register int epoch = ++optimizer->epoch;
 
-    // Precompute bias corrections
+    // Precompute bias corrections with SIMD-friendly constants
     const register float b1_pow = fast_pow(b1, epoch);
     const register float b2_pow = fast_pow(b2, epoch);
     const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f); // Add small epsilon to prevent division by zero
@@ -73,50 +73,64 @@ inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__res
     const register float b1_minus_1 = 1.0f - b1;
     const register float b2_minus_1 = 1.0f - b2;
 
-    // Process each layer
+    // Process layers
     for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
         float ** __restrict layer_weights = weights[layer_index];
         float ** __restrict layer_grads = grads[layer_index];
         float ** __restrict layer_m = optimizer->m[layer_index];
         float ** __restrict layer_v = optimizer->v[layer_index];
 
-        // Process rows in chunks for better cache utilization
-        const register int chunk_size = 32; // Cache-friendly chunk size
+        // Process rows in larger chunks for better cache utilization
+        const register int chunk_size = 64 / sizeof(float);
 
-        #pragma omp parallel for schedule(dynamic, 1) if(layer_sizes_rows > 4)
+        #pragma omp parallel for schedule(guided)
         for (register int i = 0; i < n_inputs; i += chunk_size) {
-            const int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
+            const register int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
 
-            float *__restrict weights_row = layer_weights[i];
-            float *__restrict grads_row = layer_grads[i];
-            float *__restrict m_row = layer_m[i];
-            float *__restrict v_row = layer_v[i];
+            // Inner loop over chunked rows
+            for (register int ii = i; ii < i_end; ii++) {
+                float *__restrict weights_row = layer_weights[ii];
+                float *__restrict grads_row = layer_grads[ii];
+                float *__restrict m_row = layer_m[ii];
+                float *__restrict v_row = layer_v[ii];
 
-            #pragma omp simd
-            for (register int j = 0; j < n_neurons; j++) {
-                const register float grad = grads_row[j];
-                const register float grad_sq = grad * grad;
+                #pragma omp parallel for schedule(guided)
+                for (register int j = 0; j < n_neurons; j += 4) {
+                    if (j + 3 < n_neurons) {
+                        #pragma omp simd aligned(weights_row, grads_row, m_row, v_row:64)
+                        for (register int k = 0; k < 4; k++) {
+                            const register int idx = j + k;
+                            const register float grad = grads_row[idx];
+                            const register float grad_sq = grad * grad;
 
-                // Calculation of moments
-                const register float new_m = b1 * m_row[j] + b1_minus_1 * grad;
-                const register float new_v = b2 * v_row[j] + b2_minus_1 * grad_sq;
+                            m_row[idx] = b1 * m_row[idx] + b1_minus_1 * grad;
+                            v_row[idx] = b2 * v_row[idx] + b2_minus_1 * grad_sq;
 
-                // Offset correction
-                const register float m_hat = new_m * inv_1mb1;
-                const register float v_hat = new_v * inv_1mb2;
+                            const register float m_hat = m_row[idx] * inv_1mb1;
+                            const register float v_hat = v_row[idx] * inv_1mb2;
+                            const register float delta = lr * m_hat / (sqrtf(v_hat) + eps);
+                            weights_row[idx] -= fminf(fmaxf(delta, -max_change), max_change);
+                        }
+                    } else {
+                        // Handle remaining elements
+                        #pragma omp simd aligned(weights_row, grads_row, m_row, v_row:64)
+                        for (register int k = j; k < n_neurons; k++) {
+                            const register float grad = grads_row[k];
+                            const register float grad_sq = grad * grad;
 
-                // Update of weights
-                const register float sqrt_v_hat = sqrtf(v_hat);
-                const register float delta = lr * m_hat / (sqrt_v_hat + eps);
-                const register float clipped_delta = fminf(fmaxf(delta, -max_change), max_change);
+                            m_row[k] = b1 * m_row[k] + b1_minus_1 * grad;
+                            v_row[k] = b2 * v_row[k] + b2_minus_1 * grad_sq;
 
-                // Saving results
-                m_row[j] = new_m;
-                v_row[j] = new_v;
-                weights_row[j] -= clipped_delta;
+                            const register float m_hat = m_row[k] * inv_1mb1;
+                            const register float v_hat = v_row[k] * inv_1mb2;
+                            const register float delta = lr * m_hat / (sqrtf(v_hat) + eps);
+                            weights_row[k] -= fminf(fmaxf(delta, -max_change), max_change);
+                        }
+                    }
+                }
             }
         }
     }
