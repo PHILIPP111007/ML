@@ -53,7 +53,7 @@ void fit(
         samples[dataset_index] = create_matrix(dataset_samples_cols, dataset_samples_depth);
         for (int i = 0; i < dataset_samples_cols; i++) {
 
-            #pragma omp parallel for simd
+            #pragma omp simd
             for (register int j = 0; j < dataset_samples_depth; j++) {
                 int index = dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j;
                 samples[dataset_index][i][j] = (float)dataset_samples[index];
@@ -64,7 +64,7 @@ void fit(
     for (register int i = 0; i < dataset_targets_rows; i++) {
         targets[i] = malloc(dataset_targets_cols * sizeof(float));
 
-        #pragma omp parallel for simd
+        #pragma omp simd
         for (register int j = 0; j < dataset_targets_cols; j++) {
             targets[i][j] = (float)dataset_targets[i * dataset_targets_cols + j];
         }
@@ -97,7 +97,6 @@ void fit(
         const int num_threads = (dataset_samples_rows < num_cpu) ? dataset_samples_rows : num_cpu;
         ForwardData *forward_thread_data = malloc(num_threads * sizeof(ForwardData));
         BackwardData *backward_thread_data = malloc(num_threads * sizeof(BackwardData));
-
 
         // Forward pass
 
@@ -187,8 +186,6 @@ void fit(
             float ***__restrict grad_w = grad_w_list[dataset_index];
             float **__restrict grad_b = grad_b_list[dataset_index];
 
-            printf("%d\n", dataset_index);
-
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -210,18 +207,11 @@ void fit(
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-            #pragma omp parallel for collapse(2) schedule(static)
             for (register int i = 0; i < n_inputs; i++) {
                 for (register int j = 0; j < n_neurons; j++) {
                     weights[layer_index][i][j] = isnan(weights[layer_index][i][j]) ? 0.0f : weights[layer_index][i][j];
                 }
             }
-        }
-
-        for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-
-            #pragma omp parallel for schedule(static)
             for (register int i = 0; i < n_neurons; i++) {
                 biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }
@@ -308,7 +298,7 @@ void predict_one(
     float **__restrict sample = create_matrix(sample_rows, sample_cols);
     for (register int i = 0; i < sample_rows; i++) {
 
-        #pragma omp parallel for simd
+        #pragma omp simd
         for (register int j = 0; j < sample_cols; j++) {
             sample[i][j] = sample_input[i + j];
         }
@@ -326,7 +316,7 @@ void predict_one(
         weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
 
-            #pragma omp parallel for simd
+            #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
                 int index = current_weight_offset + i * n_neurons + j;
                 weights[layer_index][i][j] = weights_input[index];
@@ -335,7 +325,7 @@ void predict_one(
 
         biases[layer_index] = malloc(n_neurons * sizeof(float));
 
-        #pragma omp parallel for simd
+        #pragma omp simd
         for (int i = 0; i < n_neurons; i++) {
             int index = total_bias_count + i;
             biases[layer_index][i] = biases_input[index];
@@ -360,14 +350,14 @@ void predict_one(
     float **__restrict y = create_matrix(matrix_rows, n_neurons);
     for (int i = 0; i < matrix_rows; i++) {
 
-        #pragma omp parallel for simd
+       #pragma omp simd
         for (int j = 0; j < n_neurons; j++) {
             y[i][j] = Y[layer_sizes_rows - 1][i][j];
         }
     }
 
     // Return predict
-    #pragma omp parallel for simd
+    #pragma omp simd
     for (int j = 0; j < n_neurons; j++) {
         prediction[j] = y[0][j];
     }
@@ -431,7 +421,7 @@ void predict(
         weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; ++i) {
 
-            #pragma omp parallel for simd
+            #pragma omp simd
             for (int j = 0; j < n_neurons; ++j) {
                 int index = current_weight_offset + i * n_neurons + j;
                 weights[layer_index][i][j] = weights_input[index];
@@ -440,7 +430,7 @@ void predict(
 
         biases[layer_index] = malloc(n_neurons * sizeof(float));
 
-        #pragma omp parallel for simd
+        #pragma omp simd
         for (int i = 0; i < n_neurons; ++i) {
             int index = total_bias_count + i;
             biases[layer_index][i] = biases_input[index];
