@@ -12,15 +12,15 @@ void *backward_worker(void *arg) {
     BackwardData *bd = (BackwardData *)arg;
 
     // Local variables for better readability and scope control
-    const int start_idx = bd->start_idx;
-    const int end_idx = bd->end_idx;
-    const int layer_sizes_rows = bd->layer_sizes_rows;
-    const int layer_sizes_cols = bd->layer_sizes_cols;
-    const int matrix_rows = bd->matrix_rows;
-    const int regression = bd->regression;
-    const int dataset_samples_rows = bd->dataset_samples_rows;
-    const int dataset_samples_cols = bd->dataset_samples_cols;
-    const int dataset_targets_cols = bd->dataset_targets_cols;
+    const register int start_idx = bd->start_idx;
+    const register int end_idx = bd->end_idx;
+    const register int layer_sizes_rows = bd->layer_sizes_rows;
+    const register int layer_sizes_cols = bd->layer_sizes_cols;
+    const register int matrix_rows = bd->matrix_rows;
+    const register int regression = bd->regression;
+    const register int dataset_samples_rows = bd->dataset_samples_rows;
+    const register int dataset_samples_cols = bd->dataset_samples_cols;
+    const register int dataset_targets_cols = bd->dataset_targets_cols;
 
     #pragma omp parallel for schedule(dynamic)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
@@ -33,8 +33,8 @@ void *backward_worker(void *arg) {
         float **__restrict grad_b = malloc(layer_sizes_rows * sizeof(float*));
 
         // Initialize last layer
-        const int n_inputs = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
-        const int n_neurons = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
+        const register int n_inputs = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
+        const register int n_neurons = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
 
         float **__restrict delta = create_matrix(matrix_rows, n_neurons);
 
@@ -60,8 +60,8 @@ void *backward_worker(void *arg) {
 
         // Backpropagate through hidden layers
         for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
-            const int n_inputs = (int)bd->layer_sizes[layer_index * layer_sizes_cols];
-            const int n_neurons = (int)bd->layer_sizes[layer_index * layer_sizes_cols + 1];
+            const register int n_inputs = (int)bd->layer_sizes[layer_index * layer_sizes_cols];
+            const register int n_neurons = (int)bd->layer_sizes[layer_index * layer_sizes_cols + 1];
 
             apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, (int)bd->activations[layer_index]);
 
@@ -69,8 +69,8 @@ void *backward_worker(void *arg) {
 
             // Compute delta with SIMD optimization
             #pragma omp parallel for simd collapse(2) schedule(static)
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_neurons; j++) {
+            for (register int i = 0; i < matrix_rows; i++) {
+                for (register int j = 0; j < n_neurons; j++) {
                     delta[i][j] = grad_x[layer_index + 1][i][j] * Y[layer_index][i][j];
                 }
             }

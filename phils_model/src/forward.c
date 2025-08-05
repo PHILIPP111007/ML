@@ -21,31 +21,34 @@ void forward(
     int layer_sizes_cols,
     float *activations) {
 
-    const int n_inputs = (int)layer_sizes[0 * layer_sizes_cols];
-    const int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];
+    const register int n_inputs = (int)layer_sizes[0 * layer_sizes_cols];
+    const register int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];
 
     Y[0] = create_matrix(sample_rows, n_neurons);
 
     matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
 
     for (int i = 0; i < sample_rows; i++) {
+
+        #pragma omp simd
         for (int j = 0; j < n_neurons; j++) {
             Y[0][i][j] += biases[0][i];
         }
     }
-    int activation = (int)activations[0];
+    register int activation = (int)activations[0];
     apply_activation_calc(Y[0], sample_rows, n_neurons, activation);
 
     int matrix_rows = sample_rows;
     for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
-        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
         matmul(Y[layer_index - 1], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
 
-        for (int i = 0; i < matrix_rows; i++) {
-            for (int j = 0; j < n_neurons; j++) {
+        for (register int i = 0; i < matrix_rows; i++) {
+            #pragma omp simd
+            for (register int j = 0; j < n_neurons; j++) {
                 Y[layer_index][i][j] += biases[layer_index][i];
             }
         }
@@ -53,15 +56,14 @@ void forward(
         apply_activation_calc(Y[layer_index], matrix_rows, n_neurons, activation);
     }
 
-    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+    for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-        for (int i = 0; i < matrix_rows; i++) {
-            for (int j = 0; j < n_neurons; j++) {
+        for (register int i = 0; i < matrix_rows; i++) {
+            for (register int j = 0; j < n_neurons; j++) {
                 Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
             }
         }
-
     }
 }
 
@@ -86,9 +88,11 @@ void *forward_worker(void *arg) {
 
     #pragma omp parallel for schedule(dynamic)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
-        float **__restrict sample = create_matrix(sample_rows, sample_cols); // TODO
+        float **__restrict sample = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
-            for (int j = 0; j < sample_cols; j++) {
+
+            #pragma omp simd
+            for (register int j = 0; j < sample_cols; j++) {
                 sample[i][j] = samples[dataset_index][i][j];
             }
         }
@@ -96,13 +100,13 @@ void *forward_worker(void *arg) {
         float ***__restrict X = malloc(layer_sizes_rows * sizeof(float**));
         float ***__restrict Y = malloc(layer_sizes_rows * sizeof(float**));
 
-        const int n_inputs = (int)layer_sizes[0 * layer_sizes_cols];
-        const int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];
+        const register int n_inputs = (int)layer_sizes[0 * layer_sizes_cols];
+        const register int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];
 
         Y[0] = create_matrix(sample_rows, n_neurons);
         matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
-        for (int i = 0; i < sample_rows; i++) {
-            for (int j = 0; j < n_neurons; j++) {
+        for (register int i = 0; i < sample_rows; i++) {
+            for (register int j = 0; j < n_neurons; j++) {
                 Y[0][i][j] += biases[0][i];
 
                 Y[0][i][j] = isnan(Y[0][i][j]) ? 0.0f : Y[0][i][j];
@@ -114,8 +118,10 @@ void *forward_worker(void *arg) {
         apply_dropout(Y[0], sample_rows, n_neurons, dropout);
 
         X[0] = create_matrix(sample_rows, sample_cols);
-        for (int i = 0; i < sample_rows; i++) {
-            for (int j = 0; j < sample_cols; j++) {
+        for (register int i = 0; i < sample_rows; i++) {
+
+            #pragma omp simd
+            for (register int j = 0; j < sample_cols; j++) {
                 X[0][i][j] = sample[i][j];
             }
         }
@@ -124,12 +130,14 @@ void *forward_worker(void *arg) {
         int matrix_rows = sample_rows;
 
         for (int layer_index = 1; layer_index < layer_sizes_rows; layer_index++) {
-            const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+            const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+            const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
             X[layer_index] = create_matrix(matrix_rows, n_inputs);
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_inputs; j++) {
+            for (register int i = 0; i < matrix_rows; i++) {
+
+                #pragma omp simd
+                for (register int j = 0; j < n_inputs; j++) {
                     X[layer_index][i][j] = Y[layer_index - 1][i][j];
                 }
             }
@@ -137,8 +145,8 @@ void *forward_worker(void *arg) {
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
             matmul(X[layer_index], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
 
-            for (int i = 0; i < matrix_rows; i++) {
-                for (int j = 0; j < n_neurons; j++) {
+            for (register int i = 0; i < matrix_rows; i++) {
+                for (register int j = 0; j < n_neurons; j++) {
                     Y[layer_index][i][j] += biases[layer_index][i];
 
                     Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
