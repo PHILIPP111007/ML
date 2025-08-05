@@ -11,68 +11,63 @@
 void *backward_worker(void *arg) {
     BackwardData *bd = (BackwardData *)arg;
 
-    int start_idx = bd->start_idx;
-    int end_idx = bd->end_idx;
-    float ***weights = bd->weights;
-    float **targets = bd->targets;
-    float ****X_list = bd->X_list;
-    float ****Y_list = bd->Y_list;
-    float *layer_sizes = bd->layer_sizes;
-    int layer_sizes_rows = bd->layer_sizes_rows;
-    int layer_sizes_cols = bd->layer_sizes_cols;
-    int matrix_rows = bd->matrix_rows;
-    float *activations = bd->activations;
-    int loss = bd->loss;
-    float *epoch_losses = bd->epoch_losses;
-    int regression = bd->regression;
-    float ****grad_w_list = bd->grad_w_list;
-    float ****grad_x_list = bd->grad_x_list;
-    float ***grad_b_list = bd->grad_b_list;
-    int dataset_samples_rows = bd->dataset_samples_rows;
-    int dataset_samples_cols = bd->dataset_samples_cols;
-    int dataset_targets_cols = bd->dataset_targets_cols;
+    // Local variables for better readability and scope control
+    const int start_idx = bd->start_idx;
+    const int end_idx = bd->end_idx;
+    const int layer_sizes_rows = bd->layer_sizes_rows;
+    const int layer_sizes_cols = bd->layer_sizes_cols;
+    const int matrix_rows = bd->matrix_rows;
+    const int regression = bd->regression;
+    const int dataset_samples_rows = bd->dataset_samples_rows;
+    const int dataset_samples_cols = bd->dataset_samples_cols;
+    const int dataset_targets_cols = bd->dataset_targets_cols;
 
+    #pragma omp parallel for schedule(dynamic)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
-        float ***X = X_list[dataset_index];
-        float ***Y = Y_list[dataset_index];
+        float ***__restrict X = bd->X_list[dataset_index];
+        float ***__restrict Y = bd->Y_list[dataset_index];
 
-        float ***grad_w = malloc(layer_sizes_rows * sizeof(float**));
-        float ***grad_x = malloc(layer_sizes_rows * sizeof(float**));
-        float **grad_b = malloc(layer_sizes_rows * sizeof(float*));
+        // Allocate gradient arrays once per dataset
+        float ***__restrict grad_w = malloc(layer_sizes_rows * sizeof(float**));
+        float ***__restrict grad_x = malloc(layer_sizes_rows * sizeof(float**));
+        float **__restrict grad_b = malloc(layer_sizes_rows * sizeof(float*));
 
-        const int n_inputs = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
-        const int n_neurons = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
+        // Initialize last layer
+        const int n_inputs = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
+        const int n_neurons = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
 
-        float **delta = create_matrix(matrix_rows, n_neurons);
+        float **__restrict delta = create_matrix(matrix_rows, n_neurons);
 
-        calc_loss(loss, targets[dataset_index], Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
-        float output_error = sum(delta, matrix_rows, n_neurons);
-        epoch_losses[dataset_index] = output_error;
+        // Calculate loss and initial delta
+        calc_loss(bd->loss, bd->targets[dataset_index], Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
+        bd->epoch_losses[dataset_index] = sum(delta, matrix_rows, n_neurons);
 
+        // Compute gradients for last layer
         grad_b[layer_sizes_rows - 1] = sum_axis_0(delta, matrix_rows, n_neurons);
 
-        float **x_T = create_matrix(n_inputs, matrix_rows);
+        float **__restrict x_T = create_matrix(n_inputs, matrix_rows);
         x_T = transpose(X[layer_sizes_rows - 1], matrix_rows, n_inputs);
         grad_w[layer_sizes_rows - 1] = create_matrix(n_inputs, n_neurons);
         matmul(x_T, delta, grad_w[layer_sizes_rows - 1], n_inputs, matrix_rows, matrix_rows, n_neurons);
         free_matrix(x_T);
 
-        float **w_T = create_matrix(n_neurons, n_inputs);
-        w_T = transpose(weights[layer_sizes_rows - 1], n_inputs, n_neurons);
+        float **__restrict w_T = create_matrix(n_neurons, n_inputs);
+        w_T = transpose(bd->weights[layer_sizes_rows - 1], n_inputs, n_neurons);
         grad_x[layer_sizes_rows - 1] = create_matrix(matrix_rows, n_inputs);
         matmul(delta, w_T, grad_x[layer_sizes_rows - 1], matrix_rows, n_neurons, n_neurons, n_inputs);
         free_matrix(w_T);
         free_matrix(delta);
 
+        // Backpropagate through hidden layers
         for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
-            const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+            const int n_inputs = (int)bd->layer_sizes[layer_index * layer_sizes_cols];
+            const int n_neurons = (int)bd->layer_sizes[layer_index * layer_sizes_cols + 1];
 
-            int activation = (int)activations[layer_index];
-            apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, activation);
+            apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, (int)bd->activations[layer_index]);
 
-            float **delta = create_matrix(matrix_rows, n_neurons);
+            float **__restrict delta = create_matrix(matrix_rows, n_neurons);
 
+            // Compute delta with SIMD optimization
             #pragma omp parallel for simd collapse(2) schedule(static)
             for (int i = 0; i < matrix_rows; i++) {
                 for (int j = 0; j < n_neurons; j++) {
@@ -82,24 +77,24 @@ void *backward_worker(void *arg) {
 
             grad_b[layer_index] = sum_axis_0(delta, matrix_rows, n_neurons);
 
-            float **x_T = create_matrix(n_inputs, matrix_rows);
+            float **__restrict x_T = create_matrix(n_inputs, matrix_rows);
             x_T = transpose(X[layer_index], matrix_rows, n_inputs);
-
             grad_w[layer_index] = create_matrix(n_inputs, n_neurons);
             matmul(x_T, delta, grad_w[layer_index], n_inputs, matrix_rows, matrix_rows, n_neurons);
             free_matrix(x_T);
 
-            float **w_T = create_matrix(n_neurons, n_inputs);
-            w_T = transpose(weights[layer_index], n_inputs, n_neurons);
-
+            float **__restrict w_T = create_matrix(n_neurons, n_inputs);
+            w_T = transpose(bd->weights[layer_index], n_inputs, n_neurons);
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
             matmul(delta, w_T, grad_x[layer_index], matrix_rows, n_neurons, n_neurons, n_inputs);
             free_matrix(w_T);
             free_matrix(delta);
         }
-        grad_w_list[dataset_index] = grad_w;
-        grad_x_list[dataset_index] = grad_x;
-        grad_b_list[dataset_index] = grad_b;
+
+        // Store gradients
+        bd->grad_w_list[dataset_index] = grad_w;
+        bd->grad_x_list[dataset_index] = grad_x;
+        bd->grad_b_list[dataset_index] = grad_b;
     }
     return NULL;
 }

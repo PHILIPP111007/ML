@@ -10,7 +10,7 @@ void *predict_thread(void *arg) {
     for (int i = range->start; i < range->end; i++) {
         PredictTask *task = &range->tasks[i];
 
-        float ***Y = malloc(task->layer_sizes_rows * sizeof(float**));
+        float ***__restrict Y = malloc(task->layer_sizes_rows * sizeof(float**));
 
         // Forward pass
         forward(task->sample, task->dataset_samples_cols, task->dataset_samples_depth, task->weights, task->biases, Y, task->layer_sizes, task->layer_sizes_rows, task->layer_sizes_cols, task->activations);

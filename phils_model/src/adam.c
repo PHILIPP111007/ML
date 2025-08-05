@@ -57,53 +57,61 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
     return optimizer;
 }
 
-inline void adam_step(struct AdamOptimizer *optimizer, float ***weights, float ***grads, float *layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
+inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
+    // Cache optimizer parameters
     const float b1 = optimizer->b1;
     const float b2 = optimizer->b2;
     const float lr = optimizer->lr;
     const float eps = optimizer->eps;
     const int epoch = ++optimizer->epoch;
+
+    // Precompute bias corrections
     const float b1_pow = fast_pow(b1, epoch);
     const float b2_pow = fast_pow(b2, epoch);
-    const float inv_1mb1 = 1.0f / (1.0f - b1_pow);
-    const float inv_1mb2 = 1.0f / (1.0f - b2_pow);
+    const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f); // Add small epsilon to prevent division by zero
+    const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
     const float b1_minus_1 = 1.0f - b1;
     const float b2_minus_1 = 1.0f - b2;
 
-    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+    // Process each layer
+    for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-        float **layer_weights = weights[layer_index];
-        float **layer_grads = grads[layer_index];
-        float **layer_m = optimizer->m[layer_index];
-        float **layer_v = optimizer->v[layer_index];
+        float ** __restrict layer_weights = weights[layer_index];
+        float ** __restrict layer_grads = grads[layer_index];
+        float ** __restrict layer_m = optimizer->m[layer_index];
+        float ** __restrict layer_v = optimizer->v[layer_index];
 
-        // Universal scalar processing
-        #pragma omp parallel for schedule(static)
-        for (int i = 0; i < n_inputs; i++) {
-            float* __restrict weights_row = layer_weights[i];
-            float* __restrict grads_row = layer_grads[i];
-            float* __restrict m_row = layer_m[i];
-            float* __restrict v_row = layer_v[i];
+        // Process rows in chunks for better cache utilization
+        const register int chunk_size = 32; // Cache-friendly chunk size
+
+        #pragma omp parallel for schedule(dynamic, 1) if(layer_sizes_rows > 4)
+        for (register int i = 0; i < n_inputs; i += chunk_size) {
+            const int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
+
+            float *__restrict weights_row = layer_weights[i];
+            float *__restrict grads_row = layer_grads[i];
+            float *__restrict m_row = layer_m[i];
+            float *__restrict v_row = layer_v[i];
 
             #pragma omp simd
-            for (int j = 0; j < n_neurons; j++) {
-                const float grad = grads_row[j];
-                const float grad_sq = grad * grad;
+            for (register int j = 0; j < n_neurons; j++) {
+                const register float grad = grads_row[j];
+                const register float grad_sq = grad * grad;
 
                 // Calculation of moments
-                const float new_m = b1 * m_row[j] + b1_minus_1 * grad;
-                const float new_v = b2 * v_row[j] + b2_minus_1 * grad_sq;
+                const register float new_m = b1 * m_row[j] + b1_minus_1 * grad;
+                const register float new_v = b2 * v_row[j] + b2_minus_1 * grad_sq;
 
                 // Offset correction
-                const float m_hat = new_m * inv_1mb1;
-                const float v_hat = new_v * inv_1mb2;
+                const register float m_hat = new_m * inv_1mb1;
+                const register float v_hat = new_v * inv_1mb2;
 
                 // Update of weights
-                const float sqrt_v_hat = sqrtf(v_hat);
-                const float delta = lr * m_hat / (sqrt_v_hat + eps);
-                const float clipped_delta = fminf(fmaxf(delta, -max_change), max_change);
+                const register float sqrt_v_hat = sqrtf(v_hat);
+                const register float delta = lr * m_hat / (sqrt_v_hat + eps);
+                const register float clipped_delta = fminf(fmaxf(delta, -max_change), max_change);
 
                 // Saving results
                 m_row[j] = new_m;

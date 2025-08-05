@@ -84,16 +84,17 @@ void *forward_worker(void *arg) {
     float *activations = fd->activations;
     float *dropouts = fd->dropouts;
 
+    #pragma omp parallel for schedule(dynamic)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
-        float **sample = create_matrix(sample_rows, sample_cols);
+        float **__restrict sample = create_matrix(sample_rows, sample_cols); // TODO
         for (int i = 0; i < sample_rows; i++) {
             for (int j = 0; j < sample_cols; j++) {
                 sample[i][j] = samples[dataset_index][i][j];
             }
         }
 
-        float ***X = malloc(layer_sizes_rows * sizeof(float**));
-        float ***Y = malloc(layer_sizes_rows * sizeof(float**));
+        float ***__restrict X = malloc(layer_sizes_rows * sizeof(float**));
+        float ***__restrict Y = malloc(layer_sizes_rows * sizeof(float**));
 
         const int n_inputs = (int)layer_sizes[0 * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];

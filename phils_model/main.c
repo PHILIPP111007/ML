@@ -45,8 +45,8 @@ void fit(
     }
 
     // Loading a dataset
-    float ***samples = malloc(dataset_samples_rows * sizeof(float**));
-    float **targets = malloc(dataset_targets_rows * sizeof(float*)); 
+    float ***__restrict samples = malloc(dataset_samples_rows * sizeof(float**));
+    float **__restrict targets = malloc(dataset_targets_rows * sizeof(float*)); 
 
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = malloc(dataset_samples_cols * sizeof(float*));
@@ -67,8 +67,8 @@ void fit(
     }
 
     // Initialization of biases and weights
-    float **biases = malloc(layer_sizes_rows * sizeof(float*));
-    float ***weights = malloc(layer_sizes_rows * sizeof(float**));
+    float **__restrict biases = malloc(layer_sizes_rows * sizeof(float*));
+    float ***__restrict weights = malloc(layer_sizes_rows * sizeof(float**));
 
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
@@ -101,10 +101,10 @@ void fit(
             logger_info("Forward step\n");
         }
 
-        float ****X_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
-        float ****Y_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
-        float ****X_list = malloc(dataset_samples_rows * sizeof(float***));
-        float ****Y_list = malloc(dataset_samples_rows * sizeof(float***));
+        float ****__restrict X_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
+        float ****__restrict Y_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
+        float ****__restrict X_list = malloc(dataset_samples_rows * sizeof(float***));
+        float ****__restrict Y_list = malloc(dataset_samples_rows * sizeof(float***));
 
         forward_threading(
             forward_thread_data,
@@ -132,9 +132,9 @@ void fit(
         }
         free(forward_thread_data);
 
-        float ****grad_w_list = malloc(dataset_samples_rows * sizeof(float***));
-        float ****grad_x_list = malloc(dataset_samples_rows * sizeof(float***));
-        float ***grad_b_list = malloc(dataset_samples_rows * sizeof(float**));
+        float ****__restrict grad_w_list = malloc(dataset_samples_rows * sizeof(float***));
+        float ****__restrict grad_x_list = malloc(dataset_samples_rows * sizeof(float***));
+        float ***__restrict grad_b_list = malloc(dataset_samples_rows * sizeof(float**));
 
         // Backward pass
 
@@ -176,17 +176,17 @@ void fit(
 
         #pragma omp for schedule(static)
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
-            float ***grad_w = grad_w_list[dataset_index];
-            float **grad_b = grad_b_list[dataset_index];
+            float ***__restrict grad_w = grad_w_list[dataset_index];
+            float **__restrict grad_b = grad_b_list[dataset_index];
 
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
 
-            #pragma omp parallel for schedule(static)
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-                float *bias_layer = biases[layer_index];
-                float *grad_b_layer = grad_b[layer_index];
+                float *__restrict bias_layer = biases[layer_index];
+                float *__restrict grad_b_layer = grad_b[layer_index];
 
+                #pragma omp parallel for schedule(static)
                 for (int i = 0; i < n_neurons; ++i) {
                     const float change = grad_b_layer[i] * learning_rate;
                     bias_layer[i] -= safe_update(change, max_change);
@@ -216,6 +216,8 @@ void fit(
                 biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }
         }
+
+        // Clearing memory
 
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -292,15 +294,15 @@ void predict_one(
     int activations_len,
     float *prediction) {
 
-    float **sample = create_matrix(sample_rows, sample_cols);
+    float **__restrict sample = create_matrix(sample_rows, sample_cols);
     for (int i = 0; i < sample_rows; i++) {
         for (int j = 0; j < sample_cols; j++) {
             sample[i][j] = sample_input[i + j];
         }
     }
 
-    float ***weights = malloc(layer_sizes_rows * sizeof(float**));
-    float **biases = malloc(layer_sizes_rows * sizeof(float*));
+    float ***__restrict weights = malloc(layer_sizes_rows * sizeof(float**));
+    float **__restrict biases = malloc(layer_sizes_rows * sizeof(float*));
 
     int current_weight_offset = 0;
     int total_bias_count = 0;
@@ -327,7 +329,7 @@ void predict_one(
         total_bias_count += n_neurons;
     }
 
-    float ***Y = malloc(layer_sizes_rows * sizeof(float**));
+    float ***__restrict Y = malloc(layer_sizes_rows * sizeof(float**));
 
     // Forward pass
     forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
@@ -339,9 +341,8 @@ void predict_one(
 
     int matrix_rows = sample_rows;
 
-    float **y = malloc(matrix_rows * sizeof(float*));
+    float **__restrict y = create_matrix(matrix_rows, n_neurons);
     for (int i = 0; i < matrix_rows; i++) {
-        y[i] = malloc(n_neurons * sizeof(float));
         for (int j = 0; j < n_neurons; j++) {
             y[i][j] = Y[layer_sizes_rows - 1][i][j];
         }
@@ -394,7 +395,7 @@ void predict(
     int num_cpu) {
 
     // Loading a dataset
-    float ***samples = malloc(dataset_samples_rows * sizeof(float**));
+    float ***__restrict samples = malloc(dataset_samples_rows * sizeof(float**));
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
         samples[dataset_index] = malloc(dataset_samples_cols * sizeof(float*));
         for (int i = 0; i < dataset_samples_cols; i++) {
@@ -405,8 +406,8 @@ void predict(
         }
     }
 
-    float ***weights = malloc(layer_sizes_rows * sizeof(float**));
-    float **biases = malloc(layer_sizes_rows * sizeof(float*));
+    float ***__restrict weights = malloc(layer_sizes_rows * sizeof(float**));
+    float **__restrict biases = malloc(layer_sizes_rows * sizeof(float*));
 
     int current_weight_offset = 0;
     int total_bias_count = 0;
@@ -414,9 +415,8 @@ void predict(
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-        weights[layer_index] = malloc(n_inputs * sizeof(float*));
+        weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; ++i) {
-            weights[layer_index][i] = malloc(n_neurons * sizeof(float));
             for (int j = 0; j < n_neurons; ++j) {
                 int index = current_weight_offset + i * n_neurons + j;
                 weights[layer_index][i][j] = weights_input[index];
@@ -486,10 +486,7 @@ void predict(
 
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-        
-        for (int i = 0; i < n_inputs; i++) {
-            free(weights[layer_index][i]);
-        }
+
         free(weights[layer_index]);
         free(biases[layer_index]);
     }

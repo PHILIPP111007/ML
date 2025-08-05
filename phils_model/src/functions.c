@@ -14,7 +14,7 @@
 #endif
 
 
-inline void matmul(float **restrict A, float **restrict B, float **restrict C, int rows_A, int cols_A, int rows_B, int cols_B) {
+inline void matmul(float **__restrict A, float **__restrict B, float **__restrict C, int rows_A, int cols_A, int rows_B, int cols_B) {
     // Checking compatibility of matrix sizes
     if (cols_A != rows_B) {
         fprintf(stderr, "Matrix dimensions mismatch: %d != %d\n", cols_A, rows_B);
@@ -23,13 +23,13 @@ inline void matmul(float **restrict A, float **restrict B, float **restrict C, i
 
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows_A; i++) {
-        float *restrict a_row = A[i];
-        float *restrict c_row = C[i];
+        float *__restrict a_row = A[i];
+        float *__restrict c_row = C[i];
 
         #ifdef USE_x86
             // AVX2 implementation for x86 (8 elements)
             for (int k = 0; k < cols_A; k++) {
-                float *restrict b_row = B[k];
+                float *__restrict b_row = B[k];
                 __m256 a_val = _mm256_set1_ps(a_row[k]);
 
                 int j = 0;
@@ -49,7 +49,7 @@ inline void matmul(float **restrict A, float **restrict B, float **restrict C, i
         #elif defined(USE_ARM)
             // Implementation for ARM (4 elements)
             for (int k = 0; k < cols_A; k++) {
-                float *restrict b_row = B[k];
+                float *__restrict b_row = B[k];
                 float32x4_t a_val = vdupq_n_f32(a_row[k]);
 
                 int j = 0;
@@ -81,7 +81,7 @@ inline void matmul(float **restrict A, float **restrict B, float **restrict C, i
     }
 }
 
-inline float sum(float **matrix, int rows, int cols) {
+inline float sum(float **__restrict matrix, int rows, int cols) {
     float n = 0.0;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -91,7 +91,7 @@ inline float sum(float **matrix, int rows, int cols) {
     return n;
 }
 
-inline float *sum_axis_0(float **matrix, int rows, int cols) {
+inline float *sum_axis_0(float **__restrict matrix, int rows, int cols) {
     float *result = malloc(cols * sizeof(float));
 
     for (int j = 0; j < cols; j++) {
@@ -103,7 +103,7 @@ inline float *sum_axis_0(float **matrix, int rows, int cols) {
     return result;
 }
 
-inline float mean(float *arr, int len) {
+inline float mean(float *__restrict arr, int len) {
     if (len == 0) {
         return 0.0;
     }
@@ -114,7 +114,7 @@ inline float mean(float *arr, int len) {
     return sum / len;
 }
 
-inline int argmax(float *arr, int size) {
+inline int argmax(float *__restrict arr, int size) {
     if (size <= 0) {
         return -1;
     }
@@ -132,8 +132,10 @@ inline float safe_update(float number, float max_change) {
     return fmaxf(fminf(number, max_change), -max_change);
 }
 
-inline void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropout) {
+inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, float dropout) {
     for (int i = 0; i < matrix_rows; i++) {
+
+        #pragma omp parallel for schedule(static)
         for (int j = 0; j < n_neurons; j++) {
             float random = (double)rand() / RAND_MAX;
             if (random > dropout) {
@@ -144,10 +146,11 @@ inline void apply_dropout(float **y, int matrix_rows, int n_neurons, float dropo
 }
 
 inline float **create_matrix(int rows, int cols) {
-    float **matrix = malloc(rows * sizeof(float*));
-    float *data = malloc(rows * cols * sizeof(float));
-    
+    float **__restrict matrix = malloc(rows * sizeof(float*));
+    float *__restrict data = malloc(rows * cols * sizeof(float));
+
     // Setting up line pointers
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows; i++) {
         matrix[i] = &data[i * cols];
     }
@@ -155,15 +158,16 @@ inline float **create_matrix(int rows, int cols) {
     return matrix;
 }
 
-inline void free_matrix(float **matrix) {
+inline void free_matrix(float **__restrict matrix) {
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
         free(matrix[i]);
     }
     free(matrix);
 }
 
-inline float **transpose(float **original_matrix, int rows, int cols) {
-    float **transposed_matrix = create_matrix(cols, rows);
+inline float **transpose(float **__restrict original_matrix, int rows, int cols) {
+    float **__restrict transposed_matrix = create_matrix(cols, rows);
 
     #pragma omp parallel for schedule(static)
     for (int j = 0; j < cols; j++) {

@@ -8,8 +8,8 @@
 // Loss functions
 ///////////////////////////////////////////////////////////////////////////////
 
-inline void mse_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
-    float **loss = malloc(prediction_rows * sizeof(float*));
+inline void mse_loss(float **__restrict prediction, int prediction_rows, int prediction_cols, float *__restrict target, float **__restrict output_error, int regression) {
+    float **__restrict loss = malloc(prediction_rows * sizeof(float*));
 
     for (int i = 0; i < prediction_rows; i++) {
         loss[i] =  malloc(prediction_cols * sizeof(float));
@@ -38,8 +38,8 @@ inline void mse_loss(float **prediction, int prediction_rows, int prediction_col
     free(loss);
 }
 
-inline void cross_entropy_loss(float **prediction, int prediction_rows, int prediction_cols, float *target, float **output_error, int regression) {
-    float **loss = malloc(prediction_rows * sizeof(float*));
+inline void cross_entropy_loss(float **__restrict prediction, int prediction_rows, int prediction_cols, float *__restrict target, float **__restrict output_error, int regression) {
+    float **__restrict loss = malloc(prediction_rows * sizeof(float*));
 
     for (int i = 0; i < prediction_rows; i++) {
         loss[i] =  malloc(prediction_cols * sizeof(float));
