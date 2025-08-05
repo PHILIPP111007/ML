@@ -21,7 +21,6 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
         return;
     }
 
-    #pragma omp parallel for schedule(static)
     for (register int i = 0; i < rows_A; i++) {
         float *__restrict a_row = A[i];
         float *__restrict c_row = C[i];
@@ -156,7 +155,7 @@ inline float **create_matrix(int rows, int cols) {
     float *__restrict data = malloc(rows * cols * sizeof(float));
 
     // Setting up line pointers
-    #pragma omp parallel for simd schedule(static)
+    #pragma omp simd
     for (register int i = 0; i < rows; i++) {
         matrix[i] = &data[i * cols];
     }
@@ -176,7 +175,7 @@ inline float **transpose(float **__restrict original_matrix, int rows, int cols)
     float **__restrict transposed_matrix = create_matrix(cols, rows);
 
     for (register int j = 0; j < cols; j++) {
-        #pragma omp parallel for simd schedule(static)
+        #pragma omp simd
         for (register int i = 0; i < rows; i++) {
             transposed_matrix[j][i] = original_matrix[i][j];
         }

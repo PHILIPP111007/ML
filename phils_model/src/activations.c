@@ -11,7 +11,7 @@
 inline void relu_calc(float **__restrict y, int matrix_rows, int matrix_columns) {
     for (register int i = 0; i < matrix_rows; i++) {
 
-        #pragma omp parallel for simd schedule(static)
+        #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
             if (y[i] <= 0) {
                 y[i][j] = 0.0;
@@ -23,7 +23,7 @@ inline void relu_calc(float **__restrict y, int matrix_rows, int matrix_columns)
 inline void relu_derivative(float **__restrict y, int matrix_rows, int matrix_columns) {
     for (register int i = 0; i < matrix_rows; i++) {
 
-        #pragma omp parallel for simd schedule(static)
+        #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
             if (y[i] <= 0) {
                 y[i][j] = 0.0;
@@ -46,7 +46,7 @@ inline float sigmoid(float x) {
 inline void sigmoid_calc(float **__restrict y, int matrix_rows, int matrix_columns) {
     for (register int i = 0; i < matrix_rows; i++) {
 
-        #pragma omp parallel for simd schedule(static)
+        #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
             y[i][j] = sigmoid(y[i][j]);
         }
@@ -58,7 +58,7 @@ inline void sigmoid_derivative(float **__restrict y, int matrix_rows, int matrix
 
     for (register int i = 0; i < matrix_rows; i++) {
 
-        #pragma omp parallel for simd schedule(static)
+        #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
             float num = sigmoid(y[i][j]);
 
@@ -77,7 +77,7 @@ inline void softmax_calc(float **__restrict y, int matrix_rows, int matrix_colum
 
     for (register int i = 1; i < matrix_rows; i++) {
 
-        #pragma omp for simd schedule(static)
+        #pragma omp simd
         for (register int j = 1; j < matrix_columns; j++) {
             if (y[i][j] > max_val) {
                 max_val = y[i][j];
@@ -99,7 +99,7 @@ inline void softmax_calc(float **__restrict y, int matrix_rows, int matrix_colum
     // Normalization by dividing each element by the sum of the exponents
     for (register int i = 0; i < matrix_rows; i++) {
 
-        #pragma omp parallel for simd schedule(static)
+        #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
             y[i][j] /= sum_exp;
         }
