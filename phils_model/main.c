@@ -48,10 +48,12 @@ void fit(
     float ***__restrict samples = malloc(dataset_samples_rows * sizeof(float**));
     float **__restrict targets = malloc(dataset_targets_rows * sizeof(float*)); 
 
+    #pragma omp parallel for schedule(static)
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
-        samples[dataset_index] = malloc(dataset_samples_cols * sizeof(float*));
+        samples[dataset_index] = create_matrix(dataset_samples_cols, dataset_samples_depth);
         for (int i = 0; i < dataset_samples_cols; i++) {
-            samples[dataset_index][i] = malloc(dataset_samples_depth * sizeof(float));
+
+            #pragma omp simd
             for (int j = 0; j < dataset_samples_depth; j++) {
                 int index = dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j;
                 samples[dataset_index][i][j] = (float)dataset_samples[index];
@@ -61,6 +63,8 @@ void fit(
 
     for (int i = 0; i < dataset_targets_rows; i++) {
         targets[i] = malloc(dataset_targets_cols * sizeof(float));
+
+        #pragma omp simd
         for (int j = 0; j < dataset_targets_cols; j++) {
             targets[i][j] = (float)dataset_targets[i * dataset_targets_cols + j];
         }
@@ -94,7 +98,7 @@ void fit(
         ForwardData *forward_thread_data = malloc(num_threads * sizeof(ForwardData));
         BackwardData *backward_thread_data = malloc(num_threads * sizeof(BackwardData));
 
-        
+
         // Forward pass
 
         if (verbose) {
@@ -125,11 +129,15 @@ void fit(
         );
 
         for (int t = 0; t < num_threads; t++) {
-            for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+
+            #pragma omp simd
+            for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
                 X_list[dataset_index] = forward_thread_data[t].X_list[dataset_index];
                 Y_list[dataset_index] = forward_thread_data[t].Y_list[dataset_index];
             }
         }
+        free(X_list_intermediate);
+        free(Y_list_intermediate);
         free(forward_thread_data);
 
         float ****__restrict grad_w_list = malloc(dataset_samples_rows * sizeof(float***));
@@ -175,7 +183,7 @@ void fit(
         }
 
         #pragma omp for schedule(static)
-        for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+        for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***__restrict grad_w = grad_w_list[dataset_index];
             float **__restrict grad_b = grad_b_list[dataset_index];
 
@@ -187,8 +195,8 @@ void fit(
                 float *__restrict grad_b_layer = grad_b[layer_index];
 
                 #pragma omp parallel for schedule(static)
-                for (int i = 0; i < n_neurons; ++i) {
-                    const float change = grad_b_layer[i] * learning_rate;
+                for (register int i = 0; i < n_neurons; ++i) {
+                    const register float change = grad_b_layer[i] * learning_rate;
                     bias_layer[i] -= safe_update(change, max_change);
                 }
             }
@@ -196,34 +204,34 @@ void fit(
 
         // Handle NaN
 
-        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
             #pragma omp parallel for collapse(2) schedule(static)
-            for (int i = 0; i < n_inputs; i++) {
-                for (int j = 0; j < n_neurons; j++) {
+            for (register int i = 0; i < n_inputs; i++) {
+                for (register int j = 0; j < n_neurons; j++) {
                     weights[layer_index][i][j] = isnan(weights[layer_index][i][j]) ? 0.0f : weights[layer_index][i][j];
                 }
             }
         }
 
-        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
             #pragma omp parallel for schedule(static)
-            for (int i = 0; i < n_neurons; i++) {
+            for (register int i = 0; i < n_neurons; i++) {
                 biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }
         }
 
         // Clearing memory
 
-        for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
-            for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-                const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+            for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+                const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
 
-                for (int i = 0; i < matrix_rows; i++) {
+                for (register int i = 0; i < matrix_rows; i++) {
                     free(X_list[dataset_index][layer_index][i]);
                     free(Y_list[dataset_index][layer_index][i]);
                 }
@@ -256,6 +264,7 @@ void fit(
             logger_info(s);
         }
     }
+    // Save weights and biases in files
     char *file_weights = "weights.json";
     save_weights_as_json(file_weights, weights, layer_sizes, layer_sizes_rows, layer_sizes_cols);
     char *file_biases = "biases.json";
