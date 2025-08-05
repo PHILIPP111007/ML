@@ -42,7 +42,7 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 
                 // Remaining elements
                 #pragma omp simd
-                for (int i = j; i < cols_B; i++) {
+                for (register int i = j; i < cols_B; i++) {
                     c_row[i] += a_row[k] * b_row[i];
                 }
             }
@@ -50,12 +50,12 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
             // Implementation for ARM (4 elements)
             for (register int k = 0; k < cols_A; k++) {
                 float *__restrict b_row = B[k];
-                float32x4_t a_val = vdupq_n_f32(a_row[k]);
+                register float32x4_t a_val = vdupq_n_f32(a_row[k]);
 
                 register int j = 0;
                 for (; j <= cols_B - 4; j += 4) {
-                    float32x4_t c = vld1q_f32(&c_row[j]);
-                    float32x4_t b = vld1q_f32(&b_row[j]);
+                    register float32x4_t c = vld1q_f32(&c_row[j]);
+                    register float32x4_t b = vld1q_f32(&b_row[j]);
                     c = vmlaq_f32(c, a_val, b);
                     vst1q_f32(&c_row[j], c);
                 }
@@ -70,7 +70,7 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
             // Universal scalar implementation
             for (register int k = 0; k < cols_A; k++) {
                 float *b_row = B[k];
-                float a_val = a_row[k];
+                register float a_val = a_row[k];
 
                 #pragma omp simd
                 for (register int j = 0; j < cols_B; j++) {
@@ -83,10 +83,10 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 
 inline float sum(float **__restrict matrix, int rows, int cols) {
     register float n = 0.0f;
-    for (int i = 0; i < rows; i++) {
+    for (register int i = 0; i < rows; i++) {
 
         #pragma omp simd
-        for (int j = 0; j < cols; j++) {
+        for (register int j = 0; j < cols; j++) {
             n += matrix[i][j];
         }
     }
@@ -96,11 +96,11 @@ inline float sum(float **__restrict matrix, int rows, int cols) {
 inline float *sum_axis_0(float **__restrict matrix, int rows, int cols) {
     float *result = malloc(cols * sizeof(float));
 
-    for (int j = 0; j < cols; j++) {
+    for (register int j = 0; j < cols; j++) {
         result[j] = 0.0f;
 
         #pragma omp simd
-        for (int i = 0; i < rows; i++) {
+        for (register int i = 0; i < rows; i++) {
             result[j] += matrix[i][j];
         }
     }
@@ -114,7 +114,7 @@ inline float mean(float *__restrict arr, int len) {
     register float sum = 0.0f;
 
     #pragma omp simd
-    for (int i = 0; i < len; i++) {
+    for (register int i = 0; i < len; i++) {
         sum += arr[i];
     }
     return sum / len;
@@ -126,7 +126,7 @@ inline int argmax(float *__restrict arr, int size) {
     }
 
     int max_idx = 0;
-    for (int i = 1; i < size; i++) {
+    for (register int i = 1; i < size; i++) {
         if (arr[i] > arr[max_idx]) {
             max_idx = i;
         }
@@ -139,7 +139,7 @@ inline float safe_update(float number, float max_change) {
 }
 
 inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, float dropout) {
-    for (int i = 0; i < matrix_rows; i++) {
+    for (register int i = 0; i < matrix_rows; i++) {
 
         #pragma omp parallel for schedule(static)
         for (register int j = 0; j < n_neurons; j++) {
@@ -156,8 +156,8 @@ inline float **create_matrix(int rows, int cols) {
     float *__restrict data = malloc(rows * cols * sizeof(float));
 
     // Setting up line pointers
-    #pragma omp parallel for schedule(static)
-    for (int i = 0; i < rows; i++) {
+    #pragma omp parallel for simd schedule(static)
+    for (register int i = 0; i < rows; i++) {
         matrix[i] = &data[i * cols];
     }
 
@@ -166,7 +166,7 @@ inline float **create_matrix(int rows, int cols) {
 
 inline void free_matrix(float **__restrict matrix) {
     #pragma omp parallel for schedule(static)
-    for (int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
+    for (register int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
         free(matrix[i]);
     }
     free(matrix);
@@ -175,10 +175,9 @@ inline void free_matrix(float **__restrict matrix) {
 inline float **transpose(float **__restrict original_matrix, int rows, int cols) {
     float **__restrict transposed_matrix = create_matrix(cols, rows);
 
-    #pragma omp parallel for schedule(static)
-    for (int j = 0; j < cols; j++) {
-        #pragma omp simd
-        for (int i = 0; i < rows; i++) {
+    for (register int j = 0; j < cols; j++) {
+        #pragma omp parallel for simd schedule(static)
+        for (register int i = 0; i < rows; i++) {
             transposed_matrix[j][i] = original_matrix[i][j];
         }
     }
