@@ -1,5 +1,7 @@
 # Phils model
 
+This is a fully connected neural network. It can solve regression and classification problems. It also supports Adam optimizer. There are code sections where I used processor-specific functions (for x86 and ARM processors) for better optimization of the program.
+
 To run the `main.ipynb` file, use this:
 
 ```sh
