@@ -10,6 +10,6 @@ brew install llvm
 clang -shared -o main.so -fPIC -O3 -fopenmp -ffast-math -march=native main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 ```
 
-You may donate to ML project:
-
-Ethereum: 0xE2e2D675a3843f4ED211BB93847ad18b0A6fe7c6
+> You may donate to [phils_model](https://github.com/PHILIPP111007/ML/tree/main/phils_model) project:
+>
+> * Ethereum: 0xE2e2D675a3843f4ED211BB93847ad18b0A6fe7c6
