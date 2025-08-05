@@ -59,19 +59,19 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
 inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
     // Cache optimizer parameters
-    const float b1 = optimizer->b1;
-    const float b2 = optimizer->b2;
-    const float lr = optimizer->lr;
-    const float eps = optimizer->eps;
-    const int epoch = ++optimizer->epoch;
+    const register float b1 = optimizer->b1;
+    const register float b2 = optimizer->b2;
+    const register float lr = optimizer->lr;
+    const register float eps = optimizer->eps;
+    const register int epoch = ++optimizer->epoch;
 
     // Precompute bias corrections
-    const float b1_pow = fast_pow(b1, epoch);
-    const float b2_pow = fast_pow(b2, epoch);
-    const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f); // Add small epsilon to prevent division by zero
-    const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
-    const float b1_minus_1 = 1.0f - b1;
-    const float b2_minus_1 = 1.0f - b2;
+    const register float b1_pow = fast_pow(b1, epoch);
+    const register float b2_pow = fast_pow(b2, epoch);
+    const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f); // Add small epsilon to prevent division by zero
+    const register float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
+    const register float b1_minus_1 = 1.0f - b1;
+    const register float b2_minus_1 = 1.0f - b2;
 
     // Process each layer
     for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
