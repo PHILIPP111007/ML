@@ -58,22 +58,26 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 }
 
 inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
-    // Cache optimizer parameters in registers
+    // Cache optimizer parameters
     const register float b1 = optimizer->b1;
     const register float b2 = optimizer->b2;
     const register float lr = optimizer->lr;
     const register float eps = optimizer->eps;
     const register int epoch = ++optimizer->epoch;
 
-    // Precompute bias corrections with SIMD-friendly constants
+    // Precompute bias corrections
     const register float b1_pow = fast_pow(b1, epoch);
     const register float b2_pow = fast_pow(b2, epoch);
-    const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f); // Add small epsilon to prevent division by zero
+    const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
     const register float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
     const register float b1_minus_1 = 1.0f - b1;
     const register float b2_minus_1 = 1.0f - b2;
 
-    // Process layers
+    // Use cache-friendly chunk size (64 bytes / sizeof(float))
+    const register int chunk_size = 64 / sizeof(float);
+
+    // Process layers with guided scheduling for load balancing
+    #pragma omp parallel for schedule(guided) if(layer_sizes_rows > 8)
     for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -83,23 +87,22 @@ inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__res
         float ** __restrict layer_m = optimizer->m[layer_index];
         float ** __restrict layer_v = optimizer->v[layer_index];
 
-        // Process rows in larger chunks for better cache utilization
-        const register int chunk_size = 64 / sizeof(float);
-
-        #pragma omp parallel for schedule(guided)
+        // Process rows in chunks
+        #pragma omp parallel for schedule(guided) if(n_inputs > 8)
         for (register int i = 0; i < n_inputs; i += chunk_size) {
             const register int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
 
-            // Inner loop over chunked rows
+            #pragma omp parallel for schedule(guided) if(i_end > 8)
             for (register int ii = i; ii < i_end; ii++) {
                 float *__restrict weights_row = layer_weights[ii];
                 float *__restrict grads_row = layer_grads[ii];
                 float *__restrict m_row = layer_m[ii];
                 float *__restrict v_row = layer_v[ii];
 
-                #pragma omp parallel for schedule(guided)
+                #pragma omp parallel for schedule(guided) if(n_neurons > 8)
                 for (register int j = 0; j < n_neurons; j += 4) {
                     if (j + 3 < n_neurons) {
+
                         #pragma omp simd aligned(weights_row, grads_row, m_row, v_row:64)
                         for (register int k = 0; k < 4; k++) {
                             const register int idx = j + k;
