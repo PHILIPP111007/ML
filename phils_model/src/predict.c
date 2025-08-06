@@ -13,7 +13,22 @@ void *predict_thread(void *arg) {
         float ***__restrict Y = malloc(task->layer_sizes_rows * sizeof(float**));
 
         // Forward pass
-        forward(task->sample, task->dataset_samples_cols, task->dataset_samples_depth, task->weights, task->biases, Y, task->layer_sizes, task->layer_sizes_rows, task->layer_sizes_cols, task->activations);
+        forward(
+            task->sample,
+            task->dataset_samples_cols,
+            task->dataset_samples_depth,
+            task->weights,
+            task->biases,
+            Y,
+            task->layer_sizes,
+            task->layer_sizes_rows,
+            task->layer_sizes_cols,
+            task->activations,
+            task->gpu,
+            range->context,
+            range->queue,
+            range->program
+        );
 
         // Get predictions from last layer
         for (int j = 0; j < task->n_neurons_last_layer; j++) {

@@ -4,10 +4,35 @@ This is a fully connected neural network. It can solve regression and classifica
 
 To run the `main.ipynb` file, use this:
 
+For MacOS:
+
 ```sh
 brew install llvm
 
-clang -shared -o main.so -fPIC -O3 -fopenmp -ffast-math -march=native main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
+clang -shared \
+    -o main.so \
+    -fPIC \
+    -O3 \
+    -fopenmp \
+    -ffast-math \
+    -march=native \
+    -framework OpenCL \
+    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
+```
+
+For Windows:
+
+```sh
+clang -shared \
+    -o main.dll \
+    -O3 \
+    -fopenmp \
+    -ffast-math \
+    -march=native \
+    -I/path/to/opencl/include \
+    -L/path/to/opencl/lib \
+    -lopencl \
+    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 ```
 
 > You may donate to [phils_model](https://github.com/PHILIPP111007/ML/tree/main/phils_model) project:

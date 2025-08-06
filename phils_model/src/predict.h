@@ -1,6 +1,12 @@
 #ifndef PREDICT_H
 #define PREDICT_H
 
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 typedef struct PredictTask {
     float **sample;
@@ -15,12 +21,16 @@ typedef struct PredictTask {
     int dataset_samples_cols;
     int dataset_samples_depth;
     int n_neurons_last_layer;
+    int gpu;
 } PredictTask;
 
 typedef struct ThreadRange {
     PredictTask *tasks;
     int start;
     int end;
+    cl_context context;
+    cl_command_queue queue;
+    cl_program program;
 } ThreadRange;
 
 void *predict_thread(

@@ -1,6 +1,12 @@
 #ifndef FORWARD_H
 #define FORWARD_H
 
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 typedef struct ForwardData{
     float ****X_list;
@@ -29,7 +35,11 @@ void forward(
     float *layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
-    float *activations
+    float *activations,
+    int gpu,
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program
 );
 
 void *forward_worker(

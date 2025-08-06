@@ -1,6 +1,12 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 void matmul(
     float **A,
@@ -10,6 +16,19 @@ void matmul(
     int cols_A,
     int rows_B,
     int cols_B
+);
+
+void matmul_gpu(
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program,
+    float *A,
+    float *B,
+    float *C,
+    int ROWS_A,
+    int COLS_A,
+    int ROWS_B,
+    int COLS_B
 );
 
 float **transpose(

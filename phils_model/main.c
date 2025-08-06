@@ -293,14 +293,16 @@ void predict_one(
     int layer_sizes_cols,
     float *activations,
     int activations_len,
-    float *prediction) {
+    float *prediction,
+    int gpu) {
 
     float **__restrict sample = create_matrix(sample_rows, sample_cols);
     for (register int i = 0; i < sample_rows; i++) {
 
         #pragma omp simd
         for (register int j = 0; j < sample_cols; j++) {
-            sample[i][j] = sample_input[i + j];
+            int index = i * sample_cols + j;
+            sample[i][j] = sample_input[index];
         }
     }
 
@@ -337,8 +339,60 @@ void predict_one(
 
     float ***__restrict Y = malloc(layer_sizes_rows * sizeof(float**));
 
+
+
+
+
+
+    // Шаг 1: получение платформы и устройства
+    cl_uint numPlatforms;
+    cl_platform_id platforms[10];
+    clGetPlatformIDs(10, platforms, &numPlatforms);
+
+    // Используем первое подходящее устройство типа GPU
+    cl_device_id devices[10];
+    cl_uint numDevices;
+    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+
+    // Шаг 2: создание контекста
+    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+
+    // Шаг 3: создание очереди команд
+    cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+
+    // Шаг 3: чтение и компиляция ядра OpenCL
+    FILE* fp = fopen("src/kernel.cl", "rb");
+    fseek(fp, 0, SEEK_END);
+    long fileSize = ftell(fp);
+    rewind(fp);
+    char* sourceStr = (char*)malloc(fileSize + 1);
+    fread(sourceStr, 1, fileSize, fp);
+    fclose(fp);
+
+    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
+    clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+
+
+
+
+
+
+
+
+
+
     // Forward pass
-    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations);
+    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, gpu, context, queue, program);
+
+    clReleaseCommandQueue(queue);
+    clReleaseContext(context);
+    clReleaseProgram(program);
+
+
+
+
+
+
 
     free_matrix(sample);
 
@@ -396,7 +450,8 @@ void predict(
     float *activations,
     int activations_len,
     float *predictions,
-    int num_cpu) {
+    int num_cpu,
+    int gpu) {
 
     // Loading a dataset
     float ***__restrict samples = malloc(dataset_samples_rows * sizeof(float**));
@@ -464,11 +519,47 @@ void predict(
         tasks[dataset_index].dataset_samples_cols = dataset_samples_cols;
         tasks[dataset_index].dataset_samples_depth = dataset_samples_depth;
         tasks[dataset_index].n_neurons_last_layer = n_neurons_last_layer;
+        tasks[dataset_index].gpu = gpu;
     }
 
     // Create threads
     int samples_per_thread = dataset_samples_rows / num_cpu;
     int remaining_samples = dataset_samples_rows % num_cpu;
+
+
+
+
+
+
+    // Шаг 1: получение платформы и устройства
+    cl_uint numPlatforms;
+    cl_platform_id platforms[10];
+    clGetPlatformIDs(10, platforms, &numPlatforms);
+
+    // Используем первое подходящее устройство типа GPU
+    cl_device_id devices[10];
+    cl_uint numDevices;
+    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+
+    // Шаг 2: создание контекста
+    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+
+    // Шаг 3: создание очереди команд
+    cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+
+    // Шаг 3: чтение и компиляция ядра OpenCL
+    FILE* fp = fopen("src/kernel.cl", "rb");
+    fseek(fp, 0, SEEK_END);
+    long fileSize = ftell(fp);
+    rewind(fp);
+    char* sourceStr = (char*)malloc(fileSize + 1);
+    fread(sourceStr, 1, fileSize, fp);
+    fclose(fp);
+
+    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
+    clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+
+
 
     for (int i = 0; i < num_cpu; i++) {
         int start_idx = i * samples_per_thread + (i < remaining_samples ? i : remaining_samples);
@@ -478,6 +569,9 @@ void predict(
         range->start = start_idx;
         range->end = end_idx;
         range->tasks = tasks;
+        range->context = context;
+        range->queue = queue;
+        range->program = program;
 
         pthread_create(&threads[i], NULL, predict_thread, range);
     }
@@ -488,6 +582,10 @@ void predict(
     }
 
     // Free memory
+    clReleaseCommandQueue(queue);
+    clReleaseContext(context);
+    clReleaseProgram(program);
+
     free(threads);
     free(tasks);
 
