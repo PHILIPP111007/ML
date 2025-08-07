@@ -1,6 +1,12 @@
 #ifndef PREDICT_H
 #define PREDICT_H
 
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 typedef struct PredictTask {
     float **sample;
@@ -22,6 +28,9 @@ typedef struct ThreadRange {
     PredictTask *tasks;
     int start;
     int end;
+    cl_context context;
+    cl_command_queue queue;
+    cl_program program;
 } ThreadRange;
 
 void *predict_thread(
