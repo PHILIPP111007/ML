@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/time.h>
 #include <pthread.h>
 #include "functions.h"
 #include "loss.h"
@@ -11,6 +12,10 @@
 #else
     #include <CL/cl.h>
 #endif
+
+
+int flag_check_matmul_time = 1;
+int flag_train_on_gpu = 0;
 
 
 // Forward pass
@@ -35,7 +40,45 @@ void forward(
 
     Y[0] = create_matrix(sample_rows, n_neurons);
 
-    if (gpu) {
+    // Now we will check the execution time of matmul_gpu and matmul only once and determine which function to use in the future
+    if (gpu && flag_check_matmul_time) {
+        struct timeval start_matmul_gpu, end_matmul_gpu, start_matmul, end_matmul;
+
+        // Let's calculate the execution time of matmul_gpu
+
+        gettimeofday(&start_matmul_gpu, NULL);  // Mark the beginning
+        float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
+        float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+        float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
+
+        matmul_gpu(context, queue, program, sample_vec, weights_vec, y_vec, sample_rows, sample_cols, n_inputs, n_neurons);
+
+        free(sample_vec);
+        free(weights_vec);
+        free(y_vec);
+        gettimeofday(&end_matmul_gpu, NULL); // Marking the end
+
+        long seconds = end_matmul_gpu.tv_sec - start_matmul_gpu.tv_sec;
+        long microseconds = end_matmul_gpu.tv_usec - start_matmul_gpu.tv_usec;
+        double total_time_matmul_gpu = seconds + microseconds * 1e-6;
+
+        // Let's calculate the execution time of matmul
+
+        gettimeofday(&start_matmul, NULL); // Mark the beginning
+        matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
+        gettimeofday(&end_matmul, NULL); // Marking the end
+
+        seconds = end_matmul_gpu.tv_sec - start_matmul_gpu.tv_sec;
+        microseconds = end_matmul_gpu.tv_usec - start_matmul_gpu.tv_usec;
+        double total_time_matmul = seconds + microseconds * 1e-6;
+
+        if (total_time_matmul_gpu <= total_time_matmul) {
+            flag_train_on_gpu = 1;
+        }
+        flag_check_matmul_time = 0;
+    }
+
+    if (gpu && flag_train_on_gpu) {
         float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
         float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
         float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
@@ -85,7 +128,7 @@ void forward(
 
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-        if (gpu) {
+        if (gpu && layer_index < layer_sizes_rows - 1 && n_inputs >= 5000) {
             float *y_vec = malloc(matrix_rows * n_inputs * sizeof(float));
             float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
             float *y_new_vec = malloc(matrix_rows * n_neurons * sizeof(float));
