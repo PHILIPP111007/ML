@@ -132,23 +132,23 @@ void backward_threading(
         // Block size for the current thread
         int end_idx = start_idx + block_size + (t < remainder ? 1 : 0);
 
-        backward_thread_data[t].start_idx = start_idx;
-        backward_thread_data[t].end_idx = end_idx;
         backward_thread_data[t].weights = weights;
-        backward_thread_data[t].targets = targets;
         backward_thread_data[t].X_list = X_list;
         backward_thread_data[t].Y_list = Y_list;
-        backward_thread_data[t].layer_sizes = layer_sizes;
-        backward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
-        backward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
-        backward_thread_data[t].matrix_rows = matrix_rows;
-        backward_thread_data[t].activations = activations;
-        backward_thread_data[t].loss = loss;
-        backward_thread_data[t].epoch_losses = epoch_losses;
-        backward_thread_data[t].regression = regression;
         backward_thread_data[t].grad_w_list = grad_w_list;
         backward_thread_data[t].grad_x_list = grad_x_list;
         backward_thread_data[t].grad_b_list = grad_b_list;
+        backward_thread_data[t].targets = targets;
+        backward_thread_data[t].layer_sizes = layer_sizes;
+        backward_thread_data[t].activations = activations;
+        backward_thread_data[t].epoch_losses = epoch_losses;
+        backward_thread_data[t].start_idx = start_idx;
+        backward_thread_data[t].end_idx = end_idx;
+        backward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
+        backward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
+        backward_thread_data[t].matrix_rows = matrix_rows;
+        backward_thread_data[t].loss = loss;
+        backward_thread_data[t].regression = regression;
         backward_thread_data[t].dataset_samples_rows = dataset_samples_rows;
         backward_thread_data[t].dataset_samples_cols = dataset_samples_cols;
         backward_thread_data[t].dataset_targets_cols = dataset_targets_cols;
