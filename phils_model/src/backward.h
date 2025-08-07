@@ -1,6 +1,12 @@
 #ifndef BACKWARD_H
 #define BACKWARD_H
 
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 typedef struct BackwardData {
     float ***weights;
@@ -23,6 +29,10 @@ typedef struct BackwardData {
     int dataset_samples_rows;
     int dataset_samples_cols;
     int dataset_targets_cols;
+    cl_context context;
+    cl_command_queue queue;
+    cl_program program;
+    int gpu;
 } BackwardData;
 
 void *backward_worker(
@@ -50,7 +60,11 @@ void backward_threading(
     int loss,
     float *epoch_losses,
     int regression,
-    int num_threads
+    int num_threads,
+    int gpu,
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program
 );
 
 #endif

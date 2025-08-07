@@ -52,7 +52,6 @@ void forward(
 
         // Let's calculate the execution time of matmul_gpu
 
-
         clock_gettime(CLOCK_MONOTONIC, &start_matmul_gpu); // Mark the beginning
         float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
         float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
@@ -236,7 +235,6 @@ void *forward_worker(void *arg) {
 
         X[0] = create_matrix(sample_rows, sample_cols);
         for (register int i = 0; i < sample_rows; i++) {
-
             #pragma omp simd
             for (register int j = 0; j < sample_cols; j++) {
                 X[0][i][j] = sample[i][j];
@@ -252,7 +250,6 @@ void *forward_worker(void *arg) {
 
             X[layer_index] = create_matrix(matrix_rows, n_inputs);
             for (register int i = 0; i < matrix_rows; i++) {
-
                 #pragma omp simd
                 for (register int j = 0; j < n_inputs; j++) {
                     X[layer_index][i][j] = Y[layer_index - 1][i][j];

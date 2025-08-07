@@ -128,7 +128,7 @@ void fit(
         cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
         // Step 3: Read and compile the OpenCL kernel
-        FILE* fp = fopen("src/kernel.cl", "rb");
+        FILE* fp = fopen("src/matmul_gpu.cl", "rb");
         fseek(fp, 0, SEEK_END);
         long fileSize = ftell(fp);
         rewind(fp);
@@ -161,12 +161,7 @@ void fit(
             program
         );
 
-        clReleaseCommandQueue(queue);
-        clReleaseContext(context);
-        clReleaseProgram(program);
-
         for (int t = 0; t < num_threads; t++) {
-
             #pragma omp simd
             for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
                 X_list[dataset_index] = forward_thread_data[t].X_list[dataset_index];
@@ -208,8 +203,16 @@ void fit(
             loss,
             epoch_losses,
             regression,
-            num_threads
+            num_threads,
+            gpu,
+            context,
+            queue,
+            program
         );
+
+        clReleaseCommandQueue(queue);
+        clReleaseContext(context);
+        clReleaseProgram(program);
 
         free(backward_thread_data);
 
@@ -392,7 +395,7 @@ void predict_one(
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
     // Step 3: Read and compile the OpenCL kernel
-    FILE* fp = fopen("src/kernel.cl", "rb");
+    FILE* fp = fopen("src/matmul_gpu.cl", "rb");
     fseek(fp, 0, SEEK_END);
     long fileSize = ftell(fp);
     rewind(fp);
@@ -561,7 +564,7 @@ void predict(
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
     // Step 3: Read and compile the OpenCL kernel
-    FILE* fp = fopen("src/kernel.cl", "rb");
+    FILE* fp = fopen("src/matmul_gpu.cl", "rb");
     fseek(fp, 0, SEEK_END);
     long fileSize = ftell(fp);
     rewind(fp);

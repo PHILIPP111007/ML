@@ -1,6 +1,6 @@
-__kernel void matmul(__global const float *A, __global const float *B,
-                     __global float *C, const int rows_A, const int cols_A,
-                     const int cols_B) {
+__kernel void matmul_gpu(__global const float *A, __global const float *B,
+                         __global float *C, const int rows_A, const int cols_A,
+                         const int cols_B) {
 
   int row = get_global_id(0);
   int col = get_global_id(1);

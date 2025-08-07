@@ -94,7 +94,7 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
     cl_mem d_C = clCreateBuffer(context, CL_MEM_WRITE_ONLY, ROWS_A * COLS_B * sizeof(float), NULL, NULL);
 
     // Get the kernel
-    cl_kernel kernel = clCreateKernel(program, "matmul", NULL);
+    cl_kernel kernel = clCreateKernel(program, "matmul_gpu", NULL);
 
     // Setting kernel arguments
     clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_A);
