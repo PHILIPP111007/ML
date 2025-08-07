@@ -1,14 +1,12 @@
 # Phils model
 
-This is a fully connected neural network. It can solve regression and classification problems. It also supports Adam optimizer. There are code sections where I used processor-specific functions (for x86 and ARM processors) for better optimization of the program.
+This is a fully connected neural network. It can solve regression and classification problems. It also supports Adam optimizer. There are code sections where I used processor-specific instructions (for x86 and ARM processors) for better optimization of the program. GPU computing support has recently been added.
 
 To run the `main.ipynb` file, use this:
 
 For MacOS / Linux:
 
 ```sh
-brew install llvm
-
 clang -shared \
     -o main.so \
     -fPIC \
