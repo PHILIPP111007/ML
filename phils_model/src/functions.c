@@ -105,7 +105,7 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
     clSetKernelArg(kernel, 5, sizeof(int), &COLS_B);
 
     // Step 9: Determine the size of the thread grid
-    size_t global_size[] = {ROWS_A, COLS_B}; // Working flow volume
+    size_t global_size[] = {1, COLS_B}; // Working flow volume
     // Launch the kernel
     clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
 
