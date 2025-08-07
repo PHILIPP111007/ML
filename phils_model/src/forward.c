@@ -129,7 +129,7 @@ void forward(
 
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-        if (gpu && layer_index < layer_sizes_rows - 1 && n_inputs >= 5000) {
+        if (gpu && layer_index < layer_sizes_rows - 1) {
             float *y_vec = malloc(matrix_rows * n_inputs * sizeof(float));
             float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
             float *y_new_vec = malloc(matrix_rows * n_neurons * sizeof(float));

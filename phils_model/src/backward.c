@@ -22,7 +22,6 @@ void *backward_worker(void *arg) {
     const register int dataset_samples_cols = bd->dataset_samples_cols;
     const register int dataset_targets_cols = bd->dataset_targets_cols;
 
-    #pragma omp parallel for schedule(dynamic)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float ***__restrict X = bd->X_list[dataset_index];
         float ***__restrict Y = bd->Y_list[dataset_index];
@@ -68,8 +67,8 @@ void *backward_worker(void *arg) {
             float **__restrict delta = create_matrix(matrix_rows, n_neurons);
 
             // Compute delta with SIMD optimization
-            #pragma omp parallel for simd collapse(2) schedule(static)
             for (register int i = 0; i < matrix_rows; i++) {
+                #pragma omp parallel for simd
                 for (register int j = 0; j < n_neurons; j++) {
                     delta[i][j] = grad_x[layer_index + 1][i][j] * Y[layer_index][i][j];
                 }
