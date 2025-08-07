@@ -36,29 +36,29 @@ void forward(
     Y[0] = create_matrix(sample_rows, n_neurons);
 
     if (gpu) {
-        float (*sample_vec)[sample_rows] = malloc(sample_rows * sample_cols * sizeof(float));
-        float (*weights_vec)[n_inputs] = malloc(n_inputs * n_neurons * sizeof(float));
-        float (*y_vec)[sample_rows] = malloc(sample_rows * n_neurons * sizeof(float));
+        float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
+        float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+        float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
             for (int j = 0; j < sample_cols; j++) {
-                sample_vec[i][j] = sample[i][j];
+                sample_vec[i * sample_cols + j] = sample[i][j];
             }
         }
         for (int i = 0; i < n_inputs; i++) {
             #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
-                weights_vec[i][j] = weights[0][i][j];
+                weights_vec[i * n_neurons + j] = weights[0][i][j];
             }
         }
 
-        matmul_gpu(context, queue, program, (float *)sample_vec, (float *)weights_vec, (float *)y_vec, sample_rows, sample_cols, n_inputs, n_neurons);
+        matmul_gpu(context, queue, program, sample_vec, weights_vec, y_vec, sample_rows, sample_cols, n_inputs, n_neurons);
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
-                Y[0][i][j] = y_vec[i][j];
+                Y[0][i][j] = y_vec[i * n_neurons + j];
             }
         }
 
@@ -87,35 +87,35 @@ void forward(
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
         if (gpu) {
-            float (*y_vec)[matrix_rows] = malloc(matrix_rows * n_inputs * sizeof(float));
-            float (*weights_vec)[n_inputs] = malloc(n_inputs * n_neurons * sizeof(float));
-            float (*y_new_vec)[matrix_rows] = malloc(matrix_rows * n_neurons * sizeof(float));
+            float *y_vec = malloc(matrix_rows * n_inputs * sizeof(float));
+            float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+            float *y_new_vec = malloc(matrix_rows * n_neurons * sizeof(float));
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
                 for (int j = 0; j < n_inputs; j++) {
-                    y_vec[i][j] = Y[layer_index - 1][i][j];
+                    y_vec[i * n_inputs + j] = Y[layer_index - 1][i][j];
                 }
             }
             for (int i = 0; i < n_inputs; i++) {
                 #pragma omp simd
                 for (int j = 0; j < n_neurons; j++) {
-                    weights_vec[i][j] = weights[layer_index][i][j];
+                    weights_vec[i * n_neurons + j] = weights[layer_index][i][j];
                 }
             }
 
-            matmul_gpu(context, queue, program, (float *)y_vec, (float *)weights_vec, (float *)y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons);
+            matmul_gpu(context, queue, program, y_vec, weights_vec, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons);
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
                 for (int j = 0; j < n_neurons; j++) {
-                    Y[layer_index][i][j] = y_new_vec[i][j];
+                    Y[layer_index][i][j] = y_new_vec[i * n_neurons + j];
 
-                    printf("%f ", Y[layer_index][i][j]);
+                    // printf("%f ", Y[layer_index][i][j]);
                 }
-                printf("\n");
+                // printf("\n");
             }
-            printf("\n_______\n");
+            // printf("\n_______\n");
 
 
 
