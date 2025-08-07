@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <sys/time.h>
+
+#define _POSIX_C_SOURCE 200809L
+#include <time.h>
+
 #include <pthread.h>
 #include "functions.h"
 #include "loss.h"
@@ -12,6 +15,8 @@
 #else
     #include <CL/cl.h>
 #endif
+
+#define TIMESPEC_TO_NS(ts) (((long long)(ts).tv_sec * 1000000000LL + (ts).tv_nsec))
 
 
 int flag_check_matmul_time = 1;
@@ -43,11 +48,12 @@ void forward(
 
     // Now we will check the execution time of matmul_gpu and matmul only once and determine which function to use in the future
     if (gpu && flag_check_matmul_time && !is_predict_one_saple) {
-        struct timeval start_matmul_gpu, end_matmul_gpu, start_matmul, end_matmul;
+        struct timespec start_matmul_gpu, end_matmul_gpu, start_matmul, end_matmul;
 
         // Let's calculate the execution time of matmul_gpu
 
-        gettimeofday(&start_matmul_gpu, NULL);  // Mark the beginning
+
+        clock_gettime(CLOCK_MONOTONIC, &start_matmul_gpu); // Mark the beginning
         float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
         float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
         float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
@@ -57,23 +63,17 @@ void forward(
         free(sample_vec);
         free(weights_vec);
         free(y_vec);
-        gettimeofday(&end_matmul_gpu, NULL); // Marking the end
-
-        long seconds = end_matmul_gpu.tv_sec - start_matmul_gpu.tv_sec;
-        long microseconds = end_matmul_gpu.tv_usec - start_matmul_gpu.tv_usec;
-        double total_time_matmul_gpu = seconds + microseconds * 1e-6;
+        clock_gettime(CLOCK_MONOTONIC, &end_matmul_gpu); // Marking the end
+        long long total_time_matmul_gpu = TIMESPEC_TO_NS(end_matmul_gpu) - TIMESPEC_TO_NS(start_matmul_gpu);
 
         // Let's calculate the execution time of matmul
 
-        gettimeofday(&start_matmul, NULL); // Mark the beginning
+        clock_gettime(CLOCK_MONOTONIC, &start_matmul); // Mark the beginning
         matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
-        gettimeofday(&end_matmul, NULL); // Marking the end
+        clock_gettime(CLOCK_MONOTONIC, &end_matmul); // Marking the end
+        long long total_time_matmul = TIMESPEC_TO_NS(end_matmul) - TIMESPEC_TO_NS(start_matmul);
 
-        seconds = end_matmul_gpu.tv_sec - start_matmul_gpu.tv_sec;
-        microseconds = end_matmul_gpu.tv_usec - start_matmul_gpu.tv_usec;
-        double total_time_matmul = seconds + microseconds * 1e-6;
-
-        if (total_time_matmul_gpu <= total_time_matmul) {
+        if (total_time_matmul_gpu < total_time_matmul) {
             flag_train_on_gpu = 1;
         }
         flag_check_matmul_time = 0;
