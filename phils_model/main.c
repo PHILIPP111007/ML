@@ -191,7 +191,6 @@ void fit(
                 float *__restrict bias_layer = biases[layer_index];
                 float *__restrict grad_b_layer = grad_b[layer_index];
 
-                #pragma omp parallel for schedule(static)
                 for (register int i = 0; i < n_neurons; ++i) {
                     const register float change = grad_b_layer[i] * learning_rate;
                     bias_layer[i] -= safe_update(change, max_change);
