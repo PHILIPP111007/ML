@@ -69,7 +69,6 @@ void forward(
         matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
     }
 
-
     for (int i = 0; i < sample_rows; i++) {
         #pragma omp simd
         for (int j = 0; j < n_neurons; j++) {
@@ -110,15 +109,8 @@ void forward(
                 #pragma omp simd
                 for (int j = 0; j < n_neurons; j++) {
                     Y[layer_index][i][j] = y_new_vec[i * n_neurons + j];
-
-                    // printf("%f ", Y[layer_index][i][j]);
                 }
-                // printf("\n");
             }
-            // printf("\n_______\n");
-
-
-
 
             free(y_vec);
             free(weights_vec);
@@ -126,10 +118,6 @@ void forward(
         } else {
             matmul(Y[layer_index - 1], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
         }
-
-
-        // matmul(Y[layer_index - 1], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
-
 
         for (register int i = 0; i < matrix_rows; i++) {
             #pragma omp simd
