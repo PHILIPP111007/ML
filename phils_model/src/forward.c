@@ -203,7 +203,6 @@ void *forward_worker(void *arg) {
     float *activations = fd->activations;
     float *dropouts = fd->dropouts;
 
-    #pragma omp parallel for schedule(dynamic)
     for (register int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float **__restrict sample = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
