@@ -86,17 +86,17 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
     }
 }
 
-// Перемножение матриц с использованием OpenCL
+// Matrix Multiplication Using OpenCL
 inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program program, float *A, float *B, float *C, int ROWS_A, int COLS_A, int ROWS_B, int COLS_B) {
-    // Создание буферов для хранения матриц
+    // Creating buffers for storing matrices
     cl_mem d_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ROWS_A * COLS_A * sizeof(float), A, NULL);
     cl_mem d_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ROWS_B * COLS_B * sizeof(float), B, NULL);
     cl_mem d_C = clCreateBuffer(context, CL_MEM_WRITE_ONLY, ROWS_A * COLS_B * sizeof(float), NULL, NULL);
 
-    // Получаем ядро
+    // Get the kernel
     cl_kernel kernel = clCreateKernel(program, "matmul", NULL);
 
-    // Устанавливаем аргументы ядра
+    // Setting kernel arguments
     clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_A);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_B);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_C);
@@ -104,15 +104,18 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
     clSetKernelArg(kernel, 4, sizeof(int), &COLS_A);
     clSetKernelArg(kernel, 5, sizeof(int), &COLS_B);
 
-    // Шаг 9: Определение размера сетки потоков
-    size_t global_size[] = {ROWS_A, COLS_B}; // Рабочий объем потока
-    // Запускаем ядро
+    // Step 9: Determine the size of the thread grid
+    size_t global_size[] = {ROWS_A, COLS_B}; // Working flow volume
+    // Launch the kernel
     clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
 
-    // Чтение результата
-    clEnqueueReadBuffer(queue, d_C, CL_FALSE, 0, ROWS_A * COLS_B * sizeof(float), C, 0, NULL, NULL);
+    // Reading the result
+    cl_event readEvent;
+    clEnqueueReadBuffer(queue, d_C, CL_FALSE, 0, ROWS_A * COLS_B * sizeof(float), C, 0, NULL, &readEvent);
+    clWaitForEvents(1, &readEvent); // Ждем завершения отдельно
+    clReleaseEvent(readEvent);
 
-    // Очистка ресурсов
+    // Resource cleanup
     clReleaseMemObject(d_A);
     clReleaseMemObject(d_B);
     clReleaseMemObject(d_C);
