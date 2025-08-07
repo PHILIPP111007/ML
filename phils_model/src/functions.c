@@ -181,8 +181,6 @@ inline float safe_update(float number, float max_change) {
 
 inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, float dropout) {
     for (register int i = 0; i < matrix_rows; i++) {
-
-        #pragma omp parallel for schedule(static)
         for (register int j = 0; j < n_neurons; j++) {
             float random = (double)rand() / RAND_MAX;
             if (random > dropout) {
