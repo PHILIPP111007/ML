@@ -87,7 +87,7 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 }
 
 // Перемножение матриц с использованием OpenCL
-void matmul_gpu(cl_context context, cl_command_queue queue, cl_program program, float *A, float *B, float *C, int ROWS_A, int COLS_A, int ROWS_B, int COLS_B) {
+inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program program, float *A, float *B, float *C, int ROWS_A, int COLS_A, int ROWS_B, int COLS_B) {
     // Создание буферов для хранения матриц
     cl_mem d_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ROWS_A * COLS_A * sizeof(float), A, NULL);
     cl_mem d_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ROWS_B * COLS_B * sizeof(float), B, NULL);
