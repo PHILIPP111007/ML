@@ -295,7 +295,6 @@ void predict_one(
 
     float **__restrict sample = create_matrix(sample_rows, sample_cols);
     for (register int i = 0; i < sample_rows; i++) {
-
         #pragma omp simd
         for (register int j = 0; j < sample_cols; j++) {
             int index = i * sample_cols + j;
@@ -314,7 +313,6 @@ void predict_one(
 
         weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; i++) {
-
             #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
                 int index = current_weight_offset + i * n_neurons + j;
@@ -335,6 +333,8 @@ void predict_one(
     }
 
     float ***__restrict Y = malloc(layer_sizes_rows * sizeof(float**));
+
+    // Preparing the GPU Kernel
 
     // Step 1: Get a platform and device
     cl_uint numPlatforms;
@@ -502,6 +502,8 @@ void predict(
     // Create threads
     int samples_per_thread = dataset_samples_rows / num_cpu;
     int remaining_samples = dataset_samples_rows % num_cpu;
+
+    // Preparing the GPU Kernel
 
     // Step 1: Get a platform and device
     cl_uint numPlatforms;
