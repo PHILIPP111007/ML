@@ -4,7 +4,7 @@ This is a fully connected neural network. It can solve regression and classifica
 
 To run the `main.ipynb` file, use this:
 
-For MacOS:
+For MacOS / Linux:
 
 ```sh
 brew install llvm
@@ -17,21 +17,6 @@ clang -shared \
     -ffast-math \
     -march=native \
     -framework OpenCL \
-    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
-```
-
-For Windows:
-
-```sh
-clang -shared \
-    -o main.dll \
-    -O3 \
-    -fopenmp \
-    -ffast-math \
-    -march=native \
-    -I/path/to/opencl/include \
-    -L/path/to/opencl/lib \
-    -lopencl \
     main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 ```
 
