@@ -48,7 +48,6 @@ void fit(
     float ***__restrict samples = malloc(dataset_samples_rows * sizeof(float**));
     float **__restrict targets = malloc(dataset_targets_rows * sizeof(float*)); 
 
-    #pragma omp parallel for schedule(static)
     for (register int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = create_matrix(dataset_samples_cols, dataset_samples_depth);
         for (int i = 0; i < dataset_samples_cols; i++) {
@@ -181,7 +180,6 @@ void fit(
             logger_info("Update weights and biases step\n");
         }
 
-        #pragma omp for schedule(static)
         for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***__restrict grad_w = grad_w_list[dataset_index];
             float **__restrict grad_b = grad_b_list[dataset_index];
