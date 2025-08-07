@@ -188,20 +188,21 @@ void forward(
 void *forward_worker(void *arg) {
     ForwardData *fd = (ForwardData *)arg;
 
-    int start_idx = fd->start_idx;
-    int end_idx = fd->end_idx;
+    const int start_idx = fd->start_idx;
+    const int end_idx = fd->end_idx;
     float ***samples = fd->samples;
     int sample_rows = fd->sample_rows;
-    int sample_cols = fd->sample_cols;
+    const int sample_cols = fd->sample_cols;
     float ****X_list = fd->X_list;
     float ****Y_list = fd->Y_list;
     float ***weights = fd->weights;
     float **biases = fd->biases;
     float *layer_sizes = fd->layer_sizes;
-    int layer_sizes_rows = fd->layer_sizes_rows;
-    int layer_sizes_cols = fd->layer_sizes_cols;
+    const int layer_sizes_rows = fd->layer_sizes_rows;
+    const int layer_sizes_cols = fd->layer_sizes_cols;
     float *activations = fd->activations;
     float *dropouts = fd->dropouts;
+    const int gpu = fd->gpu;
 
     for (register int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float **__restrict sample = create_matrix(sample_rows, sample_cols);
@@ -259,7 +260,40 @@ void *forward_worker(void *arg) {
             }
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
-            matmul(X[layer_index], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
+
+            if (gpu && layer_index < layer_sizes_rows - 1) {
+                float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
+                float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+                float *y_vec = malloc(matrix_rows * n_neurons * sizeof(float));
+
+                for (int i = 0; i < matrix_rows; i++) {
+                    #pragma omp simd
+                    for (int j = 0; j < n_inputs; j++) {
+                        x_vec[i * n_inputs + j] = X[layer_index][i][j];
+                    }
+                }
+                for (int i = 0; i < n_inputs; i++) {
+                    #pragma omp simd
+                    for (int j = 0; j < n_neurons; j++) {
+                        weights_vec[i * n_neurons + j] = weights[layer_index][i][j];
+                    }
+                }
+
+                matmul_gpu(fd->context, fd->queue, fd->program, x_vec, weights_vec, y_vec, matrix_rows, n_inputs, n_inputs, n_neurons);
+
+                for (int i = 0; i < matrix_rows; i++) {
+                    #pragma omp simd
+                    for (int j = 0; j < n_neurons; j++) {
+                        Y[layer_index][i][j] = y_vec[i * n_neurons + j];
+                    }
+                }
+
+                free(x_vec);
+                free(weights_vec);
+                free(y_vec);
+            } else {
+                matmul(X[layer_index], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
+            }
 
             for (register int i = 0; i < matrix_rows; i++) {
                 for (register int j = 0; j < n_neurons; j++) {
@@ -295,7 +329,11 @@ void forward_threading(
     int layer_sizes_cols,
     float *activations,
     float *dropouts,
-    int num_threads) {
+    int num_threads,
+    int gpu,
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program) {
 
     pthread_t forward_threads[num_threads];
 
@@ -324,6 +362,10 @@ void forward_threading(
         forward_thread_data[t].sample_cols = dataset_samples_depth;
         forward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
         forward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
+        forward_thread_data[t].gpu = gpu;
+        forward_thread_data[t].context = context;
+        forward_thread_data[t].queue = queue;
+        forward_thread_data[t].program = program;
 
         // Создание нового потока
         pthread_create(&forward_threads[t], NULL, forward_worker, &forward_thread_data[t]);

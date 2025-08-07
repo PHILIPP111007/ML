@@ -38,7 +38,8 @@ void fit(
     int regression,
     int num_cpu,
     float *dropouts,
-    float *losses) {
+    float *losses,
+    int gpu) {
     
     if (random_state != -1) {
         srand(random_state); // set the initial state of the generator
@@ -108,6 +109,36 @@ void fit(
         float ****__restrict X_list = malloc(dataset_samples_rows * sizeof(float***));
         float ****__restrict Y_list = malloc(dataset_samples_rows * sizeof(float***));
 
+        // Preparing the GPU Kernel
+
+        // Step 1: Get a platform and device
+        cl_uint numPlatforms;
+        cl_platform_id platforms[10];
+        clGetPlatformIDs(10, platforms, &numPlatforms);
+
+        // We use the first suitable device of the GPU type
+        cl_device_id devices[10];
+        cl_uint numDevices;
+        clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+
+        // Step 2: Create context
+        cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+
+        // Step 3: Create a command queue
+        cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+
+        // Step 3: Read and compile the OpenCL kernel
+        FILE* fp = fopen("src/kernel.cl", "rb");
+        fseek(fp, 0, SEEK_END);
+        long fileSize = ftell(fp);
+        rewind(fp);
+        char* sourceStr = (char*)malloc(fileSize + 1);
+        fread(sourceStr, 1, fileSize, fp);
+        fclose(fp);
+
+        cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
+        clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+
         forward_threading(
             forward_thread_data,
             samples,
@@ -123,8 +154,16 @@ void fit(
             layer_sizes_cols,
             activations,
             dropouts,
-            num_threads
+            num_threads,
+            gpu,
+            context,
+            queue,
+            program
         );
+
+        clReleaseCommandQueue(queue);
+        clReleaseContext(context);
+        clReleaseProgram(program);
 
         for (int t = 0; t < num_threads; t++) {
 

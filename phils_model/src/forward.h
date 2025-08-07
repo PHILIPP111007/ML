@@ -23,6 +23,10 @@ typedef struct ForwardData{
     int sample_cols;
     int layer_sizes_rows;
     int layer_sizes_cols;
+    int gpu;
+    cl_context context;
+    cl_command_queue queue;
+    cl_program program;
 } ForwardData;
 
 void forward(
@@ -62,7 +66,11 @@ void forward_threading(
     int layer_sizes_cols,
     float *activations,
     float *dropouts,
-    int num_threads
+    int num_threads,
+    int gpu,
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program
 );
 
 #endif
