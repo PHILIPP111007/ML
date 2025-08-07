@@ -30,6 +30,7 @@ void forward(
     int layer_sizes_rows,
     int layer_sizes_cols,
     float *activations,
+    int is_predict_one_saple,
     int gpu,
     cl_context context,
     cl_command_queue queue,
@@ -41,7 +42,7 @@ void forward(
     Y[0] = create_matrix(sample_rows, n_neurons);
 
     // Now we will check the execution time of matmul_gpu and matmul only once and determine which function to use in the future
-    if (gpu && flag_check_matmul_time) {
+    if (gpu && flag_check_matmul_time && !is_predict_one_saple) {
         struct timeval start_matmul_gpu, end_matmul_gpu, start_matmul, end_matmul;
 
         // Let's calculate the execution time of matmul_gpu

@@ -339,28 +339,23 @@ void predict_one(
 
     float ***__restrict Y = malloc(layer_sizes_rows * sizeof(float**));
 
-
-
-
-
-
-    // Шаг 1: получение платформы и устройства
+    // Step 1: Get a platform and device
     cl_uint numPlatforms;
     cl_platform_id platforms[10];
     clGetPlatformIDs(10, platforms, &numPlatforms);
 
-    // Используем первое подходящее устройство типа GPU
+    // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint numDevices;
     clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
-    // Шаг 2: создание контекста
+    // Step 2: Create context
     cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
 
-    // Шаг 3: создание очереди команд
+    // Step 3: Create a command queue
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
-    // Шаг 3: чтение и компиляция ядра OpenCL
+    // Step 3: Read and compile the OpenCL kernel
     FILE* fp = fopen("src/kernel.cl", "rb");
     fseek(fp, 0, SEEK_END);
     long fileSize = ftell(fp);
@@ -372,27 +367,12 @@ void predict_one(
     cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
     clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
 
-
-
-
-
-
-
-
-
-
     // Forward pass
-    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, gpu, context, queue, program);
+    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, 1, gpu, context, queue, program);
 
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
     clReleaseProgram(program);
-
-
-
-
-
-
 
     free_matrix(sample);
 
@@ -526,28 +506,23 @@ void predict(
     int samples_per_thread = dataset_samples_rows / num_cpu;
     int remaining_samples = dataset_samples_rows % num_cpu;
 
-
-
-
-
-
-    // Шаг 1: получение платформы и устройства
+    // Step 1: Get a platform and device
     cl_uint numPlatforms;
     cl_platform_id platforms[10];
     clGetPlatformIDs(10, platforms, &numPlatforms);
 
-    // Используем первое подходящее устройство типа GPU
+    // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint numDevices;
     clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
-    // Шаг 2: создание контекста
+    // Step 2: Create context
     cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
 
-    // Шаг 3: создание очереди команд
+    // Step 3: Create a command queue
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
-    // Шаг 3: чтение и компиляция ядра OpenCL
+    // Step 3: Read and compile the OpenCL kernel
     FILE* fp = fopen("src/kernel.cl", "rb");
     fseek(fp, 0, SEEK_END);
     long fileSize = ftell(fp);
@@ -558,8 +533,6 @@ void predict(
 
     cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
     clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
-
-
 
     for (int i = 0; i < num_cpu; i++) {
         int start_idx = i * samples_per_thread + (i < remaining_samples ? i : remaining_samples);

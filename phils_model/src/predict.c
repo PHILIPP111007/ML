@@ -30,6 +30,7 @@ void *predict_thread(void *arg) {
             task->layer_sizes_rows,
             task->layer_sizes_cols,
             task->activations,
+            0,
             task->gpu,
             range->context,
             range->queue,
