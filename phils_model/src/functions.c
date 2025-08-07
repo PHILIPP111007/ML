@@ -194,7 +194,16 @@ inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, 
 
 inline float **create_matrix(int rows, int cols) {
     float **__restrict matrix = malloc(rows * sizeof(float*));
+    if (!matrix) {
+        printf("Failed to create matrix!\n");
+        exit(1);
+    }
+
     float *__restrict data = malloc(rows * cols * sizeof(float));
+    if (!data) {
+        printf("Failed to create matrix!\n");
+        exit(1);
+    }
 
     // Setting up line pointers
     #pragma omp simd
@@ -206,7 +215,6 @@ inline float **create_matrix(int rows, int cols) {
 }
 
 inline void free_matrix(float **__restrict matrix) {
-    #pragma omp parallel for schedule(static)
     for (register int i = 0; i < sizeof(matrix) / sizeof(matrix[0]); i++) {
         free(matrix[i]);
     }
