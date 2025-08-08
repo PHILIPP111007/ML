@@ -25,7 +25,7 @@ clang -shared \
 For Linux:
 
 ```sh
-clang -shared \
+gcc -shared \
     -o main.so \
     -fPIC \
     -O3 \
