@@ -552,6 +552,15 @@ inline void adam_step_gpu(
         clReleaseMemObject(m_buf);
         clReleaseMemObject(v_buf);
 
+        for (int i = 0; i < n_inputs; i++) {
+            for (int j = 0; j < n_neurons; j++) {
+                layer_weights[i][j] = layer_weights_vec[i * n_neurons + j];
+                layer_grads[i][j] = layer_grads_vec[i * n_neurons + j];
+                layer_m[i][j] = layer_m_vec[i * n_neurons + j];
+                layer_v[i][j] = layer_v_vec[i * n_neurons + j];
+            }
+        }
+
         for (int i = 0; i < total_elements; i++) {
             printf("%f\n", layer_m_vec[i]);
 

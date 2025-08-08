@@ -25,6 +25,8 @@ clang -shared \
 For Linux:
 
 ```sh
+sudo apt-get update && sudo apt-get install ocl-icd-opencl-dev
+
 gcc -shared \
     -o main.so \
     -fPIC \
