@@ -103,8 +103,18 @@ void fit(
     cl_uint numDevices;
     clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
+    if (verbose) {
+        printf("Number of platforms: %u\n", numPlatforms);
+        printf("Number of GPUs: %u\n", numDevices);
+    }
+
     // Step 2: Create context
-    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+    cl_int err_code;
+    cl_context context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &err_code);
+    if (context == NULL || err_code != CL_SUCCESS) {
+        fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
+        exit(EXIT_FAILURE);
+    }
 
     // Step 3: Create a command queue
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
@@ -409,7 +419,12 @@ void predict_one(
     clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
     // Step 2: Create context
-    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+    cl_int err_code;
+    cl_context context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &err_code);
+    if (context == NULL || err_code != CL_SUCCESS) {
+        fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
+        exit(EXIT_FAILURE);
+    }
 
     // Step 3: Create a command queue
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
@@ -578,7 +593,12 @@ void predict(
     clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
     // Step 2: Create context
-    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+    cl_int err_code;
+    cl_context context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &err_code);
+    if (context == NULL || err_code != CL_SUCCESS) {
+        fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
+        exit(EXIT_FAILURE);
+    }
 
     // Step 3: Create a command queue
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);

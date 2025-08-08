@@ -1,7 +1,7 @@
 #ifndef FORWARD_H
 #define FORWARD_H
 
-#define CL_TARGET_OPENCL_VERSION 220
+#define CL_TARGET_OPENCL_VERSION 100
 
 #ifdef __APPLE__
     #include <OpenCL/opencl.h>
