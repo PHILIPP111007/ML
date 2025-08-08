@@ -1,13 +1,8 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
-#define CL_TARGET_OPENCL_VERSION 100
-
-#ifdef __APPLE__
-    #include <OpenCL/opencl.h>
-#else
-    #include <CL/cl.h>
-#endif
+#define CL_TARGET_OPENCL_VERSION 300
+#include <CL/cl.h>
 
 
 void matmul(
