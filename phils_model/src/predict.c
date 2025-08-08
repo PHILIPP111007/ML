@@ -3,11 +3,6 @@
 #include "functions.h"
 #include "forward.h"
 #include "predict.h"
-#ifdef __APPLE__
-    #include <OpenCL/opencl.h>
-#else
-    #include <CL/cl.h>
-#endif
 
 
 void *predict_thread(void *arg) {

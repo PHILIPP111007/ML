@@ -9,7 +9,6 @@ For MacOS / Linux:
 ```sh
 brew install llvm
 brew install opencl-headers
-export CPPFLAGS="-I/opt/homebrew/opt/opencl-headers/include"
 
 clang -shared \
     -o main.so \
@@ -19,7 +18,8 @@ clang -shared \
     -ffast-math \
     -march=native \
     main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c \
-    -framework OpenCL
+    -framework OpenCL \
+    -I/opt/homebrew/opt/opencl-headers/include
 ```
 
 For Linux:

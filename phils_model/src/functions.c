@@ -3,12 +3,6 @@
 #include <math.h>
 #include <pthread.h>
 #include "functions.h"
-#ifdef __APPLE__
-    #include <OpenCL/opencl.h>
-#else
-    #include <CL/cl.h>
-#endif
-
 
 // Platform-dependent optimizations
 #if defined(__x86_64__) || defined(__i386__)

@@ -1,5 +1,8 @@
 #ifndef BACKWARD_H
 #define BACKWARD_H
+
+#define CL_TARGET_OPENCL_VERSION 100
+
 #ifdef __APPLE__
     #include <OpenCL/opencl.h>
 #else

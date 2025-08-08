@@ -10,11 +10,6 @@
 #include "loss.h"
 #include "activations.h"
 #include "forward.h"
-#ifdef __APPLE__
-    #include <OpenCL/opencl.h>
-#else
-    #include <CL/cl.h>
-#endif
 
 #define TIMESPEC_TO_NS(ts) (((long long)(ts).tv_sec * 1000000000LL + (ts).tv_nsec))
 
