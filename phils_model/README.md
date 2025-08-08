@@ -7,6 +7,10 @@ To run the `main.ipynb` file, use this:
 For MacOS / Linux:
 
 ```sh
+brew install llvm
+brew install opencl-headers
+export CPPFLAGS="-I/opt/homebrew/opt/opencl-headers/include"
+
 clang -shared \
     -o main.so \
     -fPIC \
@@ -15,6 +19,20 @@ clang -shared \
     -ffast-math \
     -march=native \
     -framework OpenCL \
+    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
+```
+
+For Linux:
+
+```sh
+clang -shared \
+    -o main.so \
+    -fPIC \
+    -O3 \
+    -fopenmp \
+    -ffast-math \
+    -march=native \
+    -lOpenCL -I/path/to/opencl/headers \
     main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
 ```
 
