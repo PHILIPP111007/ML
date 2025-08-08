@@ -18,22 +18,22 @@ clang -shared \
     -fopenmp \
     -ffast-math \
     -march=native \
-    -framework OpenCL \
-    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
+    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c \
+    -framework OpenCL
 ```
 
 For Linux:
 
 ```sh
-clang -shared \
+gcc -shared \
     -o main.so \
     -fPIC \
     -O3 \
     -fopenmp \
     -ffast-math \
     -march=native \
-    -lOpenCL -I/path/to/opencl/headers \
-    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c
+    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c \
+    -lOpenCL
 ```
 
 > You may donate to [phils_model](https://github.com/PHILIPP111007/ML/tree/main/phils_model) project:
