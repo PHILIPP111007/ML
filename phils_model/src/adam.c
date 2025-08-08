@@ -335,11 +335,13 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
                         _mm_storeu_ps(weights_row + j, w);
                         _mm_storeu_ps(m_row + j, m);
                         _mm_storeu_ps(v_row + j, v);
+
+                        jj = j;
                     }
 
                     // Processing last items (1 at a time)
                     #pragma omp simd
-                    for (; j < n_neurons; j++) {
+                    for (int j = jj; j < n_neurons; j++) {
                         const float grad = grads_row[j];
                         const float grad_sq = grad * grad;
 
