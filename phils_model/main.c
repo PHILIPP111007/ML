@@ -4,6 +4,7 @@
 #include <math.h>
 #include <time.h>
 #include <pthread.h>
+#include <src/opencl_version.h>
 #include "src/functions.h"
 #include "src/activations.h"
 #include "src/loss.h"
