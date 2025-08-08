@@ -90,6 +90,48 @@ void fit(
     // Create Adam
     struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-8, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
+
+    // Preparing the GPU Kernel
+
+    // Step 1: Get a platform and device
+    cl_uint numPlatforms;
+    cl_platform_id platforms[10];
+    clGetPlatformIDs(10, platforms, &numPlatforms);
+
+    // We use the first suitable device of the GPU type
+    cl_device_id devices[10];
+    cl_uint numDevices;
+    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+
+    // Step 2: Create context
+    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+
+    // Step 3: Create a command queue
+    cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+
+    // Step 3: Read and compile the OpenCL kernel
+    FILE* fp_matmul_gpu = fopen("src/matmul_gpu.cl", "rb");
+    fseek(fp_matmul_gpu, 0, SEEK_END);
+    long file_size_matmul_gpu = ftell(fp_matmul_gpu);
+    rewind(fp_matmul_gpu);
+    char* source_matmul_gpu = (char*)malloc(file_size_matmul_gpu + 1);
+    fread(source_matmul_gpu, 1, file_size_matmul_gpu, fp_matmul_gpu);
+    fclose(fp_matmul_gpu);
+
+    FILE* fp_adam_step_gpu = fopen("src/adam_step_gpu.cl", "rb");
+    fseek(fp_adam_step_gpu, 0, SEEK_END);
+    long file_size_adam_step_gpu = ftell(fp_adam_step_gpu);
+    rewind(fp_adam_step_gpu);
+    char* source_adam_step_gpu = (char*)malloc(file_size_adam_step_gpu + 1);
+    fread(source_adam_step_gpu, 1, file_size_adam_step_gpu, fp_adam_step_gpu);
+    fclose(fp_adam_step_gpu);
+
+    cl_program program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
+    clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+
+    cl_program program_adam_step_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_adam_step_gpu, NULL, NULL);
+    clBuildProgram(program_adam_step_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+
     for (int epoch = 0; epoch < n_epoch; epoch++) {
         float *epoch_losses = malloc(dataset_samples_rows * sizeof(float));
         int matrix_rows = dataset_samples_cols;
@@ -108,36 +150,6 @@ void fit(
         float ****__restrict Y_list_intermediate = malloc(dataset_samples_rows * sizeof(float***));
         float ****__restrict X_list = malloc(dataset_samples_rows * sizeof(float***));
         float ****__restrict Y_list = malloc(dataset_samples_rows * sizeof(float***));
-
-        // Preparing the GPU Kernel
-
-        // Step 1: Get a platform and device
-        cl_uint numPlatforms;
-        cl_platform_id platforms[10];
-        clGetPlatformIDs(10, platforms, &numPlatforms);
-
-        // We use the first suitable device of the GPU type
-        cl_device_id devices[10];
-        cl_uint numDevices;
-        clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
-
-        // Step 2: Create context
-        cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
-
-        // Step 3: Create a command queue
-        cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
-
-        // Step 3: Read and compile the OpenCL kernel
-        FILE* fp = fopen("src/matmul_gpu.cl", "rb");
-        fseek(fp, 0, SEEK_END);
-        long fileSize = ftell(fp);
-        rewind(fp);
-        char* sourceStr = (char*)malloc(fileSize + 1);
-        fread(sourceStr, 1, fileSize, fp);
-        fclose(fp);
-
-        cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
-        clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
 
         forward_threading(
             forward_thread_data,
@@ -158,7 +170,7 @@ void fit(
             gpu,
             context,
             queue,
-            program
+            program_matmul_gpu
         );
 
         for (int t = 0; t < num_threads; t++) {
@@ -207,12 +219,8 @@ void fit(
             gpu,
             context,
             queue,
-            program
+            program_matmul_gpu
         );
-
-        clReleaseCommandQueue(queue);
-        clReleaseContext(context);
-        clReleaseProgram(program);
 
         free(backward_thread_data);
 
@@ -226,7 +234,15 @@ void fit(
             float ***__restrict grad_w = grad_w_list[dataset_index];
             float **__restrict grad_b = grad_b_list[dataset_index];
 
+
+            // if (gpu) {
+            //     adam_step_gpu(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
+            // } else {
+            //     adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
+            // }
+
             adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
+
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -302,6 +318,10 @@ void fit(
     save_biases_as_json(file_biases, biases, layer_sizes, layer_sizes_rows, layer_sizes_cols);
 
     // Clearing memory
+
+    clReleaseCommandQueue(queue);
+    clReleaseContext(context);
+    clReleaseProgram(program_matmul_gpu);
 
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
         for (int i = 0; i < dataset_samples_cols; ++i) {

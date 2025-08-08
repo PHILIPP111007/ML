@@ -1,6 +1,12 @@
 #ifndef ADAM_H
 #define ADAM_H
 
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 typedef struct AdamOptimizer {
     float ***m;    // Накопленный средний градиент
@@ -44,5 +50,19 @@ void adam_step(
     int layer_sizes_cols,
     float max_change
 );
+
+void adam_step_gpu(
+    struct AdamOptimizer *optimizer,
+    float ***weights,
+    float ***grads,
+    float *layer_sizes,
+    int layer_sizes_rows,
+    int layer_sizes_cols,
+    float max_change,
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program
+);
+
 
 #endif

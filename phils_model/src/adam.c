@@ -1,7 +1,14 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "functions.h"
 #include "adam.h"
+#ifdef __APPLE__
+    #include <OpenCL/opencl.h>
+#else
+    #include <CL/cl.h>
+#endif
+
 
 // Platform-dependent optimizations
 #if defined(__x86_64__) || defined(__i386__)
@@ -67,7 +74,15 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 }
 
 #ifdef USE_ARM
-    inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
+    inline void adam_step(
+        struct AdamOptimizer *__restrict optimizer,
+        float ***__restrict weights,
+        float ***__restrict grads,
+        float *__restrict layer_sizes,
+        int layer_sizes_rows,
+        int layer_sizes_cols,
+        float max_change
+    ) {
         // Get the optimizer parameters
         const float b1 = optimizer->b1;
         const float b2 = optimizer->b2;
@@ -192,7 +207,15 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         }
     }
 #elif defined(USE_x86)
-    inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
+    inline void adam_step(
+        struct AdamOptimizer *__restrict optimizer,
+        float ***__restrict weights,
+        float ***__restrict grads,
+        float *__restrict layer_sizes,
+        int layer_sizes_rows,
+        int layer_sizes_cols,
+        float max_change
+    ) {
         // Get the optimizer parameters
         const float b1 = optimizer->b1;
         const float b2 = optimizer->b2;
@@ -347,7 +370,15 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
     }
 
 #else
-    inline void adam_step(struct AdamOptimizer *__restrict optimizer, float ***__restrict weights, float ***__restrict grads, float *__restrict layer_sizes, int layer_sizes_rows, int layer_sizes_cols, float max_change) {
+    inline void adam_step(
+        struct AdamOptimizer *__restrict optimizer,
+        float ***__restrict weights,
+        float ***__restrict grads,
+        float *__restrict layer_sizes,
+        int layer_sizes_rows,
+        int layer_sizes_cols,
+        float max_change
+    ) {
         // Cache optimizer parameters
         const register float b1 = optimizer->b1;
         const register float b2 = optimizer->b2;
@@ -429,3 +460,113 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         }
     }
 #endif
+
+inline void adam_step_gpu(
+    struct AdamOptimizer *__restrict optimizer,
+    float ***__restrict weights,
+    float ***__restrict grads,
+    float *__restrict layer_sizes,
+    int layer_sizes_rows,
+    int layer_sizes_cols,
+    float max_change,
+    cl_context context,
+    cl_command_queue queue,
+    cl_program program
+) {
+    // Cache optimizer parameters
+    const float b1 = optimizer->b1;
+    const float b2 = optimizer->b2;
+    const float lr = optimizer->lr;
+    const float eps = optimizer->eps;
+    const int epoch = ++optimizer->epoch;
+
+    // Precompute bias corrections
+    const float b1_pow = fast_pow(b1, epoch);
+    const float b2_pow = fast_pow(b2, epoch);
+    const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
+    const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
+    const float b1_minus_1 = 1.0f - b1;
+    const float b2_minus_1 = 1.0f - b2;
+
+    // Get the kernel
+    
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
+
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        
+        float **layer_weights = weights[layer_index];
+        float **layer_grads = grads[layer_index];
+        float **layer_m = optimizer->m[layer_index];
+        float **layer_v = optimizer->v[layer_index];
+
+        // We determine the total volume of data
+        const int total_elements = n_inputs * n_neurons;
+
+        float *layer_weights_vec = malloc(total_elements * sizeof(float));
+        float *layer_grads_vec = malloc(total_elements * sizeof(float));
+        float *layer_m_vec = malloc(total_elements * sizeof(float));
+        float *layer_v_vec = malloc(total_elements * sizeof(float));
+
+        for (int i = 0; i < n_inputs; i++) {
+            for (int j = 0; j < n_neurons; j++) {
+                layer_weights_vec[i * n_neurons + j] = layer_weights[i][j];
+                layer_grads_vec[i * n_neurons + j] = layer_grads[i][j];
+                layer_m_vec[i * n_neurons + j] = layer_m[i][j];
+                layer_v_vec[i * n_neurons + j] = layer_v[i][j];
+            }
+        }
+
+        // Preparing OpenCL buffers
+        cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements * sizeof(float), layer_weights_vec, NULL);
+        cl_mem grads_buf = clCreateBuffer(context, CL_MEM_READ_ONLY, total_elements * sizeof(float), layer_grads_vec, NULL);
+        cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements * sizeof(float), layer_m_vec, NULL);
+        cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements * sizeof(float), layer_v_vec, NULL);
+
+        // Setting kernel arguments
+        clSetKernelArg(kernel, 0, sizeof(cl_mem), &weights_buf);
+        clSetKernelArg(kernel, 1, sizeof(cl_mem), &grads_buf);
+        clSetKernelArg(kernel, 2, sizeof(cl_mem), &m_buf);
+        clSetKernelArg(kernel, 3, sizeof(cl_mem), &v_buf);
+        clSetKernelArg(kernel, 4, sizeof(float), &b1);
+        clSetKernelArg(kernel, 5, sizeof(float), &b2);
+        clSetKernelArg(kernel, 6, sizeof(float), &lr);
+        clSetKernelArg(kernel, 7, sizeof(float), &eps);
+        clSetKernelArg(kernel, 8, sizeof(float), &inv_1mb1);
+        clSetKernelArg(kernel, 9, sizeof(float), &inv_1mb2);
+        clSetKernelArg(kernel, 10, sizeof(float), &b1_minus_1);
+        clSetKernelArg(kernel, 11, sizeof(float), &b2_minus_1);
+        clSetKernelArg(kernel, 12, sizeof(float), &max_change);
+        clSetKernelArg(kernel, 13, sizeof(int), &total_elements);
+
+        // Working Grid Settings
+        size_t global_work_size[] = { total_elements };
+
+        // Launching the OpenCL kernel
+        clEnqueueNDRangeKernel(queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);
+
+        // Reading the results back
+        clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_weights_vec, 0, NULL, NULL);
+        clEnqueueReadBuffer(queue, m_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_m_vec, 0, NULL, NULL);
+        clEnqueueReadBuffer(queue, v_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_v_vec, 0, NULL, NULL);
+
+        clReleaseMemObject(weights_buf);
+        clReleaseMemObject(grads_buf);
+        clReleaseMemObject(m_buf);
+        clReleaseMemObject(v_buf);
+
+        for (int i = 0; i < total_elements; i++) {
+            printf("%f\n", layer_m_vec[i]);
+
+            break;
+        }
+
+        free(layer_weights_vec);
+        free(layer_grads_vec);
+        free(layer_m_vec);
+        free(layer_v_vec);
+
+        clReleaseKernel(kernel);
+    }
+}

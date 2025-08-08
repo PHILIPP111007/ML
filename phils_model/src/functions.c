@@ -110,10 +110,7 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
     clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
 
     // Reading the result
-    cl_event readEvent;
-    clEnqueueReadBuffer(queue, d_C, CL_FALSE, 0, ROWS_A * COLS_B * sizeof(float), C, 0, NULL, &readEvent);
-    clWaitForEvents(1, &readEvent); // Ждем завершения отдельно
-    clReleaseEvent(readEvent);
+    clEnqueueReadBuffer(queue, d_C, CL_TRUE, 0, ROWS_A * COLS_B * sizeof(float), C, 0, NULL, NULL);
 
     // Resource cleanup
     clReleaseMemObject(d_A);
