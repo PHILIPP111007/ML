@@ -110,7 +110,8 @@ void fit(
 
     // Step 2: Create context
     cl_int err_code;
-    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
+    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[0], 0 };
+    cl_context context = clCreateContext(properties, 1, devices, NULL, NULL, &err_code);
     if (context == NULL || err_code != CL_SUCCESS) {
         fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
         exit(EXIT_FAILURE);
