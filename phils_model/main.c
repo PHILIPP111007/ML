@@ -101,7 +101,7 @@ void fit(
     // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint numDevices;
-    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+    clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
     // Step 2: Create context
     cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
@@ -249,8 +249,8 @@ void fit(
                 float *__restrict bias_layer = biases[layer_index];
                 float *__restrict grad_b_layer = grad_b[layer_index];
 
-                for (register int i = 0; i < n_neurons; ++i) {
-                    const register float change = grad_b_layer[i] * learning_rate;
+                for (int i = 0; i < n_neurons; ++i) {
+                    const float change = grad_b_layer[i] * learning_rate;
                     bias_layer[i] -= safe_update(change, max_change);
                 }
             }
@@ -258,27 +258,27 @@ void fit(
 
         // Handle NaN
 
-        for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-            for (register int i = 0; i < n_inputs; i++) {
-                for (register int j = 0; j < n_neurons; j++) {
+            for (int i = 0; i < n_inputs; i++) {
+                for (int j = 0; j < n_neurons; j++) {
                     weights[layer_index][i][j] = isnan(weights[layer_index][i][j]) ? 0.0f : weights[layer_index][i][j];
                 }
             }
-            for (register int i = 0; i < n_neurons; i++) {
+            for (int i = 0; i < n_neurons; i++) {
                 biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
             }
         }
 
         // Clearing memory
 
-        for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
-            for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+            for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
 
-                for (register int i = 0; i < matrix_rows; i++) {
+                for (int i = 0; i < matrix_rows; i++) {
                     free(X_list[dataset_index][layer_index][i]);
                     free(Y_list[dataset_index][layer_index][i]);
                 }
@@ -406,7 +406,7 @@ void predict_one(
     // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint numDevices;
-    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+    clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
     // Step 2: Create context
     cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
@@ -575,7 +575,7 @@ void predict(
     // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint numDevices;
-    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
+    clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
     // Step 2: Create context
     cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);

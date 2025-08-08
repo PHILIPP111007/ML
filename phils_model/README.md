@@ -25,12 +25,11 @@ clang -shared \
 For Linux:
 
 ```sh
-gcc -shared \
+clang -shared \
     -o main.so \
     -fPIC \
     -O3 \
     -fopenmp \
-    -ffast-math \
     -march=native \
     main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c \
     -lOpenCL
