@@ -110,6 +110,7 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
     clReleaseMemObject(d_A);
     clReleaseMemObject(d_B);
     clReleaseMemObject(d_C);
+
     clReleaseKernel(kernel);
 }
 

@@ -104,7 +104,7 @@ void *backward_worker(void *arg) {
 
                 matmul_gpu(context, queue, program, x_T_vec, delta_vec, w_vec, n_inputs, matrix_rows, matrix_rows, n_neurons);
 
-                for (int i = 0; i < matrix_rows; i++) {
+                for (int i = 0; i < n_inputs; i++) {
                     #pragma omp simd
                     for (int j = 0; j < n_neurons; j++) {
                         grad_w[layer_index][i][j] = w_vec[i * n_neurons + j];
