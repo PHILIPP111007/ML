@@ -6,6 +6,7 @@
         "backward.h": "c",
         "forward.h": "c",
         "logger.h": "c",
-        "cl.h": "c"
+        "cl.h": "c",
+        "pthread.h": "c"
     }
 }
