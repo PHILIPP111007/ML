@@ -6,7 +6,7 @@ Support for GPU computing is still under development.
 
 To run the `main.ipynb` file, use this:
 
-For MacOS / Linux:
+For MacOS:
 
 ```sh
 brew install llvm
