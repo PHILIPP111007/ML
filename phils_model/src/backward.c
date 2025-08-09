@@ -84,7 +84,7 @@ void *backward_worker(void *arg) {
             float **__restrict x_T = create_matrix(n_inputs, matrix_rows);
             x_T = transpose(X[layer_index], matrix_rows, n_inputs);
 
-            if (gpu) {
+            if (gpu && 1 == 0) {
                 float *x_T_vec = malloc(n_inputs * matrix_rows * sizeof(float));
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
                 float *w_vec = malloc(n_inputs * n_neurons * sizeof(float));
@@ -123,7 +123,7 @@ void *backward_worker(void *arg) {
             w_T = transpose(bd->weights[layer_index], n_inputs, n_neurons);
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
 
-            if (gpu) {
+            if (gpu && 1 == 0) {
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
                 float *w_T_vec = malloc(n_neurons * n_inputs * sizeof(float));
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
