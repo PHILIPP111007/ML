@@ -246,14 +246,11 @@ void fit(
             float **__restrict grad_b = grad_b_list[dataset_index];
 
 
-            // if (gpu) {
-            //     adam_step_gpu(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
-            // } else {
-            //     adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
-            // }
-
-            adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
-
+            if (gpu) {
+                adam_step_gpu(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
+            } else {
+                adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
+            }
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];

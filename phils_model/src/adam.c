@@ -484,14 +484,12 @@ inline void adam_step_gpu(
     const float b1_minus_1 = 1.0f - b1;
     const float b2_minus_1 = 1.0f - b2;
 
-    // Get the kernel
-    
-    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
 
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-        
+
         float **layer_weights = weights[layer_index];
         float **layer_grads = grads[layer_index];
         float **layer_m = optimizer->m[layer_index];
@@ -514,11 +512,14 @@ inline void adam_step_gpu(
             }
         }
 
+        // Get the kernel
+        cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
+
         // Preparing OpenCL buffers
-        cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements * sizeof(float), layer_weights_vec, NULL);
-        cl_mem grads_buf = clCreateBuffer(context, CL_MEM_READ_ONLY, total_elements * sizeof(float), layer_grads_vec, NULL);
-        cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements * sizeof(float), layer_m_vec, NULL);
-        cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements * sizeof(float), layer_v_vec, NULL);
+        cl_mem grads_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_grads_vec, NULL);
+        cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_weights_vec, NULL);
+        cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_m_vec, NULL);
+        cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_v_vec, NULL);
 
         // Setting kernel arguments
         clSetKernelArg(kernel, 0, sizeof(cl_mem), &weights_buf);
@@ -559,12 +560,6 @@ inline void adam_step_gpu(
                 layer_m[i][j] = layer_m_vec[i * n_neurons + j];
                 layer_v[i][j] = layer_v_vec[i * n_neurons + j];
             }
-        }
-
-        for (int i = 0; i < total_elements; i++) {
-            printf("%f\n", layer_m_vec[i]);
-
-            break;
         }
 
         free(layer_weights_vec);
