@@ -516,8 +516,8 @@ inline void adam_step_gpu(
         cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
 
         // Preparing OpenCL buffers
-        cl_mem grads_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_grads_vec, NULL);
         cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_weights_vec, NULL);
+        cl_mem grads_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_grads_vec, NULL);
         cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_m_vec, NULL);
         cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_v_vec, NULL);
 
@@ -545,6 +545,7 @@ inline void adam_step_gpu(
 
         // Reading the results back
         clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_weights_vec, 0, NULL, NULL);
+        clEnqueueReadBuffer(queue, grads_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_grads_vec, 0, NULL, NULL);
         clEnqueueReadBuffer(queue, m_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_m_vec, 0, NULL, NULL);
         clEnqueueReadBuffer(queue, v_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_v_vec, 0, NULL, NULL);
 

@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
 #define _POSIX_C_SOURCE 200809L
 #include <time.h>
-
 #include <pthread.h>
 #include "functions.h"
 #include "loss.h"
