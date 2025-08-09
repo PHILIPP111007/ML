@@ -1,19 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define _POSIX_C_SOURCE 200809L
-#include <time.h>
 #include <pthread.h>
 #include "functions.h"
 #include "loss.h"
 #include "activations.h"
 #include "forward.h"
-
-#define TIMESPEC_TO_NS(ts) (((long long)(ts).tv_sec * 1000000000LL + (ts).tv_nsec))
-
-
-int flag_check_matmul_time = 1;
-int flag_train_on_gpu = 0;
 
 
 // Forward pass
@@ -39,39 +31,7 @@ void forward(
 
     Y[0] = create_matrix(sample_rows, n_neurons);
 
-    // Now we will check the execution time of matmul_gpu and matmul only once and determine which function to use in the future
-    if (gpu && flag_check_matmul_time && !is_predict_one_saple) {
-        struct timespec start_matmul_gpu, end_matmul_gpu, start_matmul, end_matmul;
-
-        // Let's calculate the execution time of matmul_gpu
-
-        clock_gettime(CLOCK_MONOTONIC, &start_matmul_gpu); // Mark the beginning
-        float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
-        float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
-        float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
-
-        matmul_gpu(context, queue, program, sample_vec, weights_vec, y_vec, sample_rows, sample_cols, n_inputs, n_neurons);
-
-        free(sample_vec);
-        free(weights_vec);
-        free(y_vec);
-        clock_gettime(CLOCK_MONOTONIC, &end_matmul_gpu); // Marking the end
-        long long total_time_matmul_gpu = TIMESPEC_TO_NS(end_matmul_gpu) - TIMESPEC_TO_NS(start_matmul_gpu);
-
-        // Let's calculate the execution time of matmul
-
-        clock_gettime(CLOCK_MONOTONIC, &start_matmul); // Mark the beginning
-        matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
-        clock_gettime(CLOCK_MONOTONIC, &end_matmul); // Marking the end
-        long long total_time_matmul = TIMESPEC_TO_NS(end_matmul) - TIMESPEC_TO_NS(start_matmul);
-
-        if (total_time_matmul_gpu < total_time_matmul) {
-            flag_train_on_gpu = 1;
-        }
-        flag_check_matmul_time = 0;
-    }
-
-    if (gpu && flag_train_on_gpu) {
+    if (gpu) {
         float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
         float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
         float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
@@ -89,7 +49,7 @@ void forward(
             }
         }
 
-        matmul_gpu(context, queue, program, sample_vec, weights_vec, y_vec, sample_rows, sample_cols, n_inputs, n_neurons);
+        matmul_gpu(context, queue, program, sample_vec, weights_vec, y_vec, sample_rows, sample_cols, n_inputs, n_neurons, 0);  // TODO
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
@@ -121,7 +81,7 @@ void forward(
 
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-        if (gpu && layer_index < layer_sizes_rows - 1) {
+        if (gpu) {
             float *y_vec = malloc(matrix_rows * n_inputs * sizeof(float));
             float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
             float *y_new_vec = malloc(matrix_rows * n_neurons * sizeof(float));
@@ -139,7 +99,7 @@ void forward(
                 }
             }
 
-            matmul_gpu(context, queue, program, y_vec, weights_vec, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons);
+            matmul_gpu(context, queue, program, y_vec, weights_vec, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons, layer_index);  // TODO
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
@@ -195,6 +155,7 @@ void *forward_worker(void *arg) {
     float *activations = fd->activations;
     float *dropouts = fd->dropouts;
     const int gpu = fd->gpu;
+    cl_mem weights_vec_buf = fd->weights_vec_buf;
 
     for (register int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float **__restrict sample = create_matrix(sample_rows, sample_cols);
@@ -251,7 +212,7 @@ void *forward_worker(void *arg) {
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-            if (gpu && layer_index < layer_sizes_rows - 1) {
+            if (gpu) {
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
                 float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
                 float *y_vec = malloc(matrix_rows * n_neurons * sizeof(float));
@@ -262,14 +223,8 @@ void *forward_worker(void *arg) {
                         x_vec[i * n_inputs + j] = X[layer_index][i][j];
                     }
                 }
-                for (int i = 0; i < n_inputs; i++) {
-                    #pragma omp simd
-                    for (int j = 0; j < n_neurons; j++) {
-                        weights_vec[i * n_neurons + j] = weights[layer_index][i][j];
-                    }
-                }
 
-                matmul_gpu(fd->context, fd->queue, fd->program, x_vec, weights_vec, y_vec, matrix_rows, n_inputs, n_inputs, n_neurons);
+                matmul_gpu(fd->context, fd->queue, fd->program, x_vec, weights_vec_buf, y_vec, matrix_rows, n_inputs, n_inputs, n_neurons, layer_index);
 
                 for (int i = 0; i < matrix_rows; i++) {
                     #pragma omp simd
@@ -279,7 +234,6 @@ void *forward_worker(void *arg) {
                 }
 
                 free(x_vec);
-                free(weights_vec);
                 free(y_vec);
             } else {
                 matmul(X[layer_index], weights[layer_index], Y[layer_index], matrix_rows, n_inputs, n_inputs, n_neurons);
@@ -288,7 +242,6 @@ void *forward_worker(void *arg) {
             for (register int i = 0; i < matrix_rows; i++) {
                 for (register int j = 0; j < n_neurons; j++) {
                     Y[layer_index][i][j] += biases[layer_index][i];
-
                     Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
                 }
             }
@@ -323,7 +276,8 @@ void forward_threading(
     int gpu,
     cl_context context,
     cl_command_queue queue,
-    cl_program program) {
+    cl_program program,
+    cl_mem weights_vec_buf) {
 
     pthread_t forward_threads[num_threads];
 
@@ -356,6 +310,7 @@ void forward_threading(
         forward_thread_data[t].context = context;
         forward_thread_data[t].queue = queue;
         forward_thread_data[t].program = program;
+        forward_thread_data[t].weights_vec_buf = weights_vec_buf;
 
         // Создание нового потока
         pthread_create(&forward_threads[t], NULL, forward_worker, &forward_thread_data[t]);

@@ -81,13 +81,12 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 }
 
 // Matrix Multiplication Using OpenCL
-inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program program, float *A, float *B, float *C, int ROWS_A, int COLS_A, int ROWS_B, int COLS_B) {
+inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program program, float *A, cl_mem d_B, float *C, int ROWS_A, int COLS_A, int ROWS_B, int COLS_B, int layer_index) {
     // Get the kernel
     cl_kernel kernel = clCreateKernel(program, "matmul_gpu", NULL);
 
     // Creating buffers for storing matrices
     cl_mem d_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ROWS_A * COLS_A * sizeof(float), A, NULL);
-    cl_mem d_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ROWS_B * COLS_B * sizeof(float), B, NULL);
     cl_mem d_C = clCreateBuffer(context, CL_MEM_WRITE_ONLY, ROWS_A * COLS_B * sizeof(float), NULL, NULL);
 
     // Setting kernel arguments
@@ -97,6 +96,7 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
     clSetKernelArg(kernel, 3, sizeof(int), &ROWS_A);
     clSetKernelArg(kernel, 4, sizeof(int), &COLS_A);
     clSetKernelArg(kernel, 5, sizeof(int), &COLS_B);
+    clSetKernelArg(kernel, 6, sizeof(int), &layer_index);
 
     // Step 9: Determine the size of the thread grid
     size_t global_size[] = {ROWS_A, COLS_B}; // Working flow volume
@@ -108,7 +108,6 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
 
     // Resource cleanup
     clReleaseMemObject(d_A);
-    clReleaseMemObject(d_B);
     clReleaseMemObject(d_C);
 
     clReleaseKernel(kernel);

@@ -14,6 +14,10 @@ typedef struct ForwardData{
     float *layer_sizes;
     float *activations;
     float *dropouts;
+    cl_context context;
+    cl_command_queue queue;
+    cl_program program;
+    cl_mem weights_vec_buf;
     int start_idx;
     int end_idx;
     int sample_rows;
@@ -21,9 +25,6 @@ typedef struct ForwardData{
     int layer_sizes_rows;
     int layer_sizes_cols;
     int gpu;
-    cl_context context;
-    cl_command_queue queue;
-    cl_program program;
 } ForwardData;
 
 void forward(
@@ -67,7 +68,8 @@ void forward_threading(
     int gpu,
     cl_context context,
     cl_command_queue queue,
-    cl_program program
+    cl_program program,
+    cl_mem weights_vec_buf
 );
 
 #endif

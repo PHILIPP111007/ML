@@ -540,7 +540,7 @@ inline void adam_step_gpu(
     const float b2 = optimizer->b2;
     const float lr = optimizer->lr;
     const float eps = optimizer->eps;
-    const int epoch = ++optimizer->epoch;
+    const int epoch = ++optimizer->epoch;  // TODO save the result epoch
 
     // Precompute bias corrections
     const float b1_pow = powf(b1, epoch);
@@ -568,7 +568,6 @@ inline void adam_step_gpu(
     clSetKernelArg(kernel, 13, sizeof(int), &total_elements_per_sample);
     clSetKernelArg(kernel, 14, sizeof(int), &dataset_samples_rows);
 
-
     // Working Grid Settings
     size_t global_work_size[] = { total_elements_grad_w };
 
@@ -586,8 +585,6 @@ inline void adam_step_gpu(
             #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
                 int index = current_weight_offset + i * n_neurons + j;
-                // printf("%f %f\n", weights[layer_index][i][j], weights_vec[index]);
-
                 weights[layer_index][i][j] = weights_vec[index];
             }
         }

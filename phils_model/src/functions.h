@@ -20,12 +20,13 @@ void matmul_gpu(
     cl_command_queue queue,
     cl_program program,
     float *A,
-    float *B,
+    cl_mem d_B,
     float *C,
     int ROWS_A,
     int COLS_A,
     int ROWS_B,
-    int COLS_B
+    int COLS_B,
+    int layer_index
 );
 
 float **transpose(

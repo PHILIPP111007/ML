@@ -25,6 +25,7 @@ void *backward_worker(void *arg) {
     cl_context context = bd->context;
     cl_command_queue queue = bd->queue;
     cl_program program = bd->program;
+    cl_mem weights_transposed_vec_buf = bd->weights_transposed_vec_buf;
 
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float ***__restrict X = bd->X_list[dataset_index];
@@ -84,46 +85,14 @@ void *backward_worker(void *arg) {
             float **__restrict x_T = create_matrix(n_inputs, matrix_rows);
             x_T = transpose(X[layer_index], matrix_rows, n_inputs);
 
-            if (gpu && 1 == 0) {
-                float *x_T_vec = malloc(n_inputs * matrix_rows * sizeof(float));
-                float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
-                float *w_vec = malloc(n_inputs * n_neurons * sizeof(float));
-
-                for (int i = 0; i < n_inputs; i++) {
-                    #pragma omp simd
-                    for (int j = 0; j < matrix_rows; j++) {
-                        x_T_vec[i * matrix_rows + j] = x_T[i][j];
-                    }
-                }
-                for (int i = 0; i < matrix_rows; i++) {
-                    #pragma omp simd
-                    for (int j = 0; j < n_neurons; j++) {
-                        delta_vec[i * n_neurons + j] = delta[i][j];
-                    }
-                }
-
-                matmul_gpu(context, queue, program, x_T_vec, delta_vec, w_vec, n_inputs, matrix_rows, matrix_rows, n_neurons);
-
-                for (int i = 0; i < n_inputs; i++) {
-                    #pragma omp simd
-                    for (int j = 0; j < n_neurons; j++) {
-                        grad_w[layer_index][i][j] = w_vec[i * n_neurons + j];
-                    }
-                }
-
-                free(x_T_vec);
-                free(delta_vec);
-                free(w_vec);
-            } else {
-                matmul(x_T, delta, grad_w[layer_index], n_inputs, matrix_rows, matrix_rows, n_neurons);
-            }
+            matmul(x_T, delta, grad_w[layer_index], n_inputs, matrix_rows, matrix_rows, n_neurons);
             free_matrix(x_T);
 
             float **__restrict w_T = create_matrix(n_neurons, n_inputs);
             w_T = transpose(bd->weights[layer_index], n_inputs, n_neurons);
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
 
-            if (gpu && 1 == 0) {
+            if (gpu) {
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
                 float *w_T_vec = malloc(n_neurons * n_inputs * sizeof(float));
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
@@ -141,7 +110,7 @@ void *backward_worker(void *arg) {
                     }
                 }
 
-                matmul_gpu(context, queue, program, delta_vec, w_T_vec, x_vec, matrix_rows, n_neurons, n_neurons, n_inputs);
+                matmul_gpu(context, queue, program, delta_vec, weights_transposed_vec_buf, x_vec, matrix_rows, n_neurons, n_neurons, n_inputs, layer_index);
 
                 for (int i = 0; i < matrix_rows; i++) {
                     #pragma omp simd
@@ -156,7 +125,6 @@ void *backward_worker(void *arg) {
                 matmul(delta, w_T, grad_x[layer_index], matrix_rows, n_neurons, n_neurons, n_inputs);
             }
             free_matrix(w_T);
-
             free_matrix(delta);
         }
 
@@ -193,7 +161,8 @@ void backward_threading(
     int gpu,
     cl_context context,
     cl_command_queue queue,
-    cl_program program) {
+    cl_program program,
+    cl_mem weights_transposed_vec_buf) {
 
     pthread_t backward_threads[num_threads];
 
@@ -230,6 +199,7 @@ void backward_threading(
         backward_thread_data[t].context = context;
         backward_thread_data[t].queue = queue;
         backward_thread_data[t].program = program;
+        backward_thread_data[t].weights_transposed_vec_buf = weights_transposed_vec_buf;
 
         pthread_create(&backward_threads[t], NULL, backward_worker, &backward_thread_data[t]);
 

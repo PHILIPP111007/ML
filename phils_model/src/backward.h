@@ -16,6 +16,10 @@ typedef struct BackwardData {
     float *layer_sizes;
     float *activations;
     float *epoch_losses;
+    cl_context context;
+    cl_command_queue queue;
+    cl_program program;
+    cl_mem weights_transposed_vec_buf;
     int start_idx;
     int end_idx;
     int layer_sizes_rows;
@@ -26,9 +30,6 @@ typedef struct BackwardData {
     int dataset_samples_rows;
     int dataset_samples_cols;
     int dataset_targets_cols;
-    cl_context context;
-    cl_command_queue queue;
-    cl_program program;
     int gpu;
 } BackwardData;
 
@@ -61,7 +62,8 @@ void backward_threading(
     int gpu,
     cl_context context,
     cl_command_queue queue,
-    cl_program program
+    cl_program program,
+    cl_mem weights_transposed_vec_buf
 );
 
 #endif
