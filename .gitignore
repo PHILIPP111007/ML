@@ -1,3 +1,4 @@
 *.so
-*.json
+weights.json
+biases.json
 MNIST
