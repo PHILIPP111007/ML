@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "functions.h": "c",
+        "adam.h": "c",
+        "predict.h": "c",
+        "backward.h": "c",
+        "forward.h": "c",
+        "logger.h": "c",
+        "cl.h": "c"
+    }
+}
