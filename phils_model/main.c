@@ -186,7 +186,7 @@ void fit(
 
         for (int t = 0; t < num_threads; t++) {
             #pragma omp simd
-            for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+            for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
                 X_list[dataset_index] = forward_thread_data[t].X_list[dataset_index];
                 Y_list[dataset_index] = forward_thread_data[t].Y_list[dataset_index];
             }
@@ -241,16 +241,17 @@ void fit(
             logger_info("Update weights and biases step\n");
         }
 
-        for (register int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
-            float ***__restrict grad_w = grad_w_list[dataset_index];
-            float **__restrict grad_b = grad_b_list[dataset_index];
-
-
-            if (gpu) {
-                adam_step_gpu(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
-            } else {
+        if (gpu) {
+            adam_step_gpu(opt, weights, grad_w_list, dataset_samples_rows, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
+        } else {
+            for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+                float ***__restrict grad_w = grad_w_list[dataset_index];
                 adam_step(opt, weights, grad_w, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change);
             }
+        }
+
+        for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+            float **__restrict grad_b = grad_b_list[dataset_index];
 
             for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
                 const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];

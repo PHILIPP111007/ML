@@ -459,8 +459,9 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
 inline void adam_step_gpu(
     struct AdamOptimizer *__restrict optimizer,
-    float ***__restrict weights,
-    float ***__restrict grads,
+    float ***weights,
+    float ****grad_w_list,
+    int dataset_samples_rows,
     float *__restrict layer_sizes,
     int layer_sizes_rows,
     int layer_sizes_cols,
@@ -469,6 +470,71 @@ inline void adam_step_gpu(
     cl_command_queue queue,
     cl_program program
 ) {
+    int total_elements_per_sample = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        total_elements_per_sample += n_inputs * n_neurons;
+    }
+
+    int total_elements_weights = total_elements_per_sample;
+    int total_elements_grad_w = total_elements_per_sample * dataset_samples_rows;
+
+    float *weights_vec = malloc(total_elements_weights * sizeof(float));
+    float *grad_w_vec = malloc(total_elements_grad_w * sizeof(float));
+
+    int current_weight_offset = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+
+        for (int i = 0; i < n_inputs; i++) {
+            #pragma omp simd
+            for (int j = 0; j < n_neurons; j++) {
+                int index = current_weight_offset + i * n_neurons + j;
+                weights_vec[index] = weights[layer_index][i][j];
+            }
+        }
+        current_weight_offset += n_inputs * n_neurons;
+    }
+
+    int current_grad_w_offset = 0;
+    for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
+        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+            const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+            
+            for (int i = 0; i < n_inputs; i++) {
+                #pragma omp simd
+                for (int j = 0; j < n_neurons; j++) {
+                    int index = current_grad_w_offset + i * n_neurons + j;
+                    grad_w_vec[index] = grad_w_list[dataset_index][layer_index][i][j];
+                }
+            }
+            current_grad_w_offset += n_inputs * n_neurons;
+        }
+    }
+
+    if(!grad_w_vec || !weights_vec){
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+
+    cl_int err;
+    cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), weights_vec, &err);
+    if (err != CL_SUCCESS) {
+        fprintf(stderr, "Failed to create weights buffer (Error: %d)\n", err);
+        exit(EXIT_FAILURE);
+    }
+    cl_mem grads_w_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_grad_w * sizeof(float), grad_w_vec, &err);
+    if (err != CL_SUCCESS) {
+        fprintf(stderr, "Failed to create gradients buffer (Error: %d)\n", err);
+        exit(EXIT_FAILURE);
+    }
+
+    cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements_weights * sizeof(float), NULL, NULL);
+    cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements_weights * sizeof(float), NULL, NULL);
+
     // Cache optimizer parameters
     const float b1 = optimizer->b1;
     const float b2 = optimizer->b2;
@@ -477,97 +543,63 @@ inline void adam_step_gpu(
     const int epoch = ++optimizer->epoch;
 
     // Precompute bias corrections
-    const float b1_pow = fast_pow(b1, epoch);
-    const float b2_pow = fast_pow(b2, epoch);
+    const float b1_pow = powf(b1, epoch);
+    const float b2_pow = powf(b2, epoch);
     const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
     const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
     const float b1_minus_1 = 1.0f - b1;
     const float b2_minus_1 = 1.0f - b2;
 
+    cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
 
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &weights_buf);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), &grads_w_buf);
+    clSetKernelArg(kernel, 2, sizeof(cl_mem), &m_buf);
+    clSetKernelArg(kernel, 3, sizeof(cl_mem), &v_buf);
+    clSetKernelArg(kernel, 4, sizeof(float), &b1);
+    clSetKernelArg(kernel, 5, sizeof(float), &b2);
+    clSetKernelArg(kernel, 6, sizeof(float), &lr);
+    clSetKernelArg(kernel, 7, sizeof(float), &eps);
+    clSetKernelArg(kernel, 8, sizeof(float), &inv_1mb1);
+    clSetKernelArg(kernel, 9, sizeof(float), &inv_1mb2);
+    clSetKernelArg(kernel, 10, sizeof(float), &b1_minus_1);
+    clSetKernelArg(kernel, 11, sizeof(float), &b2_minus_1);
+    clSetKernelArg(kernel, 12, sizeof(float), &max_change);
+    clSetKernelArg(kernel, 13, sizeof(int), &total_elements_per_sample);
+    clSetKernelArg(kernel, 14, sizeof(int), &dataset_samples_rows);
+
+
+    // Working Grid Settings
+    size_t global_work_size[] = { total_elements_grad_w };
+
+    // Launching the OpenCL kernel
+    clEnqueueNDRangeKernel(queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);
+
+    clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements_weights * sizeof(float), weights_vec, 0, NULL, NULL);
+
+    current_weight_offset = 0;
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-        float **layer_weights = weights[layer_index];
-        float **layer_grads = grads[layer_index];
-        float **layer_m = optimizer->m[layer_index];
-        float **layer_v = optimizer->v[layer_index];
-
-        // We determine the total volume of data
-        const int total_elements = n_inputs * n_neurons;
-
-        float *layer_weights_vec = malloc(total_elements * sizeof(float));
-        float *layer_grads_vec = malloc(total_elements * sizeof(float));
-        float *layer_m_vec = malloc(total_elements * sizeof(float));
-        float *layer_v_vec = malloc(total_elements * sizeof(float));
-
         for (int i = 0; i < n_inputs; i++) {
+            #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
-                layer_weights_vec[i * n_neurons + j] = layer_weights[i][j];
-                layer_grads_vec[i * n_neurons + j] = layer_grads[i][j];
-                layer_m_vec[i * n_neurons + j] = layer_m[i][j];
-                layer_v_vec[i * n_neurons + j] = layer_v[i][j];
+                int index = current_weight_offset + i * n_neurons + j;
+                // printf("%f %f\n", weights[layer_index][i][j], weights_vec[index]);
+
+                weights[layer_index][i][j] = weights_vec[index];
             }
         }
-
-        // Get the kernel
-        cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
-
-        // Preparing OpenCL buffers
-        cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_weights_vec, NULL);
-        cl_mem grads_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_grads_vec, NULL);
-        cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_m_vec, NULL);
-        cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements * sizeof(float), layer_v_vec, NULL);
-
-        // Setting kernel arguments
-        clSetKernelArg(kernel, 0, sizeof(cl_mem), &weights_buf);
-        clSetKernelArg(kernel, 1, sizeof(cl_mem), &grads_buf);
-        clSetKernelArg(kernel, 2, sizeof(cl_mem), &m_buf);
-        clSetKernelArg(kernel, 3, sizeof(cl_mem), &v_buf);
-        clSetKernelArg(kernel, 4, sizeof(float), &b1);
-        clSetKernelArg(kernel, 5, sizeof(float), &b2);
-        clSetKernelArg(kernel, 6, sizeof(float), &lr);
-        clSetKernelArg(kernel, 7, sizeof(float), &eps);
-        clSetKernelArg(kernel, 8, sizeof(float), &inv_1mb1);
-        clSetKernelArg(kernel, 9, sizeof(float), &inv_1mb2);
-        clSetKernelArg(kernel, 10, sizeof(float), &b1_minus_1);
-        clSetKernelArg(kernel, 11, sizeof(float), &b2_minus_1);
-        clSetKernelArg(kernel, 12, sizeof(float), &max_change);
-        clSetKernelArg(kernel, 13, sizeof(int), &total_elements);
-
-        // Working Grid Settings
-        size_t global_work_size[] = { total_elements };
-
-        // Launching the OpenCL kernel
-        clEnqueueNDRangeKernel(queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);
-
-        // Reading the results back
-        clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_weights_vec, 0, NULL, NULL);
-        clEnqueueReadBuffer(queue, grads_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_grads_vec, 0, NULL, NULL);
-        clEnqueueReadBuffer(queue, m_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_m_vec, 0, NULL, NULL);
-        clEnqueueReadBuffer(queue, v_buf, CL_TRUE, 0, total_elements * sizeof(float), layer_v_vec, 0, NULL, NULL);
-
-        clReleaseMemObject(weights_buf);
-        clReleaseMemObject(grads_buf);
-        clReleaseMemObject(m_buf);
-        clReleaseMemObject(v_buf);
-
-        for (int i = 0; i < n_inputs; i++) {
-            for (int j = 0; j < n_neurons; j++) {
-                layer_weights[i][j] = layer_weights_vec[i * n_neurons + j];
-                layer_grads[i][j] = layer_grads_vec[i * n_neurons + j];
-                layer_m[i][j] = layer_m_vec[i * n_neurons + j];
-                layer_v[i][j] = layer_v_vec[i * n_neurons + j];
-            }
-        }
-
-        free(layer_weights_vec);
-        free(layer_grads_vec);
-        free(layer_m_vec);
-        free(layer_v_vec);
-
-        clReleaseKernel(kernel);
+        current_weight_offset += n_inputs * n_neurons;
     }
+
+    clReleaseMemObject(weights_buf);
+    clReleaseMemObject(grads_w_buf);
+    clReleaseMemObject(m_buf);
+    clReleaseMemObject(v_buf);
+    clReleaseKernel(kernel);
+
+    free(weights_vec);
+    free(grad_w_vec);    
 }
