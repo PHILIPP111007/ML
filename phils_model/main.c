@@ -103,7 +103,7 @@ void fit(
     cl_uint numDevices;
     clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &numDevices);
 
-    if (verbose) {
+    if (verbose && gpu) {
         printf("Number of platforms: %u\n", numPlatforms);
         printf("Number of GPUs: %u\n", numDevices);
     }
