@@ -2,6 +2,8 @@
 
 This is a fully connected neural network. It can solve regression and classification problems. It also supports Adam optimizer. There are code sections where I used processor-specific instructions (for x86 and ARM processors) for better optimization of the program. OpenCL GPU computing support has recently been added.
 
+Support for GPU computing is still under development.
+
 To run the `main.ipynb` file, use this:
 
 For MacOS / Linux:
