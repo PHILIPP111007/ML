@@ -158,36 +158,64 @@ void fit(
             weights_transposed[layer_index] = transpose(weights[layer_index], n_inputs, n_neurons);
         }
 
-        float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
-        float *weights_transposed_vec = get_weights_transposed_vec(weights_transposed, layer_sizes_rows, layer_sizes_cols, layer_sizes);
-        cl_mem weights_vec_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
-        cl_mem weights_transposed_vec_buf = get_weights_vec_buf(weights_transposed_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
+        cl_mem weights_vec_buf;
+        cl_mem weights_transposed_vec_buf;
 
-        free(weights_vec);
-        free(weights_transposed_vec);
+        if (gpu) {
+            float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+            float *weights_transposed_vec = get_weights_transposed_vec(weights_transposed, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+            weights_vec_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
+            weights_transposed_vec_buf = get_weights_vec_buf(weights_transposed_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
 
-        forward_threading(
-            forward_thread_data,
-            samples,
-            weights,
-            biases,
-            X_list_intermediate,
-            Y_list_intermediate,
-            dataset_samples_rows,
-            dataset_samples_cols,
-            dataset_samples_depth,
-            layer_sizes,
-            layer_sizes_rows,
-            layer_sizes_cols,
-            activations,
-            dropouts,
-            num_threads,
-            gpu,
-            context,
-            queue,
-            program_matmul_gpu,
-            weights_vec_buf
-        );
+            forward_threading(
+                forward_thread_data,
+                samples,
+                weights,
+                biases,
+                X_list_intermediate,
+                Y_list_intermediate,
+                dataset_samples_rows,
+                dataset_samples_cols,
+                dataset_samples_depth,
+                layer_sizes,
+                layer_sizes_rows,
+                layer_sizes_cols,
+                activations,
+                dropouts,
+                num_threads,
+                gpu,
+                context,
+                queue,
+                program_matmul_gpu,
+                weights_vec_buf
+            );
+
+            free(weights_vec);
+            free(weights_transposed_vec);
+        } else {
+            forward_threading(
+                forward_thread_data,
+                samples,
+                weights,
+                biases,
+                X_list_intermediate,
+                Y_list_intermediate,
+                dataset_samples_rows,
+                dataset_samples_cols,
+                dataset_samples_depth,
+                layer_sizes,
+                layer_sizes_rows,
+                layer_sizes_cols,
+                activations,
+                dropouts,
+                num_threads,
+                gpu,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+            );
+        }
 
         for (int t = 0; t < num_threads; t++) {
             #pragma omp simd
@@ -210,37 +238,70 @@ void fit(
             logger_info("Backward step\n");
         }
 
-        backward_threading(
-            backward_thread_data,
-            weights,
-            targets,
-            biases,
-            X_list,
-            Y_list,
-            grad_w_list,
-            grad_x_list,
-            grad_b_list,
-            layer_sizes,
-            layer_sizes_rows,
-            layer_sizes_cols,
-            dataset_samples_rows,
-            dataset_samples_cols,
-            dataset_targets_cols,
-            matrix_rows,
-            activations,
-            loss,
-            epoch_losses,
-            regression,
-            num_threads,
-            gpu,
-            context,
-            queue,
-            program_matmul_gpu,
-            weights_transposed_vec_buf
-        );
+        if (gpu) {
+            backward_threading(
+                backward_thread_data,
+                weights,
+                targets,
+                biases,
+                X_list,
+                Y_list,
+                grad_w_list,
+                grad_x_list,
+                grad_b_list,
+                layer_sizes,
+                layer_sizes_rows,
+                layer_sizes_cols,
+                dataset_samples_rows,
+                dataset_samples_cols,
+                dataset_targets_cols,
+                matrix_rows,
+                activations,
+                loss,
+                epoch_losses,
+                regression,
+                num_threads,
+                gpu,
+                context,
+                queue,
+                program_matmul_gpu,
+                weights_transposed_vec_buf
+            );
+        } else {
+            backward_threading(
+                backward_thread_data,
+                weights,
+                targets,
+                biases,
+                X_list,
+                Y_list,
+                grad_w_list,
+                grad_x_list,
+                grad_b_list,
+                layer_sizes,
+                layer_sizes_rows,
+                layer_sizes_cols,
+                dataset_samples_rows,
+                dataset_samples_cols,
+                dataset_targets_cols,
+                matrix_rows,
+                activations,
+                loss,
+                epoch_losses,
+                regression,
+                num_threads,
+                gpu,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+            );
+        }
 
-        clReleaseMemObject(weights_vec_buf);
-        clReleaseMemObject(weights_transposed_vec_buf);
+        if (gpu) {
+            clReleaseMemObject(weights_vec_buf);
+            clReleaseMemObject(weights_transposed_vec_buf);
+        }
 
         free(backward_thread_data);
 
