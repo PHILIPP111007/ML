@@ -93,19 +93,12 @@ void *backward_worker(void *arg) {
 
             if (gpu) {
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
-                float *w_T_vec = malloc(n_neurons * n_inputs * sizeof(float));
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
 
                 for (int i = 0; i < matrix_rows; i++) {
                     #pragma omp simd
                     for (int j = 0; j < n_neurons; j++) {
                         delta_vec[i * n_neurons + j] = delta[i][j];
-                    }
-                }
-                for (int i = 0; i < n_neurons; i++) {
-                    #pragma omp simd
-                    for (int j = 0; j < n_inputs; j++) {
-                        w_T_vec[i * n_inputs + j] = w_T[i][j];
                     }
                 }
 
@@ -118,7 +111,6 @@ void *backward_worker(void *arg) {
                     }
                 }
                 free(delta_vec);
-                free(w_T_vec);
                 free(x_vec);
             } else {
                 float **__restrict w_T = create_matrix(n_neurons, n_inputs);
