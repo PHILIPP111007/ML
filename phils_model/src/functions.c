@@ -299,3 +299,15 @@ inline cl_mem get_weights_vec_buf(float *weights_vec, int layer_sizes_rows, int 
 
     return weights_vec_buf;
 }
+
+char *get_file_content(char *file_path) {
+    FILE *fp = fopen(file_path, "rb");
+    fseek(fp, 0, SEEK_END);
+    long file_size = ftell(fp);
+    rewind(fp);
+    char *source = (char*)malloc(file_size + 1);
+    fread(source, 1, file_size, fp);
+    fclose(fp);
+
+    return source;
+}

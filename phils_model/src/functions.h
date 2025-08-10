@@ -100,4 +100,8 @@ cl_mem get_weights_vec_buf(
     cl_context context
 );
 
+char *get_file_content(
+    char *file_path
+);
+
 #endif

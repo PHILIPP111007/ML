@@ -120,21 +120,9 @@ void fit(
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
     // Step 3: Read and compile the OpenCL kernel
-    FILE* fp_matmul_gpu = fopen("src/matmul_gpu.cl", "rb");
-    fseek(fp_matmul_gpu, 0, SEEK_END);
-    long file_size_matmul_gpu = ftell(fp_matmul_gpu);
-    rewind(fp_matmul_gpu);
-    char* source_matmul_gpu = (char*)malloc(file_size_matmul_gpu + 1);
-    fread(source_matmul_gpu, 1, file_size_matmul_gpu, fp_matmul_gpu);
-    fclose(fp_matmul_gpu);
 
-    FILE* fp_adam_step_gpu = fopen("src/adam_step_gpu.cl", "rb");
-    fseek(fp_adam_step_gpu, 0, SEEK_END);
-    long file_size_adam_step_gpu = ftell(fp_adam_step_gpu);
-    rewind(fp_adam_step_gpu);
-    char* source_adam_step_gpu = (char*)malloc(file_size_adam_step_gpu + 1);
-    fread(source_adam_step_gpu, 1, file_size_adam_step_gpu, fp_adam_step_gpu);
-    fclose(fp_adam_step_gpu);
+    char *source_matmul_gpu = get_file_content("src/matmul_gpu.cl");
+    char *source_adam_step_gpu = get_file_content("src/adam_step_gpu.cl");
 
     cl_program program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
     clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
@@ -452,15 +440,10 @@ void predict_one(
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
     // Step 3: Read and compile the OpenCL kernel
-    FILE* fp = fopen("src/matmul_gpu.cl", "rb");
-    fseek(fp, 0, SEEK_END);
-    long fileSize = ftell(fp);
-    rewind(fp);
-    char* sourceStr = (char*)malloc(fileSize + 1);
-    fread(sourceStr, 1, fileSize, fp);
-    fclose(fp);
 
-    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
+    char *source = get_file_content("src/matmul_gpu.cl");
+
+    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&source, NULL, NULL);
     clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
 
     // Forward pass
@@ -634,15 +617,10 @@ void predict(
     cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
     // Step 3: Read and compile the OpenCL kernel
-    FILE* fp = fopen("src/matmul_gpu.cl", "rb");
-    fseek(fp, 0, SEEK_END);
-    long fileSize = ftell(fp);
-    rewind(fp);
-    char* sourceStr = (char*)malloc(fileSize + 1);
-    fread(sourceStr, 1, fileSize, fp);
-    fclose(fp);
 
-    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
+    char *source = get_file_content("src/matmul_gpu.cl");
+
+    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&source, NULL, NULL);
     clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
 
     float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
