@@ -150,7 +150,6 @@ void fit(
         // Create weights_vec_buffer and weights_transposed_vec_buffer
 
         float ***weights_transposed = malloc(layer_sizes_rows * sizeof(float**));
-
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
