@@ -78,4 +78,26 @@ void free_matrix(
     float **matrix
 );
 
+float *get_weights_vec(
+    float ***weights,
+    int layer_sizes_rows,
+    int layer_sizes_cols,
+    float *layer_sizes
+);
+
+float *get_weights_transposed_vec(
+    float ***weights_transposed,
+    int layer_sizes_rows,
+    int layer_sizes_cols,
+    float *layer_sizes
+);
+
+cl_mem get_weights_vec_buf(
+    float *weights_vec,
+    int layer_sizes_rows,
+    int layer_sizes_cols,
+    float *layer_sizes,
+    cl_context context
+);
+
 #endif

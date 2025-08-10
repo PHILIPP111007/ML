@@ -476,27 +476,10 @@ inline void adam_step_gpu(
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
         total_elements_per_sample += n_inputs * n_neurons;
     }
-
     int total_elements_weights = total_elements_per_sample;
     int total_elements_grad_w = total_elements_per_sample * dataset_samples_rows;
 
-    float *weights_vec = malloc(total_elements_weights * sizeof(float));
     float *grad_w_vec = malloc(total_elements_grad_w * sizeof(float));
-
-    int current_weight_offset = 0;
-    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-
-        for (int i = 0; i < n_inputs; i++) {
-            #pragma omp simd
-            for (int j = 0; j < n_neurons; j++) {
-                int index = current_weight_offset + i * n_neurons + j;
-                weights_vec[index] = weights[layer_index][i][j];
-            }
-        }
-        current_weight_offset += n_inputs * n_neurons;
-    }
 
     int current_grad_w_offset = 0;
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
@@ -515,17 +498,9 @@ inline void adam_step_gpu(
         }
     }
 
-    if(!grad_w_vec || !weights_vec){
-        perror("Failed to allocate memory");
-        exit(EXIT_FAILURE);
-    }
-
+    float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
     cl_int err;
-    cl_mem weights_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), weights_vec, &err);
-    if (err != CL_SUCCESS) {
-        fprintf(stderr, "Failed to create weights buffer (Error: %d)\n", err);
-        exit(EXIT_FAILURE);
-    }
+    cl_mem weights_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
     cl_mem grads_w_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_grad_w * sizeof(float), grad_w_vec, &err);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Failed to create gradients buffer (Error: %d)\n", err);
@@ -576,7 +551,7 @@ inline void adam_step_gpu(
 
     clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements_weights * sizeof(float), weights_vec, 0, NULL, NULL);
 
-    current_weight_offset = 0;
+    int current_weight_offset = 0;
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];

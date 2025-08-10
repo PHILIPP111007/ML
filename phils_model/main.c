@@ -163,45 +163,22 @@ void fit(
 
         // Create weights_vec_buffer and weights_transposed_vec_buffer
 
-        int total_elements_per_sample = 0;
-        for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
-            const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
-            const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-            total_elements_per_sample += n_inputs * n_neurons;
-        }
-
-        int total_elements_weights = total_elements_per_sample;
-        float *weights_vec = malloc(total_elements_weights * sizeof(float));
         float ***weights_transposed = malloc(layer_sizes_rows * sizeof(float**));
-        float *weights_transposed_vec = malloc(total_elements_weights * sizeof(float));
-
-        int current_weight_offset = 0;
+        
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-
-            for (int i = 0; i < n_inputs; i++) {
-                #pragma omp simd
-                for (int j = 0; j < n_neurons; j++) {
-                    int index = current_weight_offset + i * n_neurons + j;
-                    weights_vec[index] = weights[layer_index][i][j];
-                }
-            }
 
             weights_transposed[layer_index] = transpose(weights[layer_index], n_inputs, n_neurons);
-            for (int i = 0; i < n_neurons; i++) {
-                #pragma omp simd
-                for (int j = 0; j < n_inputs; j++) {
-                    int index = current_weight_offset + i * n_inputs + j;
-                    weights_transposed_vec[index] = weights_transposed[layer_index][i][j];
-                }
-            }
-
-            current_weight_offset += n_inputs * n_neurons;
         }
 
-        cl_mem weights_vec_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), weights_vec, NULL);
-        cl_mem weights_transposed_vec_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), weights_transposed_vec, NULL);
+        float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+        float *weights_transposed_vec = get_weights_transposed_vec(weights_transposed, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+        cl_mem weights_vec_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
+        cl_mem weights_transposed_vec_buf = get_weights_vec_buf(weights_transposed_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
+
+        free(weights_vec);
+        free(weights_transposed_vec);
 
         forward_threading(
             forward_thread_data,
@@ -278,8 +255,6 @@ void fit(
 
         clReleaseMemObject(weights_vec_buf);
         clReleaseMemObject(weights_transposed_vec_buf);
-        free(weights_vec);
-        free(weights_transposed_vec);
 
         free(backward_thread_data);
 

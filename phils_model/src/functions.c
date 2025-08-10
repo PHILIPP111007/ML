@@ -221,3 +221,81 @@ inline float **transpose(float **__restrict original_matrix, int rows, int cols)
     }
     return transposed_matrix;
 }
+
+inline float *get_weights_vec(float ***weights, int layer_sizes_rows, int layer_sizes_cols, float *layer_sizes) {
+    int total_elements_per_sample = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        total_elements_per_sample += n_inputs * n_neurons;
+    }
+
+    int total_elements_weights = total_elements_per_sample;
+    float *weights_vec = malloc(total_elements_weights * sizeof(float));
+
+    int current_weight_offset = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+
+        for (int i = 0; i < n_inputs; i++) {
+            #pragma omp simd
+            for (int j = 0; j < n_neurons; j++) {
+                int index = current_weight_offset + i * n_neurons + j;
+                weights_vec[index] = weights[layer_index][i][j];
+            }
+        }
+        current_weight_offset += n_inputs * n_neurons;
+    }
+
+    return weights_vec;
+}
+
+inline float *get_weights_transposed_vec(float ***weights_transposed, int layer_sizes_rows, int layer_sizes_cols, float *layer_sizes) {
+    int total_elements_per_sample = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        total_elements_per_sample += n_inputs * n_neurons;
+    }
+
+    int total_elements_weights = total_elements_per_sample;
+    float *weights_transposed_vec = malloc(total_elements_weights * sizeof(float));
+
+    int current_weight_offset = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+
+        for (int i = 0; i < n_neurons; i++) {
+            #pragma omp simd
+            for (int j = 0; j < n_inputs; j++) {
+                int index = current_weight_offset + i * n_inputs + j;
+                weights_transposed_vec[index] = weights_transposed[layer_index][i][j];
+            }
+        }
+        current_weight_offset += n_inputs * n_neurons;
+    }
+
+    return weights_transposed_vec;
+}
+
+inline cl_mem get_weights_vec_buf(float *weights_vec, int layer_sizes_rows, int layer_sizes_cols, float *layer_sizes, cl_context context) {
+    int total_elements_per_sample = 0;
+    for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
+        const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+        const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
+        total_elements_per_sample += n_inputs * n_neurons;
+    }
+
+    int total_elements_weights = total_elements_per_sample;
+
+    cl_int err;
+    cl_mem weights_vec_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), weights_vec, &err);
+    if (err != CL_SUCCESS) {
+        fprintf(stderr, "Failed to create weights buffer (Error: %d)\n", err);
+        exit(EXIT_FAILURE);
+    }
+
+    return weights_vec_buf;
+}
