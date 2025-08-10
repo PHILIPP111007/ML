@@ -42,7 +42,8 @@ void forward(
     int gpu,
     cl_context context,
     cl_command_queue queue,
-    cl_program program
+    cl_program program,
+    cl_mem weights_vec_buf
 );
 
 void *forward_worker(

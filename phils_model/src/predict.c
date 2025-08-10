@@ -29,7 +29,8 @@ void *predict_thread(void *arg) {
             task->gpu,
             range->context,
             range->queue,
-            range->program
+            range->program,
+            range->weights_vec_buf
         );
 
         // Get predictions from last layer

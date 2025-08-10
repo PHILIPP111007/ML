@@ -464,7 +464,14 @@ void predict_one(
     clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
 
     // Forward pass
-    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, 1, gpu, context, queue, program);
+
+    float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+    cl_mem weights_vec_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
+
+    forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, 1, gpu, context, queue, program, weights_vec_buf);
+
+    clReleaseMemObject(weights_vec_buf);
+    free(weights_vec);
 
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
@@ -551,7 +558,6 @@ void predict(
 
         weights[layer_index] = create_matrix(n_inputs, n_neurons);
         for (int i = 0; i < n_inputs; ++i) {
-
             #pragma omp simd
             for (int j = 0; j < n_neurons; ++j) {
                 int index = current_weight_offset + i * n_neurons + j;
@@ -637,6 +643,9 @@ void predict(
     cl_program program = clCreateProgramWithSource(context, 1, (const char**)&sourceStr, NULL, NULL);
     clBuildProgram(program, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
 
+    float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+    cl_mem weights_vec_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
+
     for (int i = 0; i < num_cpu; i++) {
         int start_idx = i * samples_per_thread + (i < remaining_samples ? i : remaining_samples);
         int end_idx = start_idx + samples_per_thread + (i < remaining_samples ? 1 : 0);
@@ -648,6 +657,7 @@ void predict(
         range->context = context;
         range->queue = queue;
         range->program = program;
+        range->weights_vec_buf = weights_vec_buf;
 
         pthread_create(&threads[i], NULL, predict_thread, range);
     }
@@ -658,6 +668,10 @@ void predict(
     }
 
     // Free memory
+
+    clReleaseMemObject(weights_vec_buf);
+    free(weights_vec);
+
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
     clReleaseProgram(program);

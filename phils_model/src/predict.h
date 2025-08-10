@@ -23,11 +23,12 @@ typedef struct PredictTask {
 
 typedef struct ThreadRange {
     PredictTask *tasks;
-    int start;
-    int end;
     cl_context context;
     cl_command_queue queue;
     cl_program program;
+    cl_mem weights_vec_buf;
+    int start;
+    int end;
 } ThreadRange;
 
 void *predict_thread(

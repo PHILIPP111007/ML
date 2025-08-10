@@ -24,7 +24,8 @@ void forward(
     int gpu,
     cl_context context,
     cl_command_queue queue,
-    cl_program program) {
+    cl_program program,
+    cl_mem weights_vec_buf) {
 
     const register int n_inputs = (int)layer_sizes[0 * layer_sizes_cols];
     const register int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];
@@ -49,7 +50,7 @@ void forward(
             }
         }
 
-        matmul_gpu(context, queue, program, sample_vec, weights_vec, y_vec, sample_rows, sample_cols, n_inputs, n_neurons, 0);  // TODO
+        matmul_gpu(context, queue, program, sample_vec, weights_vec_buf, y_vec, sample_rows, sample_cols, n_inputs, n_neurons, 0);  // TODO
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
@@ -99,7 +100,7 @@ void forward(
                 }
             }
 
-            matmul_gpu(context, queue, program, y_vec, weights_vec, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons, layer_index);  // TODO
+            matmul_gpu(context, queue, program, y_vec, weights_vec_buf, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons, layer_index);  // TODO
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
