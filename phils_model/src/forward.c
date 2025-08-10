@@ -131,7 +131,7 @@ void forward(
 
         for (register int i = 0; i < matrix_rows; i++) {
             for (register int j = 0; j < n_neurons; j++) {
-                Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
+                Y[layer_index][i][j] = check_if_isnan(Y[layer_index][i][j]);
             }
         }
     }
@@ -179,8 +179,8 @@ void *forward_worker(void *arg) {
         for (register int i = 0; i < sample_rows; i++) {
             for (register int j = 0; j < n_neurons; j++) {
                 Y[0][i][j] += biases[0][i];
+                Y[0][i][j] = check_if_isnan(Y[0][i][j]);
 
-                Y[0][i][j] = isnan(Y[0][i][j]) ? 0.0f : Y[0][i][j];
             }
         }
         int activation = (int)activations[0];
@@ -243,7 +243,7 @@ void *forward_worker(void *arg) {
             for (register int i = 0; i < matrix_rows; i++) {
                 for (register int j = 0; j < n_neurons; j++) {
                     Y[layer_index][i][j] += biases[layer_index][i];
-                    Y[layer_index][i][j] = isnan(Y[layer_index][i][j]) ? 0.0f : Y[layer_index][i][j];
+                    Y[layer_index][i][j] = check_if_isnan(Y[layer_index][i][j]);
                 }
             }
             int activation = (int)activations[layer_index];

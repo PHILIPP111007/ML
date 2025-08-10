@@ -104,4 +104,8 @@ char *get_file_content(
     char *file_path
 );
 
+float check_if_isnan(
+    float number
+);
+
 #endif

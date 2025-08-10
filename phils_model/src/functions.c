@@ -311,3 +311,7 @@ inline char *get_file_content(char *file_path) {
 
     return source;
 }
+
+inline float check_if_isnan(float number) {
+    return isnan(number) ? 0.0f : number;
+}

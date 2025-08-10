@@ -25,7 +25,7 @@ inline void mse_loss(float **__restrict prediction, int prediction_rows, int pre
 
             // loss[i][j] = pow(target[j] - prediction[i][j], 2);
 
-            loss[i][j] = isnan(loss[i][j]) ? 0.0f : loss[i][j];
+            loss[i][j] = check_if_isnan(loss[i][j]);
         }
     }
 
@@ -57,7 +57,7 @@ inline void cross_entropy_loss(float **__restrict prediction, int prediction_row
             // float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
             // loss[i][j] = target[j] * log(p);
 
-            loss[i][j] = isnan(loss[i][j]) ? 0.0f : loss[i][j];
+            loss[i][j] = check_if_isnan(loss[i][j]);
         }
     }
 
