@@ -52,7 +52,6 @@ void fit(
     for (register int dataset_index = 0; dataset_index < dataset_samples_rows; ++dataset_index) {
         samples[dataset_index] = create_matrix(dataset_samples_cols, dataset_samples_depth);
         for (int i = 0; i < dataset_samples_cols; i++) {
-
             #pragma omp simd
             for (register int j = 0; j < dataset_samples_depth; j++) {
                 int index = dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j;
@@ -63,7 +62,6 @@ void fit(
 
     for (register int i = 0; i < dataset_targets_rows; i++) {
         targets[i] = malloc(dataset_targets_cols * sizeof(float));
-
         #pragma omp simd
         for (register int j = 0; j < dataset_targets_cols; j++) {
             targets[i][j] = (float)dataset_targets[i * dataset_targets_cols + j];
@@ -152,7 +150,7 @@ void fit(
         // Create weights_vec_buffer and weights_transposed_vec_buffer
 
         float ***weights_transposed = malloc(layer_sizes_rows * sizeof(float**));
-        
+
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -284,11 +282,11 @@ void fit(
 
             for (int i = 0; i < n_inputs; i++) {
                 for (int j = 0; j < n_neurons; j++) {
-                    weights[layer_index][i][j] = isnan(weights[layer_index][i][j]) ? 0.0f : weights[layer_index][i][j];
+                    weights[layer_index][i][j] = check_if_isnan(weights[layer_index][i][j]);
                 }
             }
             for (int i = 0; i < n_neurons; i++) {
-                biases[layer_index][i] = isnan(biases[layer_index][i]) ? 0.0f : biases[layer_index][i];
+                biases[layer_index][i] = check_if_isnan(biases[layer_index][i]);
             }
         }
 
