@@ -50,7 +50,7 @@ void forward(
             }
         }
 
-        matmul_gpu(context, queue, program, sample_vec, weights_vec_buf, y_vec, sample_rows, sample_cols, n_inputs, n_neurons, 0);  // TODO
+        matmul_gpu(context, queue, program, sample_vec, weights_vec_buf, y_vec, sample_rows, sample_cols, n_inputs, n_neurons, 0);
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
@@ -100,7 +100,7 @@ void forward(
                 }
             }
 
-            matmul_gpu(context, queue, program, y_vec, weights_vec_buf, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons, layer_index);  // TODO
+            matmul_gpu(context, queue, program, y_vec, weights_vec_buf, y_new_vec, matrix_rows, n_inputs, n_inputs, n_neurons, layer_index);
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
