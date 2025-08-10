@@ -470,6 +470,8 @@ void predict_one(
 
     forward(sample, sample_rows, sample_cols, weights, biases, Y, layer_sizes, layer_sizes_rows, layer_sizes_cols, activations, 1, gpu, context, queue, program, weights_vec_buf);
 
+    // Free memory
+
     clReleaseMemObject(weights_vec_buf);
     free(weights_vec);
 
