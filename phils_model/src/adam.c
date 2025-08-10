@@ -498,6 +498,12 @@ inline void adam_step_gpu(
         }
     }
 
+    const float b1 = optimizer->b1;
+    const float b2 = optimizer->b2;
+    const float lr = optimizer->lr;
+    const float eps = optimizer->eps;
+    int epoch = ++optimizer->epoch;
+
     float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
     cl_int err;
     cl_mem weights_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
@@ -507,23 +513,10 @@ inline void adam_step_gpu(
         exit(EXIT_FAILURE);
     }
 
-    cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements_weights * sizeof(float), NULL, NULL);
-    cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, total_elements_weights * sizeof(float), NULL, NULL);
-
-    // Cache optimizer parameters
-    const float b1 = optimizer->b1;
-    const float b2 = optimizer->b2;
-    const float lr = optimizer->lr;
-    const float eps = optimizer->eps;
-    const int epoch = ++optimizer->epoch;  // TODO save the result epoch
-
-    // Precompute bias corrections
-    const float b1_pow = powf(b1, epoch);
-    const float b2_pow = powf(b2, epoch);
-    const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
-    const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
-    const float b1_minus_1 = 1.0f - b1;
-    const float b2_minus_1 = 1.0f - b2;
+    cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), NULL, NULL);
+    cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), NULL, NULL);
+    cl_mem epoch_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int), NULL, NULL);
+    clEnqueueWriteBuffer(queue, epoch_buf, CL_TRUE, 0, sizeof(int), &epoch, 0, NULL, NULL);
 
     cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
 
@@ -535,21 +528,21 @@ inline void adam_step_gpu(
     clSetKernelArg(kernel, 5, sizeof(float), &b2);
     clSetKernelArg(kernel, 6, sizeof(float), &lr);
     clSetKernelArg(kernel, 7, sizeof(float), &eps);
-    clSetKernelArg(kernel, 8, sizeof(float), &inv_1mb1);
-    clSetKernelArg(kernel, 9, sizeof(float), &inv_1mb2);
-    clSetKernelArg(kernel, 10, sizeof(float), &b1_minus_1);
-    clSetKernelArg(kernel, 11, sizeof(float), &b2_minus_1);
-    clSetKernelArg(kernel, 12, sizeof(float), &max_change);
-    clSetKernelArg(kernel, 13, sizeof(int), &total_elements_per_sample);
-    clSetKernelArg(kernel, 14, sizeof(int), &dataset_samples_rows);
+    clSetKernelArg(kernel, 8, sizeof(float), &max_change);
+    clSetKernelArg(kernel, 9, sizeof(int), &total_elements_per_sample);
+    clSetKernelArg(kernel, 10, sizeof(int), &dataset_samples_rows);
+    clSetKernelArg(kernel, 11, sizeof(cl_mem), &epoch_buf);
 
     // Working Grid Settings
-    size_t global_work_size[] = { total_elements_grad_w };
+    size_t global_work_size[] = { total_elements_per_sample * dataset_samples_rows };
 
     // Launching the OpenCL kernel
     clEnqueueNDRangeKernel(queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);
 
     clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements_weights * sizeof(float), weights_vec, 0, NULL, NULL);
+    clEnqueueReadBuffer(queue, epoch_buf, CL_TRUE, 0, sizeof(int), &epoch, 0, NULL, NULL);
+
+    optimizer->epoch = epoch;
 
     int current_weight_offset = 0;
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -570,8 +563,9 @@ inline void adam_step_gpu(
     clReleaseMemObject(grads_w_buf);
     clReleaseMemObject(m_buf);
     clReleaseMemObject(v_buf);
+    clReleaseMemObject(epoch_buf);
     clReleaseKernel(kernel);
 
     free(weights_vec);
-    free(grad_w_vec);    
+    free(grad_w_vec);
 }
