@@ -27,6 +27,7 @@ void *backward_worker(void *arg) {
     cl_program program = bd->program;
     cl_mem weights_transposed_vec_buf = bd->weights_transposed_vec_buf;
 
+    #pragma omp parallel for schedule(guided)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float ***__restrict X = bd->X_list[dataset_index];
         float ***__restrict Y = bd->Y_list[dataset_index];
