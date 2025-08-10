@@ -38,7 +38,6 @@ void forward(
     int layer_sizes_rows,
     int layer_sizes_cols,
     float *activations,
-    int is_predict_one_saple,
     int gpu,
     cl_context context,
     cl_command_queue queue,
