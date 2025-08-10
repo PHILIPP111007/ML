@@ -88,8 +88,6 @@ void *backward_worker(void *arg) {
             matmul(x_T, delta, grad_w[layer_index], n_inputs, matrix_rows, matrix_rows, n_neurons);
             free_matrix(x_T);
 
-            float **__restrict w_T = create_matrix(n_neurons, n_inputs);
-            w_T = transpose(bd->weights[layer_index], n_inputs, n_neurons);
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
 
             if (gpu) {
@@ -122,9 +120,11 @@ void *backward_worker(void *arg) {
                 free(w_T_vec);
                 free(x_vec);
             } else {
+                float **__restrict w_T = create_matrix(n_neurons, n_inputs);
+                w_T = transpose(bd->weights[layer_index], n_inputs, n_neurons);
                 matmul(delta, w_T, grad_x[layer_index], matrix_rows, n_neurons, n_neurons, n_inputs);
+                free_matrix(w_T);
             }
-            free_matrix(w_T);
             free_matrix(delta);
         }
 
