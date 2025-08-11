@@ -181,6 +181,7 @@ void *forward_worker(void *arg) {
         Y[0] = create_matrix(sample_rows, n_neurons);
         matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
         for (register int i = 0; i < sample_rows; i++) {
+            #pragma omp simd
             for (register int j = 0; j < n_neurons; j++) {
                 Y[0][i][j] += biases[0][i];
                 Y[0][i][j] = check_if_isnan(Y[0][i][j]);
