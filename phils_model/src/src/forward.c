@@ -31,10 +31,13 @@ void forward(
 
     Y[0] = create_matrix(sample_rows, n_neurons);
 
-    if (gpu) {
+    if (gpu && 1 == 0) {
         float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
+        check_if_null((float *)sample_vec, "sample_vec");
         float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+        check_if_null((float *)weights_vec, "weights_vec");
         float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
+        check_if_null((float *)y_vec, "y_vec");
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
@@ -81,10 +84,13 @@ void forward(
 
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-        if (gpu) {
+        if (gpu && 1 == 0) {
             float *y_vec = malloc(matrix_rows * n_inputs * sizeof(float));
+            check_if_null((float *)y_vec, "y_vec");
             float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+            check_if_null((float *)weights_vec, "weights_vec");
             float *y_new_vec = malloc(matrix_rows * n_neurons * sizeof(float));
+            check_if_null((float *)y_new_vec, "y_new_vec");
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
@@ -212,10 +218,13 @@ void *forward_worker(void *arg) {
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-            if (gpu) {
+            if (gpu && 1 == 0) {
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
+                check_if_null((float *)x_vec, "x_vec");
                 float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+                check_if_null((float *)weights_vec, "weights_vec");
                 float *y_vec = malloc(matrix_rows * n_neurons * sizeof(float));
+                check_if_null((float *)y_vec, "y_vec");
 
                 for (int i = 0; i < matrix_rows; i++) {
                     #pragma omp simd

@@ -47,18 +47,24 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
     optimizer->epoch = 0;
 
     float ***m = malloc(layer_sizes_rows * sizeof(float**));
+    check_if_null((float *)m, "m");
     float ***v = malloc(layer_sizes_rows * sizeof(float**));
+    check_if_null((float *)v, "v");
 
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
         const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
         m[layer_index] =  malloc(n_inputs * sizeof(float*));
+        check_if_null((float *)m[layer_index], "m[layer_index]");
         v[layer_index] =  malloc(n_inputs * sizeof(float*));
+        check_if_null((float *)v[layer_index], "v[layer_index]");
 
         for (int i = 0; i < n_inputs; ++i) {
             m[layer_index][i] =  malloc(n_neurons * sizeof(float*));
+            check_if_null((float *)m[layer_index][i], "m[layer_index][i]");
             v[layer_index][i] =  malloc(n_neurons * sizeof(float*));
+            check_if_null((float *)v[layer_index][i], "v[layer_index][i]");
         }
     }
     optimizer->m = m;
@@ -108,7 +114,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Use cache-friendly chunk size (64 bytes / sizeof(float))
         const int chunk_size = 64 / sizeof(float);
 
-        #pragma omp parallel for schedule(guided) if(layer_sizes_rows > 8)
+        // #pragma omp parallel for schedule(guided)
         for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -118,11 +124,9 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
             float ** __restrict layer_m = optimizer->m[layer_index];
             float ** __restrict layer_v = optimizer->v[layer_index];
 
-            #pragma omp parallel for schedule(guided) if(n_inputs > 8)
             for (int i = 0; i < n_inputs; i += chunk_size) {
                 const int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
 
-                #pragma omp parallel for schedule(guided) if(i_end > 8)
                 for (int ii = i; ii < i_end; ii++) {
                     float *__restrict weights_row = layer_weights[ii];
                     float *__restrict grads_row = layer_grads[ii];
@@ -131,7 +135,6 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
                     int jj = 0;
                     // Vectorized processing (4 elements at a time)
-                    #pragma omp parallel for schedule(guided) if(n_neurons > 8)
                     for (int j = 0; j <= n_neurons - 4; j += 4) {
                         // Loading data
                         float32x4_t grad = vld1q_f32(grads_row + j);
@@ -241,7 +244,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Use cache-friendly chunk size (64 bytes / sizeof(float))
         const int chunk_size = 64 / sizeof(float);
 
-        #pragma omp parallel for schedule(guided) if(layer_sizes_rows > 4)
+        // #pragma omp parallel for schedule(guided) if(layer_sizes_rows > 4)
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -251,11 +254,11 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
             float ** __restrict layer_m = optimizer->m[layer_index];
             float ** __restrict layer_v = optimizer->v[layer_index];
 
-            #pragma omp parallel for schedule(guided) if(n_inputs > 8)
+            // #pragma omp parallel for schedule(guided) if(n_inputs > 8)
             for (int i = 0; i < n_inputs; i += chunk_size) {
                 const int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
 
-                #pragma omp parallel for schedule(guided) if(i_end > 8)
+                // #pragma omp parallel for schedule(guided) if(i_end > 8)
                 for (int ii = i; ii < i_end; ii++) {
                     float *__restrict weights_row = layer_weights[ii];
                     float *__restrict grads_row = layer_grads[ii];
@@ -264,7 +267,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
                     int jj = 0;
                     // Vectorized processing (8 elements at a time)
-                    #pragma omp parallel for schedule(guided) if(n_neurons > 8)
+                    // #pragma omp parallel for schedule(guided) if(n_neurons > 8)
                     for (int j = 0; j <= n_neurons - 8; j += 8) {
                         // Loading data
                         __m256 grad = _mm256_loadu_ps(grads_row + j);
@@ -394,7 +397,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         const register int chunk_size = 64 / sizeof(float);
 
         // Process layers with guided scheduling for load balancing
-        #pragma omp parallel for schedule(guided) if(layer_sizes_rows > 8)
+        // #pragma omp parallel for schedule(guided) if(layer_sizes_rows > 8)
         for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -405,18 +408,18 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
             float ** __restrict layer_v = optimizer->v[layer_index];
 
             // Process rows in chunks
-            #pragma omp parallel for schedule(guided) if(n_inputs > 8)
+            // #pragma omp parallel for schedule(guided) if(n_inputs > 8)
             for (register int i = 0; i < n_inputs; i += chunk_size) {
                 const register int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
 
-                #pragma omp parallel for schedule(guided) if(i_end > 8)
+                // #pragma omp parallel for schedule(guided) if(i_end > 8)
                 for (register int ii = i; ii < i_end; ii++) {
                     float *__restrict weights_row = layer_weights[ii];
                     float *__restrict grads_row = layer_grads[ii];
                     float *__restrict m_row = layer_m[ii];
                     float *__restrict v_row = layer_v[ii];
 
-                    #pragma omp parallel for schedule(guided) if(n_neurons > 8)
+                    // #pragma omp parallel for schedule(guided) if(n_neurons > 8)
                     for (register int j = 0; j < n_neurons; j += 4) {
                         if (j + 3 < n_neurons) {
 
@@ -460,6 +463,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 inline void adam_step_gpu(
     struct AdamOptimizer *__restrict optimizer,
     float ***weights,
+    cl_mem weights_vec_buf,
     float ****grad_w_list,
     int dataset_samples_rows,
     float *__restrict layer_sizes,
@@ -479,14 +483,16 @@ inline void adam_step_gpu(
     int total_elements_weights = total_elements_per_sample;
     int total_elements_grad_w = total_elements_per_sample * dataset_samples_rows;
 
+    float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
     float *grad_w_vec = malloc(total_elements_grad_w * sizeof(float));
+    check_if_null((float *)grad_w_vec, "grad_w_vec");
 
     int current_grad_w_offset = 0;
     for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-            
+
             for (int i = 0; i < n_inputs; i++) {
                 #pragma omp simd
                 for (int j = 0; j < n_neurons; j++) {
@@ -504,9 +510,7 @@ inline void adam_step_gpu(
     const float eps = optimizer->eps;
     int epoch = ++optimizer->epoch;
 
-    float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
     cl_int err;
-    cl_mem weights_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
     cl_mem grads_w_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_grad_w * sizeof(float), grad_w_vec, &err);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Failed to create gradients buffer (Error: %d)\n", err);
@@ -520,7 +524,7 @@ inline void adam_step_gpu(
 
     cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
 
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), &weights_buf);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &weights_vec_buf);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &grads_w_buf);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &m_buf);
     clSetKernelArg(kernel, 3, sizeof(cl_mem), &v_buf);
@@ -539,7 +543,7 @@ inline void adam_step_gpu(
     // Launching the OpenCL kernel
     clEnqueueNDRangeKernel(queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);
 
-    clEnqueueReadBuffer(queue, weights_buf, CL_TRUE, 0, total_elements_weights * sizeof(float), weights_vec, 0, NULL, NULL);
+    clEnqueueReadBuffer(queue, weights_vec_buf, CL_TRUE, 0, total_elements_weights * sizeof(float), weights_vec, 0, NULL, NULL);
     clEnqueueReadBuffer(queue, epoch_buf, CL_TRUE, 0, sizeof(int), &epoch, 0, NULL, NULL);
 
     optimizer->epoch = epoch;
@@ -559,7 +563,6 @@ inline void adam_step_gpu(
         current_weight_offset += n_inputs * n_neurons;
     }
 
-    clReleaseMemObject(weights_buf);
     clReleaseMemObject(grads_w_buf);
     clReleaseMemObject(m_buf);
     clReleaseMemObject(v_buf);

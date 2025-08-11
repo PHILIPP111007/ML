@@ -7,6 +7,11 @@
         "forward.h": "c",
         "logger.h": "c",
         "cl.h": "c",
-        "pthread.h": "c"
+        "pthread.h": "c",
+        "time.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "linear.h": "c",
+        "string.h": "c"
     }
 }

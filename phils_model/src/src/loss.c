@@ -10,9 +10,11 @@
 
 inline void mse_loss(float **__restrict prediction, int prediction_rows, int prediction_cols, float *__restrict target, float **__restrict output_error, int regression) {
     float **__restrict loss = malloc(prediction_rows * sizeof(float*));
+    check_if_null((float *)loss, "loss");
 
     for (int i = 0; i < prediction_rows; i++) {
         loss[i] =  malloc(prediction_cols * sizeof(float));
+        check_if_null((float *)loss[i], "loss[i]");
 
         int max_target_index = argmax(target, prediction_cols);
 
@@ -40,9 +42,11 @@ inline void mse_loss(float **__restrict prediction, int prediction_rows, int pre
 
 inline void cross_entropy_loss(float **__restrict prediction, int prediction_rows, int prediction_cols, float *__restrict target, float **__restrict output_error, int regression) {
     float **__restrict loss = malloc(prediction_rows * sizeof(float*));
+    check_if_null((float *)loss, "loss");
 
     for (int i = 0; i < prediction_rows; i++) {
         loss[i] =  malloc(prediction_cols * sizeof(float));
+        check_if_null((float *)loss[i], "loss[i]");
 
         int max_target_index = argmax(target, prediction_cols);
 

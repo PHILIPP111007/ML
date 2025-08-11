@@ -3,7 +3,6 @@
 #include "functions.h"
 #include "loss.h"
 #include "activations.h"
-#include "functions.h"
 #include "backward.h"
 
 
@@ -22,30 +21,44 @@ void *backward_worker(void *arg) {
     const register int dataset_samples_cols = bd->dataset_samples_cols;
     const register int dataset_targets_cols = bd->dataset_targets_cols;
     const register int gpu = bd->gpu;
+    const int loss = bd->loss;
+    float ***weights = bd->weights;
+    float **targets = bd->targets;
+    float *layer_sizes = bd->layer_sizes;
+    float *activations = bd->activations;
+    float *epoch_losses = bd->epoch_losses;
+    float ****grad_w_list = bd->grad_w_list;
+    float ****grad_x_list = bd->grad_x_list;
+    float ***grad_b_list = bd->grad_b_list;
+    float ****X_list = bd->X_list;
+    float ****Y_list = bd->Y_list;
     cl_context context = bd->context;
     cl_command_queue queue = bd->queue;
     cl_program program = bd->program;
     cl_mem weights_transposed_vec_buf = bd->weights_transposed_vec_buf;
 
-    #pragma omp parallel for schedule(guided)
+    // #pragma omp parallel for schedule(guided)
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
-        float ***__restrict X = bd->X_list[dataset_index];
-        float ***__restrict Y = bd->Y_list[dataset_index];
+        float ***X = X_list[dataset_index];
+        float ***Y = Y_list[dataset_index];
 
         // Allocate gradient arrays once per dataset
-        float ***__restrict grad_w = malloc(layer_sizes_rows * sizeof(float**));
-        float ***__restrict grad_x = malloc(layer_sizes_rows * sizeof(float**));
-        float **__restrict grad_b = malloc(layer_sizes_rows * sizeof(float*));
+        float ***grad_w = malloc(layer_sizes_rows * sizeof(float**));
+        check_if_null((float *)grad_w, "grad_w");
+        float ***grad_x = malloc(layer_sizes_rows * sizeof(float**));
+        check_if_null((float *)grad_x, "grad_x");
+        float **grad_b = malloc(layer_sizes_rows * sizeof(float*));
+        check_if_null((float *)grad_b, "grad_b");
 
         // Initialize last layer
-        const register int n_inputs = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
-        const register int n_neurons = (int)bd->layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
+        const register int n_inputs = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols];
+        const register int n_neurons = (int)layer_sizes[(layer_sizes_rows - 1) * layer_sizes_cols + 1];
 
-        float **__restrict delta = create_matrix(matrix_rows, n_neurons);
+        float **delta = create_matrix(matrix_rows, n_neurons);
 
         // Calculate loss and initial delta
-        calc_loss(bd->loss, bd->targets[dataset_index], Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
-        bd->epoch_losses[dataset_index] = sum(delta, matrix_rows, n_neurons);
+        calc_loss(loss, targets[dataset_index], Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
+        epoch_losses[dataset_index] = sum(delta, matrix_rows, n_neurons);
 
         // Compute gradients for last layer
         grad_b[layer_sizes_rows - 1] = sum_axis_0(delta, matrix_rows, n_neurons);
@@ -57,7 +70,7 @@ void *backward_worker(void *arg) {
         free_matrix(x_T);
 
         float **__restrict w_T = create_matrix(n_neurons, n_inputs);
-        w_T = transpose(bd->weights[layer_sizes_rows - 1], n_inputs, n_neurons);
+        w_T = transpose(weights[layer_sizes_rows - 1], n_inputs, n_neurons);
         grad_x[layer_sizes_rows - 1] = create_matrix(matrix_rows, n_inputs);
         matmul(delta, w_T, grad_x[layer_sizes_rows - 1], matrix_rows, n_neurons, n_neurons, n_inputs);
         free_matrix(w_T);
@@ -65,16 +78,16 @@ void *backward_worker(void *arg) {
 
         // Backpropagate through hidden layers
         for (int layer_index = layer_sizes_rows - 2; layer_index >= 0; layer_index--) {
-            const register int n_inputs = (int)bd->layer_sizes[layer_index * layer_sizes_cols];
-            const register int n_neurons = (int)bd->layer_sizes[layer_index * layer_sizes_cols + 1];
+            const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
+            const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
 
-            apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, (int)bd->activations[layer_index]);
+            apply_activation_derivative(Y[layer_index], matrix_rows, n_neurons, (int)activations[layer_index]);
 
-            float **__restrict delta = create_matrix(matrix_rows, n_neurons);
+            float **delta = create_matrix(matrix_rows, n_neurons);
 
             // Compute delta with SIMD optimization
             for (register int i = 0; i < matrix_rows; i++) {
-                #pragma omp parallel for simd
+                #pragma omp simd
                 for (register int j = 0; j < n_neurons; j++) {
                     delta[i][j] = grad_x[layer_index + 1][i][j] * Y[layer_index][i][j];
                 }
@@ -91,7 +104,7 @@ void *backward_worker(void *arg) {
 
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
 
-            if (gpu) {
+            if (gpu && 1 == 0) {
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
 
@@ -114,7 +127,7 @@ void *backward_worker(void *arg) {
                 free(x_vec);
             } else {
                 float **__restrict w_T = create_matrix(n_neurons, n_inputs);
-                w_T = transpose(bd->weights[layer_index], n_inputs, n_neurons);
+                w_T = transpose(weights[layer_index], n_inputs, n_neurons);
                 matmul(delta, w_T, grad_x[layer_index], matrix_rows, n_neurons, n_neurons, n_inputs);
                 free_matrix(w_T);
             }
@@ -122,9 +135,9 @@ void *backward_worker(void *arg) {
         }
 
         // Store gradients
-        bd->grad_w_list[dataset_index] = grad_w;
-        bd->grad_x_list[dataset_index] = grad_x;
-        bd->grad_b_list[dataset_index] = grad_b;
+        grad_w_list[dataset_index] = grad_w;
+        grad_x_list[dataset_index] = grad_x;
+        grad_b_list[dataset_index] = grad_b;
     }
     return NULL;
 }

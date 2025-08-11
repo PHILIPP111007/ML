@@ -8,4 +8,8 @@ void logger_info(
     char *s
 );
 
+void logger_error(
+    char *s
+);
+
 #endif

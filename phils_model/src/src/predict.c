@@ -12,6 +12,7 @@ void *predict_thread(void *arg) {
         PredictTask *task = &range->tasks[i];
 
         float ***__restrict Y = malloc(task->layer_sizes_rows * sizeof(float**));
+        check_if_null((float *)Y, "Y");
 
         // Forward pass
         forward(
