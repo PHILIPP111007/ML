@@ -27,6 +27,10 @@ char *get_time() {
 
 void logger_info(char *s) {
     const char *time = get_time();
-
     printf("[%s] - INFO - %s", time, s);
+}
+
+void logger_error(char *s) {
+    const char *time = get_time();
+    fprintf(stderr, "[%s] - ERROR - %s", time, s);
 }

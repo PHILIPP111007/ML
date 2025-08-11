@@ -2,15 +2,15 @@
 
 This is a fully connected neural network. It can solve regression and classification problems. It also supports Adam optimizer. There are code sections where I used processor-specific instructions (for x86 and ARM processors) for better optimization of the program. OpenCL GPU computing support has recently been added.
 
-Support for GPU computing is still under development.
-
 To run the `main.ipynb` file, use this:
 
 For MacOS:
 
 ```sh
-brew install llvm
+sudo xcode-select --install
+brew install llvm libomp
 brew install opencl-headers
+brew doctor
 
 clang -shared \
     -o main.so \
@@ -19,7 +19,7 @@ clang -shared \
     -fopenmp \
     -ffast-math \
     -march=native \
-    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c \
+    main.c src/linear.c src/src/functions.c src/src/activations.c src/src/loss.c src/src/init.c src/src/json.c src/src/adam.c src/src/forward.c src/src/backward.c src/src/logger.c src/src/predict.c \
     -framework OpenCL \
     -I/opt/homebrew/opt/opencl-headers/include
 ```
@@ -35,7 +35,7 @@ gcc -shared \
     -O3 \
     -fopenmp \
     -march=native \
-    main.c src/functions.c src/activations.c src/loss.c src/init.c src/json.c src/adam.c src/forward.c src/backward.c src/logger.c src/predict.c \
+    main.c src/linear.c src/src/functions.c src/src/activations.c src/src/loss.c src/src/init.c src/src/json.c src/src/adam.c src/src/forward.c src/src/backward.c src/src/logger.c src/src/predict.c \
     -lOpenCL
 ```
 

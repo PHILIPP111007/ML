@@ -5,6 +5,11 @@
 #include <CL/cl.h>
 
 
+void check_if_null(
+    float *pointer,
+    char *pointer_name
+);
+
 void matmul(
     float **A,
     float **B,

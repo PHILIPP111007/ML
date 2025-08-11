@@ -31,10 +31,13 @@ void forward(
 
     Y[0] = create_matrix(sample_rows, n_neurons);
 
-    if (gpu) {
+    if (gpu && 1 == 0) {
         float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
+        check_if_null((float *)sample_vec, "sample_vec");
         float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+        check_if_null((float *)weights_vec, "weights_vec");
         float *y_vec = malloc(sample_rows * n_neurons * sizeof(float));
+        check_if_null((float *)y_vec, "y_vec");
 
         for (int i = 0; i < sample_rows; i++) {
             #pragma omp simd
@@ -81,10 +84,13 @@ void forward(
 
         Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-        if (gpu) {
+        if (gpu && 1 == 0) {
             float *y_vec = malloc(matrix_rows * n_inputs * sizeof(float));
+            check_if_null((float *)y_vec, "y_vec");
             float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+            check_if_null((float *)weights_vec, "weights_vec");
             float *y_new_vec = malloc(matrix_rows * n_neurons * sizeof(float));
+            check_if_null((float *)y_new_vec, "y_new_vec");
 
             for (int i = 0; i < matrix_rows; i++) {
                 #pragma omp simd
@@ -160,7 +166,6 @@ void *forward_worker(void *arg) {
     for (register int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float **__restrict sample = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
-
             #pragma omp simd
             for (register int j = 0; j < sample_cols; j++) {
                 sample[i][j] = samples[dataset_index][i][j];
@@ -176,6 +181,7 @@ void *forward_worker(void *arg) {
         Y[0] = create_matrix(sample_rows, n_neurons);
         matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
         for (register int i = 0; i < sample_rows; i++) {
+            #pragma omp simd
             for (register int j = 0; j < n_neurons; j++) {
                 Y[0][i][j] += biases[0][i];
                 Y[0][i][j] = check_if_isnan(Y[0][i][j]);
@@ -212,10 +218,13 @@ void *forward_worker(void *arg) {
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-            if (gpu) {
+            if (gpu && 1 == 0) {
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
+                check_if_null((float *)x_vec, "x_vec");
                 float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
+                check_if_null((float *)weights_vec, "weights_vec");
                 float *y_vec = malloc(matrix_rows * n_neurons * sizeof(float));
+                check_if_null((float *)y_vec, "y_vec");
 
                 for (int i = 0; i < matrix_rows; i++) {
                     #pragma omp simd
@@ -240,6 +249,7 @@ void *forward_worker(void *arg) {
             }
 
             for (register int i = 0; i < matrix_rows; i++) {
+                #pragma omp simd
                 for (register int j = 0; j < n_neurons; j++) {
                     Y[layer_index][i][j] += biases[layer_index][i];
                     Y[layer_index][i][j] = check_if_isnan(Y[layer_index][i][j]);
@@ -277,21 +287,21 @@ void forward_threading(
     cl_context context,
     cl_command_queue queue,
     cl_program program,
-    cl_mem weights_vec_buf) {
-
+    cl_mem weights_vec_buf
+) {
     pthread_t forward_threads[num_threads];
 
-    // Разбиение всего набора данных на части для каждого потока
+    // Splitting the entire dataset into parts for each stream
     int block_size = dataset_samples_rows / num_threads;
     int remainder = dataset_samples_rows % num_threads;
 
-    // Начинаем раздавать задания потокам
+    // We start distributing tasks to threads
     int start_idx = 0;
     for (int t = 0; t < num_threads; t++) {
-        // Размер блока для текущего потока
+        // Block size for the current thread
         int end_idx = start_idx + block_size + (t < remainder ? 1 : 0);
 
-        // Устанавливаем данные для текущего потока
+        // Set data for the current thread
         forward_thread_data[t].X_list = X_list;
         forward_thread_data[t].Y_list = Y_list;
         forward_thread_data[t].samples = samples;
@@ -312,14 +322,13 @@ void forward_threading(
         forward_thread_data[t].program = program;
         forward_thread_data[t].weights_vec_buf = weights_vec_buf;
 
-        // Создание нового потока
+        // Creating a new thread
         pthread_create(&forward_threads[t], NULL, forward_worker, &forward_thread_data[t]);
 
-        // Следующий кусок данных начинается там, где закончился предыдущий
         start_idx = end_idx;
     }
 
-    // Ожидаем завершения всех потоков
+    // Waiting for all threads to complete
     for (int t = 0; t < num_threads; t++) {
         pthread_join(forward_threads[t], NULL);
     }

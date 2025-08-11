@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include "logger.h"
 #include "functions.h"
 
 // Platform-dependent optimizations
@@ -13,6 +14,15 @@
     #include <arm_neon.h>
 #endif
 
+
+inline void check_if_null(float *pointer, char *pointer_name) {
+    if (pointer == NULL) {
+        char *s = (char*)malloc(100 * sizeof(char));
+        sprintf(s, "Failed to create pointer %s.\n", pointer_name);
+        logger_error(s);
+        exit(EXIT_FAILURE);
+    }
+}
 
 inline void matmul(float **__restrict A, float **__restrict B, float **__restrict C, int rows_A, int cols_A, int rows_B, int cols_B) {
     // Checking compatibility of matrix sizes
@@ -116,7 +126,6 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
 inline float sum(float **__restrict matrix, int rows, int cols) {
     register float n = 0.0f;
     for (register int i = 0; i < rows; i++) {
-
         #pragma omp simd
         for (register int j = 0; j < cols; j++) {
             n += matrix[i][j];
@@ -127,10 +136,10 @@ inline float sum(float **__restrict matrix, int rows, int cols) {
 
 inline float *sum_axis_0(float **__restrict matrix, int rows, int cols) {
     float *result = malloc(cols * sizeof(float));
+    check_if_null((float *)result, "result");
 
     for (register int j = 0; j < cols; j++) {
         result[j] = 0.0f;
-
         #pragma omp simd
         for (register int i = 0; i < rows; i++) {
             result[j] += matrix[i][j];
@@ -183,16 +192,10 @@ inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, 
 
 inline float **create_matrix(int rows, int cols) {
     float **__restrict matrix = malloc(rows * sizeof(float*));
-    if (!matrix) {
-        printf("Failed to create matrix!\n");
-        exit(1);
-    }
+    check_if_null((float *)matrix, "matrix");
 
     float *__restrict data = malloc(rows * cols * sizeof(float));
-    if (!data) {
-        printf("Failed to create matrix!\n");
-        exit(1);
-    }
+    check_if_null((float *)data, "data");
 
     // Setting up line pointers
     #pragma omp simd
@@ -232,6 +235,7 @@ inline float *get_weights_vec(float ***weights, int layer_sizes_rows, int layer_
 
     int total_elements_weights = total_elements_per_sample;
     float *weights_vec = malloc(total_elements_weights * sizeof(float));
+    check_if_null((float *)weights_vec, "weights_vec");
 
     int current_weight_offset = 0;
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -261,6 +265,7 @@ inline float *get_weights_transposed_vec(float ***weights_transposed, int layer_
 
     int total_elements_weights = total_elements_per_sample;
     float *weights_transposed_vec = malloc(total_elements_weights * sizeof(float));
+    check_if_null((float *)weights_transposed_vec, "weights_transposed_vec");
 
     int current_weight_offset = 0;
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
