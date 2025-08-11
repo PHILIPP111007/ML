@@ -114,7 +114,9 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Use cache-friendly chunk size (64 bytes / sizeof(float))
         const int chunk_size = 64 / sizeof(float);
 
+        #if !defined(__APPLE__)
         #pragma omp parallel for schedule(static)
+        #endif
         for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -244,7 +246,9 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Use cache-friendly chunk size (64 bytes / sizeof(float))
         const int chunk_size = 64 / sizeof(float);
 
+        #if !defined(__APPLE__)
         #pragma omp parallel for schedule(static)
+        #endif
         for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
@@ -257,7 +261,6 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
             for (int i = 0; i < n_inputs; i += chunk_size) {
                 const int i_end = (i + chunk_size < n_inputs) ? i + chunk_size : n_inputs;
 
-                // #pragma omp parallel for schedule(guided) if(i_end > 8)
                 for (int ii = i; ii < i_end; ii++) {
                     float *__restrict weights_row = layer_weights[ii];
                     float *__restrict grads_row = layer_grads[ii];
@@ -394,7 +397,9 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         const register int chunk_size = 64 / sizeof(float);
 
         // Process layers with guided scheduling for load balancing
+        #if !defined(__APPLE__)
         #pragma omp parallel for schedule(static)
+        #endif
         for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
             const register int n_inputs = (int)layer_sizes[layer_index * layer_sizes_cols];
             const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];

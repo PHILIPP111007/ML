@@ -37,7 +37,9 @@ void *backward_worker(void *arg) {
     cl_program program = bd->program;
     cl_mem weights_transposed_vec_buf = bd->weights_transposed_vec_buf;
 
+    #if !defined(__APPLE__)
     #pragma omp parallel for schedule(static)
+    #endif
     for (int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float ***X = X_list[dataset_index];
         float ***Y = Y_list[dataset_index];
