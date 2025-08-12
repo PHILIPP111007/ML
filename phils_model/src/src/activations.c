@@ -100,7 +100,12 @@ inline void softmax_calc(float **__restrict y, int matrix_rows, int matrix_colum
 }
 
 inline void softmax_derivative(float **__restrict y, int matrix_rows, int matrix_columns) {
-    return;
+    for (register int i = 0; i < matrix_rows; i++) {
+        #pragma omp simd
+        for (register int j = 0; j < matrix_columns; j++) {
+            y[i][j] = y[i][j];
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
