@@ -133,8 +133,8 @@ void forward(
 
     for (register int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
         const register int n_neurons = (int)layer_sizes[layer_index * layer_sizes_cols + 1];
-
         for (register int i = 0; i < matrix_rows; i++) {
+            #pragma omp simd
             for (register int j = 0; j < n_neurons; j++) {
                 Y[layer_index][i][j] = check_if_isnan(Y[layer_index][i][j]);
             }

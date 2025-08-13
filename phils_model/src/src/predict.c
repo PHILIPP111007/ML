@@ -8,6 +8,9 @@
 void *predict_thread(void *arg) {
     ThreadRange *range = (ThreadRange*)arg;
 
+    #if !defined(__APPLE__)
+    #pragma omp parallel for schedule(static)
+    #endif
     for (int i = range->start; i < range->end; i++) {
         PredictTask *task = &range->tasks[i];
 

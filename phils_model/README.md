@@ -32,6 +32,7 @@ sudo apt-get update && sudo apt-get install ocl-icd-opencl-dev
 gcc -shared \
     -o main.so \
     -fPIC \
+    -fno-wrapv \
     -O3 \
     -fopenmp \
     -march=native \

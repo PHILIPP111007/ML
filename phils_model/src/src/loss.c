@@ -20,7 +20,7 @@ inline void mse_loss(float **__restrict prediction, int prediction_rows, int pre
 
         for (int j = 0; j < prediction_cols; j++) {
             if (j == max_target_index && !regression) {
-                loss[i][j] = 0.0;
+                loss[i][j] = 0.0f;
             } else {
                 loss[i][j] = fast_pow((float)target[max_target_index] - prediction[i][j], 2);
             }
@@ -52,13 +52,13 @@ inline void cross_entropy_loss(float **__restrict prediction, int prediction_row
 
         for (int j = 0; j < prediction_cols; j++) {
             if (j == max_target_index && !regression) {
-                loss[i][j] = 0.0;
+                loss[i][j] = 0.0f;
             } else {
-                float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
+                float p = prediction[i][j] > 1e-6 ? prediction[i][j] : 1e-6;
                 loss[i][j] = target[max_target_index] * log(p);
             }
 
-            // float p = prediction[i][j] > 1e-15 ? prediction[i][j] : 1e-15;
+            // float p = prediction[i][j] > 1e-6 ? prediction[i][j] : 1e-6;
             // loss[i][j] = target[j] * log(p);
 
             loss[i][j] = check_if_isnan(loss[i][j]);
