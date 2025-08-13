@@ -33,11 +33,6 @@ struct AdamOptimizer *create_adam(
     int layer_sizes_cols
 );
 
-float fast_pow(
-    float a,
-    int b
-);
-
 void adam_step(
     struct AdamOptimizer *optimizer,
     float ***weights,

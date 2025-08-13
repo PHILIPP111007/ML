@@ -14,10 +14,6 @@
 #endif
 
 
-inline float fast_pow(float a, int b) {
-    return expf(b * logf(a));
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // Adam optimizer
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,8 +89,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Pre-calculate frequently used values
         const float b1_pow = fast_pow(b1, epoch);
         const float b2_pow = fast_pow(b2, epoch);
-        const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
-        const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
+        const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
+        const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
         const float b1_minus_1 = 1.0f - b1;
         const float b2_minus_1 = 1.0f - b2;
         const float neg_max_change = -max_change;
@@ -225,8 +221,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Pre-calculate frequently used values
         const float b1_pow = fast_pow(b1, epoch);
         const float b2_pow = fast_pow(b2, epoch);
-        const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
-        const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
+        const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
+        const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
         const float b1_minus_1 = 1.0f - b1;
         const float b2_minus_1 = 1.0f - b2;
         const float neg_max_change = -max_change;
@@ -269,7 +265,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
                     int jj = 0;
                     // Vectorized processing (8 elements at a time)
-                    for (int j = 0; j <= n_neurons - 8; j += 8) {
+                    #pragma omp simd
+                    for (int j = jj; j <= n_neurons - 8; j += 8) {
                         // Loading data
                         __m256 grad = _mm256_loadu_ps(grads_row + j);
                         __m256 m = _mm256_loadu_ps(m_row + j);
@@ -307,6 +304,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
                     }
 
                     // Processing the remaining elements (4 at a time)
+                    #pragma omp simd
                     for (int j = jj; j <= n_neurons - 4; j += 4) {
                         __m128 grad = _mm_loadu_ps(grads_row + j);
                         __m128 m = _mm_loadu_ps(m_row + j);
@@ -388,8 +386,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         // Precompute bias corrections
         const register float b1_pow = fast_pow(b1, epoch);
         const register float b2_pow = fast_pow(b2, epoch);
-        const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
-        const register float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
+        const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
+        const register float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
         const register float b1_minus_1 = 1.0f - b1;
         const register float b2_minus_1 = 1.0f - b2;
 
@@ -420,8 +418,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
                     float *__restrict v_row = layer_v[ii];
 
                     for (register int j = 0; j < n_neurons; j += 4) {
-                        if (j + 3 < n_neurons) {
-
+                        if ((j + 3) <= n_neurons) {
                             #pragma omp simd
                             for (register int k = 0; k < 4; k++) {
                                 const register int idx = j + k;
