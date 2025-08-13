@@ -87,7 +87,8 @@ inline void matmul(float **__restrict A, float **__restrict B, float **__restric
 
                 #pragma omp simd
                 for (register int j = 0; j < cols_B; j++) {
-                    c_row[j] += a_val * b_row[j];
+                    register b_val = b_row[j];
+                    c_row[j] += a_val * b_val;
                 }
             }
         #endif
