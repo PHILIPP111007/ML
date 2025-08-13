@@ -116,7 +116,11 @@ void fit(
     }
 
     // Step 3: Create a command queue
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    #ifdef __APPLE__
+        cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+    #else
+        cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    #endif
 
     char *source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
     char *source_adam_step_gpu = get_file_content("src/src/adam_step_gpu.cl");
@@ -283,7 +287,11 @@ void predict_one(
     }
 
     // Step 3: Create a command queue
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    #ifdef __APPLE__
+        cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+    #else
+        cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    #endif
 
     char *source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
 
@@ -431,7 +439,11 @@ void predict(
     }
 
     // Step 3: Create a command queue
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    #ifdef __APPLE__
+        cl_command_queue queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+    #else
+        cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    #endif
 
     char *source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
 
