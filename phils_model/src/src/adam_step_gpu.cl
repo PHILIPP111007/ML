@@ -32,7 +32,6 @@ __kernel void adam_step_gpu(__global float *weights, __global float *grads,
   float grad_sq = grad * grad;
 
   m[idx] = b1 * m[idx] + b1_minus_1 * grad;
-
   v[idx] = b2 * v[idx] + b2_minus_1 * grad_sq;
 
   float m_hat = m[idx] * inv_1mb1;
