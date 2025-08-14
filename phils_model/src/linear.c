@@ -63,12 +63,14 @@ void linear_fit(
         weights_transposed[layer_index] = transpose(weights[layer_index], n_inputs, n_neurons);
     }
 
+    float *weights_vec;
+    float *weights_transposed_vec;
     cl_mem weights_vec_buf;
     cl_mem weights_transposed_vec_buf;
 
     if (gpu) {
-        float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
-        float *weights_transposed_vec = get_weights_transposed_vec(weights_transposed, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+        weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
+        weights_transposed_vec = get_weights_transposed_vec(weights_transposed, layer_sizes_rows, layer_sizes_cols, layer_sizes);
         weights_vec_buf = get_weights_vec_buf(weights_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
         weights_transposed_vec_buf = get_weights_vec_buf(weights_transposed_vec, layer_sizes_rows, layer_sizes_cols, layer_sizes, context);
 
@@ -95,7 +97,6 @@ void linear_fit(
             weights_vec_buf
         );
 
-        free(weights_vec);
         free(weights_transposed_vec);
     } else {
         forward_threading(
@@ -213,7 +214,7 @@ void linear_fit(
     }
 
     if (gpu) {
-        adam_step_gpu(opt, weights, weights_vec_buf, grad_w_list, dataset_samples_rows, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
+        adam_step_gpu(opt, weights, weights_vec, weights_vec_buf, grad_w_list, dataset_samples_rows, layer_sizes, layer_sizes_rows, layer_sizes_cols, max_change, context, queue, program_adam_step_gpu);
     } else {
         for (int dataset_index = 0; dataset_index < dataset_samples_rows; dataset_index++) {
             float ***grad_w = grad_w_list[dataset_index];
@@ -222,6 +223,7 @@ void linear_fit(
     }
 
     if (gpu) {
+        free(weights_vec);
         clReleaseMemObject(weights_vec_buf);
         clReleaseMemObject(weights_transposed_vec_buf);
     }

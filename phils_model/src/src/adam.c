@@ -459,6 +459,7 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 inline void adam_step_gpu(
     struct AdamOptimizer *__restrict optimizer,
     float ***weights,
+    float *weights_vec,
     cl_mem weights_vec_buf,
     float ****grad_w_list,
     int dataset_samples_rows,
@@ -479,7 +480,6 @@ inline void adam_step_gpu(
     int total_elements_weights = total_elements_per_sample;
     int total_elements_grad_w = total_elements_per_sample * dataset_samples_rows;
 
-    float *weights_vec = get_weights_vec(weights, layer_sizes_rows, layer_sizes_cols, layer_sizes);
     float *grad_w_vec = malloc(total_elements_grad_w * sizeof(float));
     check_if_null((float *)grad_w_vec, "grad_w_vec");
 
@@ -565,6 +565,5 @@ inline void adam_step_gpu(
     clReleaseMemObject(epoch_buf);
     clReleaseKernel(kernel);
 
-    free(weights_vec);
     free(grad_w_vec);
 }

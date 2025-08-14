@@ -46,6 +46,7 @@ void adam_step(
 void adam_step_gpu(
     struct AdamOptimizer *optimizer,
     float ***weights,
+    float *weights_vec,
     cl_mem weights_vec_buf,
     float ****grad_w_list,
     int dataset_samples_rows,
