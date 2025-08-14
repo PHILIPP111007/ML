@@ -52,7 +52,6 @@ void fit(
             #pragma omp simd
             for (register int j = 0; j < dataset_samples_depth; j++) {
                 int index = dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j;
-                check_if_index_out_of_bounds(index, get_array_size(dataset_samples), "dataset_samples");
                 samples[dataset_index][i][j] = (float)dataset_samples[index];
             }
         }
@@ -64,9 +63,6 @@ void fit(
         #pragma omp simd
         for (register int j = 0; j < dataset_targets_cols; j++) {
             int index = i * dataset_targets_cols + j;
-
-            check_if_index_out_of_bounds(index, get_array_size(dataset_targets), "dataset_targets");
-
             targets[i][j] = (float)dataset_targets[index];
         }
     }
@@ -254,7 +250,6 @@ void predict_one(
         #pragma omp simd
         for (register int j = 0; j < sample_cols; j++) {
             int index = i * sample_cols + j;
-            check_if_index_out_of_bounds(index, get_array_size(sample_input), "sample_input");
             sample[i][j] = sample_input[index];
         }
     }
@@ -275,7 +270,6 @@ void predict_one(
             #pragma omp simd
             for (int j = 0; j < n_neurons; j++) {
                 int index = current_weight_offset + i * n_neurons + j;
-                check_if_index_out_of_bounds(index, get_array_size(weights_input), "weights_input");
                 weights[layer_index][i][j] = weights_input[index];
             }
         }
@@ -286,7 +280,6 @@ void predict_one(
         #pragma omp simd
         for (int i = 0; i < n_neurons; i++) {
             int index = total_bias_count + i;
-            check_if_index_out_of_bounds(index, get_array_size(biases_input), "biases_input");
             biases[layer_index][i] = biases_input[index];
         }
 
@@ -425,7 +418,6 @@ void predict(
         for (int i = 0; i < dataset_samples_cols; i++) {
             for (int j = 0; j < dataset_samples_depth; j++) {
                 int index = dataset_index * dataset_samples_cols * dataset_samples_depth + i * dataset_samples_depth + j;
-                check_if_index_out_of_bounds(index, get_array_size(dataset_samples), "dataset_samples");
                 samples[dataset_index][i][j] = (float)dataset_samples[index];
             }
         }
@@ -447,7 +439,6 @@ void predict(
             #pragma omp simd
             for (int j = 0; j < n_neurons; ++j) {
                 int index = current_weight_offset + i * n_neurons + j;
-                check_if_index_out_of_bounds(index, get_array_size(weights_input), "weights_input");
                 weights[layer_index][i][j] = weights_input[index];
             }
         }
@@ -458,7 +449,6 @@ void predict(
         #pragma omp simd
         for (int i = 0; i < n_neurons; ++i) {
             int index = total_bias_count + i;
-            check_if_index_out_of_bounds(index, get_array_size(biases_input), "biases_input");
             biases[layer_index][i] = biases_input[index];
         }
 
