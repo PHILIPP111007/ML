@@ -179,7 +179,35 @@ void *forward_worker(void *arg) {
         const register int n_neurons = (int)layer_sizes[0 * layer_sizes_cols + 1];
 
         Y[0] = create_matrix(sample_rows, n_neurons);
-        matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
+
+        if (gpu) {
+            float *sample_vec = malloc(sample_rows * sample_cols * sizeof(float));
+            check_if_null((float *)sample_vec, "sample_vec");
+            float *y_vec = malloc(n_inputs * n_neurons * sizeof(float));
+            check_if_null((float *)y_vec, "y_vec");
+
+            for (int i = 0; i < sample_rows; i++) {
+                #pragma omp simd
+                for (int j = 0; j < sample_cols; j++) {
+                    sample_vec[i * sample_cols + j] = sample[i][j];
+                }
+            }
+
+            matmul_gpu(fd->context, fd->queue, fd->program, sample_vec, weights_vec_buf, y_vec, sample_rows, sample_cols, n_inputs, n_neurons, 0);
+
+            for (int i = 0; i < sample_rows; i++) {
+                #pragma omp simd
+                for (int j = 0; j < n_neurons; j++) {
+                    Y[0][i][j] = y_vec[i * n_neurons + j];
+                }
+            }
+
+            free(sample_vec);
+            free(y_vec);
+        } else {
+            matmul(sample, weights[0], Y[0], sample_rows, sample_cols, n_inputs, n_neurons);
+        }
+
         for (register int i = 0; i < sample_rows; i++) {
             #pragma omp simd
             for (register int j = 0; j < n_neurons; j++) {
