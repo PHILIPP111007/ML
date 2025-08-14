@@ -107,7 +107,7 @@ void *backward_worker(void *arg) {
 
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
 
-            if (gpu && large_matrices) {
+            if (gpu) {
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
 

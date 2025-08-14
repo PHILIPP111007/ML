@@ -14,6 +14,8 @@
     #include <arm_neon.h>
 #endif
 
+#define LOCAL_BLOCK_SIZE 8
+
 
 inline void check_if_null(float *pointer, char *pointer_name) {
     if (pointer == NULL) {
@@ -115,8 +117,10 @@ inline void matmul_gpu(cl_context context, cl_command_queue queue, cl_program pr
 
     // Step 9: Determine the size of the thread grid
     size_t global_size[] = {ROWS_A, COLS_B}; // Working flow volume
+    size_t local_size[] = {LOCAL_BLOCK_SIZE, LOCAL_BLOCK_SIZE}; // Working flow volume
+
     // Launch the kernel
-    clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
+    clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
 
     // Reading the result
     clEnqueueReadBuffer(queue, d_C, CL_TRUE, 0, ROWS_A * COLS_B * sizeof(float), C, 0, NULL, NULL);
