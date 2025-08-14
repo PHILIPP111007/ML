@@ -164,9 +164,6 @@ void *forward_worker(void *arg) {
     const int large_matrices = fd->large_matrices;
     cl_mem weights_vec_buf = fd->weights_vec_buf;
 
-    #if !defined(__APPLE__)
-    #pragma omp parallel for schedule(static)
-    #endif
     for (register int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float **__restrict sample = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
