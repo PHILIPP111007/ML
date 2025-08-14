@@ -21,7 +21,6 @@ void *backward_worker(void *arg) {
     const register int dataset_samples_cols = bd->dataset_samples_cols;
     const register int dataset_targets_cols = bd->dataset_targets_cols;
     const register int gpu = bd->gpu;
-    const register int large_matrices = bd->large_matrices;
     const register int loss = bd->loss;
     float ***weights = bd->weights;
     float **targets = bd->targets;
@@ -168,7 +167,6 @@ void backward_threading(
     int regression,
     int num_threads,
     int gpu,
-    int large_matrices,
     cl_context context,
     cl_command_queue queue,
     cl_program program,
@@ -206,7 +204,6 @@ void backward_threading(
         backward_thread_data[t].dataset_samples_cols = dataset_samples_cols;
         backward_thread_data[t].dataset_targets_cols = dataset_targets_cols;
         backward_thread_data[t].gpu = gpu;
-        backward_thread_data[t].large_matrices = large_matrices;
         backward_thread_data[t].context = context;
         backward_thread_data[t].queue = queue;
         backward_thread_data[t].program = program;
