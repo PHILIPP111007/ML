@@ -161,8 +161,12 @@ void *forward_worker(void *arg) {
     float *activations = fd->activations;
     float *dropouts = fd->dropouts;
     const int gpu = fd->gpu;
+    const int large_matrices = fd->large_matrices;
     cl_mem weights_vec_buf = fd->weights_vec_buf;
 
+    #if !defined(__APPLE__)
+    #pragma omp parallel for schedule(static)
+    #endif
     for (register int dataset_index = start_idx; dataset_index < end_idx; dataset_index++) {
         float **__restrict sample = create_matrix(sample_rows, sample_cols);
         for (int i = 0; i < sample_rows; i++) {
@@ -218,7 +222,7 @@ void *forward_worker(void *arg) {
 
             Y[layer_index] = create_matrix(matrix_rows, n_neurons);
 
-            if (gpu && 1 == 0) {
+            if (gpu && large_matrices) {
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
                 check_if_null((float *)x_vec, "x_vec");
                 float *weights_vec = malloc(n_inputs * n_neurons * sizeof(float));
@@ -284,6 +288,7 @@ void forward_threading(
     float *dropouts,
     int num_threads,
     int gpu,
+    int large_matrices,
     cl_context context,
     cl_command_queue queue,
     cl_program program,
@@ -317,6 +322,7 @@ void forward_threading(
         forward_thread_data[t].layer_sizes_rows = layer_sizes_rows;
         forward_thread_data[t].layer_sizes_cols = layer_sizes_cols;
         forward_thread_data[t].gpu = gpu;
+        forward_thread_data[t].large_matrices = large_matrices;
         forward_thread_data[t].context = context;
         forward_thread_data[t].queue = queue;
         forward_thread_data[t].program = program;

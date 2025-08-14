@@ -31,6 +31,7 @@ typedef struct BackwardData {
     int dataset_samples_cols;
     int dataset_targets_cols;
     int gpu;
+    int large_matrices;
 } BackwardData;
 
 void *backward_worker(
@@ -60,6 +61,7 @@ void backward_threading(
     int regression,
     int num_threads,
     int gpu,
+    int large_matrices,
     cl_context context,
     cl_command_queue queue,
     cl_program program,

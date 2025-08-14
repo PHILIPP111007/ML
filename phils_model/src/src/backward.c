@@ -21,7 +21,8 @@ void *backward_worker(void *arg) {
     const register int dataset_samples_cols = bd->dataset_samples_cols;
     const register int dataset_targets_cols = bd->dataset_targets_cols;
     const register int gpu = bd->gpu;
-    const int loss = bd->loss;
+    const register int large_matrices = bd->large_matrices;
+    const register int loss = bd->loss;
     float ***weights = bd->weights;
     float **targets = bd->targets;
     float *layer_sizes = bd->layer_sizes;
@@ -106,7 +107,7 @@ void *backward_worker(void *arg) {
 
             grad_x[layer_index] = create_matrix(matrix_rows, n_inputs);
 
-            if (gpu && 1 == 0) {
+            if (gpu && large_matrices) {
                 float *delta_vec = malloc(matrix_rows * n_neurons * sizeof(float));
                 float *x_vec = malloc(matrix_rows * n_inputs * sizeof(float));
 
@@ -167,6 +168,7 @@ void backward_threading(
     int regression,
     int num_threads,
     int gpu,
+    int large_matrices,
     cl_context context,
     cl_command_queue queue,
     cl_program program,
@@ -204,6 +206,7 @@ void backward_threading(
         backward_thread_data[t].dataset_samples_cols = dataset_samples_cols;
         backward_thread_data[t].dataset_targets_cols = dataset_targets_cols;
         backward_thread_data[t].gpu = gpu;
+        backward_thread_data[t].large_matrices = large_matrices;
         backward_thread_data[t].context = context;
         backward_thread_data[t].queue = queue;
         backward_thread_data[t].program = program;

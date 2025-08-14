@@ -44,6 +44,7 @@ void linear_fit(
     float learning_rate,
     int num_threads,
     int gpu,
+    int large_matrices,
     struct AdamOptimizer *opt,
     cl_context context,
     cl_command_queue queue,

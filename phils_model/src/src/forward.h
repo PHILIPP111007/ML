@@ -25,6 +25,7 @@ typedef struct ForwardData{
     int layer_sizes_rows;
     int layer_sizes_cols;
     int gpu;
+    int large_matrices;
 } ForwardData;
 
 void forward(
@@ -66,6 +67,7 @@ void forward_threading(
     float *dropouts,
     int num_threads,
     int gpu,
+    int large_matrices,
     cl_context context,
     cl_command_queue queue,
     cl_program program,

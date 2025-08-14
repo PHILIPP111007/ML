@@ -32,6 +32,7 @@ void fit(
     float *dropouts,
     float *losses,
     int gpu,
+    int large_matrices,
     const char *layers[],
     int number_of_layers
 ) {
@@ -179,6 +180,7 @@ void fit(
                     learning_rate,
                     num_threads,
                     gpu,
+                    large_matrices,
                     opt,
                     context,
                     queue,
