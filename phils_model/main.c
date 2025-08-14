@@ -95,37 +95,57 @@ void fit(
     cl_uint num_platforms;
     cl_platform_id platforms[10];
     clGetPlatformIDs(10, platforms, &num_platforms);
+    if (verbose && num_platforms == 0 && gpu) {
+        logger_error("Number of platforms is 0. Returning to CPU.");
+        gpu = 0;
+    }
 
-    // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint num_devices;
-    clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &num_devices);
-
-    if (verbose && gpu) {
-        printf("Number of platforms: %u\n", num_platforms);
-        printf("Number of GPUs: %u\n", num_devices);
+    if (gpu) {
+        // We use the first suitable device of the GPU type
+        clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &num_devices);
+        if (verbose) {
+            printf("Number of platforms: %u\n", num_platforms);
+            printf("Number of GPUs: %u\n", num_devices);
+        }
     }
 
     // Step 2: Create context
     cl_int err_code;
-    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[0], 0 };
-    cl_context context = clCreateContext(properties, 1, devices, NULL, NULL, &err_code);
-    if (context == NULL || err_code != CL_SUCCESS) {
-        fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
-        exit(EXIT_FAILURE);
+    cl_context context;
+    if (gpu) {
+        context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
+        if (context == NULL || err_code != CL_SUCCESS) {
+            fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Step 3: Create a command queue
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    cl_command_queue queue;
+    if (gpu) {
+        #ifdef __APPLE__
+            queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+        #else
+            queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+        #endif
+    }
 
-    char *source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
-    char *source_adam_step_gpu = get_file_content("src/src/adam_step_gpu.cl");
+    char *source_matmul_gpu;
+    char *source_adam_step_gpu;
+    cl_program program_matmul_gpu;
+    cl_program program_adam_step_gpu;
+    if (gpu) {
+        source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
+        source_adam_step_gpu = get_file_content("src/src/adam_step_gpu.cl");
 
-    cl_program program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
-    clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
-
-    cl_program program_adam_step_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_adam_step_gpu, NULL, NULL);
-    clBuildProgram(program_adam_step_gpu, 2, devices, "-cl-fast-relaxed-math", NULL, NULL);
+        program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
+        clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+    
+        program_adam_step_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_adam_step_gpu, NULL, NULL);
+        clBuildProgram(program_adam_step_gpu, 2, devices, "-cl-fast-relaxed-math", NULL, NULL);
+    }
 
     // Iteration over epochs
     for (int epoch = 0; epoch < n_epoch; epoch++) {
@@ -180,10 +200,12 @@ void fit(
 
     // Clearing memory
 
-    clReleaseProgram(program_matmul_gpu);
-    clReleaseProgram(program_adam_step_gpu);
-    clReleaseCommandQueue(queue);
-    clReleaseContext(context);
+    if (gpu) {
+        clReleaseProgram(program_matmul_gpu);
+        clReleaseProgram(program_adam_step_gpu);
+        clReleaseCommandQueue(queue);
+        clReleaseContext(context);
+    }
 
     destroy_adam(opt, linear_layer_sizes, linear_layer_sizes_rows, linear_layer_sizes_cols);
 
@@ -268,32 +290,55 @@ void predict_one(
     cl_uint num_platforms;
     cl_platform_id platforms[10];
     clGetPlatformIDs(10, platforms, &num_platforms);
+    if (num_platforms == 0 && gpu) {
+        gpu = 0;
+    }
 
-    // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint num_devices;
-    clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &num_devices);
+    if (gpu) {
+        // We use the first suitable device of the GPU type
+        clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &num_devices);
+    }
 
     // Step 2: Create context
     cl_int err_code;
-    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
-    if (context == NULL || err_code != CL_SUCCESS) {
-        fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
-        exit(EXIT_FAILURE);
+    cl_context context;
+    if (gpu) {
+        context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
+        if (context == NULL || err_code != CL_SUCCESS) {
+            fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Step 3: Create a command queue
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    cl_command_queue queue;
+    if (gpu) {
+        #ifdef __APPLE__
+            queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+        #else
+            queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+        #endif
+    }
 
-    char *source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
+    char *source_matmul_gpu;
+    cl_program program_matmul_gpu;
+    if (gpu) {
+        source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
 
-    cl_program program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
-    clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+        program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
+        clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+    }
 
     // Forward pass
 
-    float *weights_vec = get_weights_vec(weights, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes);
-    cl_mem weights_vec_buf = get_weights_vec_buf(weights_vec, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes, context);
+    float *weights_vec;
+    cl_mem weights_vec_buf;
+    if (gpu) {
+        weights_vec = get_weights_vec(weights, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes);
+        weights_vec_buf = get_weights_vec_buf(weights_vec, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes, context);
+    }
 
     // Iterating through neural network layers
     for (int layer_index = 0; layer_index < number_of_layers; layer_index++) {
@@ -325,12 +370,13 @@ void predict_one(
 
     // Free memory
 
-    clReleaseProgram(program_matmul_gpu);
-    clReleaseMemObject(weights_vec_buf);
-    free(weights_vec);
-
-    clReleaseCommandQueue(queue);
-    clReleaseContext(context);
+    if (gpu) {
+        clReleaseProgram(program_matmul_gpu);
+        clReleaseMemObject(weights_vec_buf);
+        clReleaseCommandQueue(queue);
+        clReleaseContext(context);
+        free(weights_vec);
+    }
 
     free_matrix(sample);
 
@@ -409,37 +455,62 @@ void predict(
     if (num_cpu > dataset_samples_rows) {
         num_cpu = dataset_samples_rows;
     }
-
+    
     // Preparing the GPU Kernel
 
     // Step 1: Get a platform and device
     cl_uint num_platforms;
     cl_platform_id platforms[10];
     clGetPlatformIDs(10, platforms, &num_platforms);
+    if (num_platforms == 0 && gpu) {
+        gpu = 0;
+    }
 
-    // We use the first suitable device of the GPU type
     cl_device_id devices[10];
     cl_uint num_devices;
-    clGetDeviceIDs(*platforms, CL_DEVICE_TYPE_GPU, 10, devices, &num_devices);
+    if (gpu) {
+        // We use the first suitable device of the GPU type
+        clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 10, devices, &num_devices);
+    }
 
     // Step 2: Create context
     cl_int err_code;
-    cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
-    if (context == NULL || err_code != CL_SUCCESS) {
-        fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
-        exit(EXIT_FAILURE);
+    cl_context context;
+    if (gpu) {
+        context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
+        if (context == NULL || err_code != CL_SUCCESS) {
+            fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Step 3: Create a command queue
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+    cl_command_queue queue;
+    if (gpu) {
+        #ifdef __APPLE__
+            queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+        #else
+            queue = clCreateCommandQueueWithProperties(context, devices[0], 0, NULL);
+        #endif
+    }
 
-    char *source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
+    char *source_matmul_gpu;
+    cl_program program_matmul_gpu;
+    if (gpu) {
+        source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
 
-    cl_program program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
-    clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+        program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
+        clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
+    }
 
-    float *weights_vec = get_weights_vec(weights, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes);
-    cl_mem weights_vec_buf = get_weights_vec_buf(weights_vec, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes, context);
+    // Forward pass
+
+    float *weights_vec;
+    cl_mem weights_vec_buf;
+    if (gpu) {
+        weights_vec = get_weights_vec(weights, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes);
+        weights_vec_buf = get_weights_vec_buf(weights_vec, linear_layer_sizes_rows, linear_layer_sizes_cols, linear_layer_sizes, context);
+    }
 
     // Iterating through neural network layers
     for (int layer_index = 0; layer_index < number_of_layers; layer_index++) {
@@ -473,11 +544,13 @@ void predict(
 
     // Free memory
 
-    clReleaseProgram(program_matmul_gpu);
-    clReleaseMemObject(weights_vec_buf);
-    clReleaseCommandQueue(queue);
-    clReleaseContext(context);
-    free(weights_vec);
+    if (gpu) {
+        clReleaseProgram(program_matmul_gpu);
+        clReleaseMemObject(weights_vec_buf);
+        clReleaseCommandQueue(queue);
+        clReleaseContext(context);
+        free(weights_vec);
+    }
 
     for (int layer_index = 0; layer_index < linear_layer_sizes_rows; layer_index++) {
         const int n_inputs = (int)linear_layer_sizes[layer_index * linear_layer_sizes_cols];
