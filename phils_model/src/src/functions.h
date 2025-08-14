@@ -10,6 +10,16 @@ void check_if_null(
     char *pointer_name
 );
 
+int get_array_size(
+    float *array
+);
+
+void check_if_index_out_of_bounds(
+    int index,
+    int array_size,
+    char *array_name
+);
+
 float fast_pow(
     float a,
     int b

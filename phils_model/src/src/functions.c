@@ -26,6 +26,18 @@ inline void check_if_null(float *pointer, char *pointer_name) {
     }
 }
 
+inline int get_array_size(float *array) {
+    return sizeof(array) / sizeof(array[0]);
+}
+
+inline void check_if_index_out_of_bounds(int index, int array_size, char *array_name) {
+    if (index >= array_size) {
+        char *s = (char*)malloc(100 * sizeof(char));
+        sprintf(s, "Index out of bounds for array %s.\n", array_name);
+        logger_error(s);
+    }
+}
+
 inline float fast_pow(float a, int b) {
     return expf(b * logf(a));
 }
