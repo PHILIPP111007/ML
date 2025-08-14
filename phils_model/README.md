@@ -38,6 +38,21 @@ gcc -shared \
     -march=native \
     main.c src/linear.c src/src/functions.c src/src/activations.c src/src/loss.c src/src/init.c src/src/json.c src/src/adam.c src/src/forward.c src/src/backward.c src/src/logger.c src/src/predict.c \
     -lOpenCL
+
+# If you have OpenCl version lower than 3.0
+
+conda install cuda-opencl cuda-opencl-dev ocl-icd-system
+
+gcc -shared \
+    -o main.so \
+    -fPIC \
+    -fno-wrapv \
+    -O3 \
+    -fopenmp \
+    -march=native \
+    main.c src/linear.c src/src/functions.c src/src/activations.c src/src/loss.c src/src/init.c src/src/json.c src/src/adam.c src/src/forward.c src/src/backward.c src/src/logger.c src/src/predict.c \
+    -I/home/froschin/work/ML/phils_model/mambaforge/envs/phils_model/include \
+    -lOpenCL
 ```
 
 > You may donate to [phils_model](https://github.com/PHILIPP111007/ML/tree/main/phils_model) project:
