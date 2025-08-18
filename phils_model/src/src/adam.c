@@ -87,8 +87,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         const int epoch = ++optimizer->epoch;
 
         // Pre-calculate frequently used values
-        const float b1_pow = fast_pow(b1, epoch);
-        const float b2_pow = fast_pow(b2, epoch);
+        const float b1_pow = pow(b1, epoch);
+        const float b2_pow = pow(b2, epoch);
         const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
         const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
         const float b1_minus_1 = 1.0f - b1;
@@ -219,8 +219,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         const int epoch = ++optimizer->epoch;
 
         // Pre-calculate frequently used values
-        const float b1_pow = fast_pow(b1, epoch);
-        const float b2_pow = fast_pow(b2, epoch);
+        const float b1_pow = pow(b1, epoch);
+        const float b2_pow = pow(b2, epoch);
         const float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
         const float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
         const float b1_minus_1 = 1.0f - b1;
@@ -384,8 +384,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
         const register int epoch = ++optimizer->epoch;
 
         // Precompute bias corrections
-        const register float b1_pow = fast_pow(b1, epoch);
-        const register float b2_pow = fast_pow(b2, epoch);
+        const register float b1_pow = pow(b1, epoch);
+        const register float b2_pow = pow(b2, epoch);
         const register float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
         const register float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
         const register float b1_minus_1 = 1.0f - b1;

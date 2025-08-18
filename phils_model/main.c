@@ -86,7 +86,7 @@ void fit(
     // Training
 
     // Create Adam optimizer
-    struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-8, linear_layer_sizes, linear_layer_sizes_rows, linear_layer_sizes_cols);
+    struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-6, linear_layer_sizes, linear_layer_sizes_rows, linear_layer_sizes_cols);
 
     const int num_threads = (dataset_samples_rows < num_cpu) ? dataset_samples_rows : num_cpu;
 

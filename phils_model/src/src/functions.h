@@ -20,11 +20,6 @@ void check_if_index_out_of_bounds(
     char *array_name
 );
 
-float fast_pow(
-    float a,
-    int b
-);
-
 void matmul(
     float **A,
     float **B,

@@ -38,10 +38,6 @@ inline void check_if_index_out_of_bounds(int index, int array_size, char *array_
     }
 }
 
-inline float fast_pow(float a, int b) {
-    return expf(b * logf(a));
-}
-
 inline void matmul(float **__restrict A, float **__restrict B, float **__restrict C, int rows_A, int cols_A, int rows_B, int cols_B) {
     // Checking compatibility of matrix sizes
     if (cols_A != rows_B) {

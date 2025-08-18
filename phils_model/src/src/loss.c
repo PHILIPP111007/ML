@@ -22,10 +22,10 @@ inline void mse_loss(float **__restrict prediction, int prediction_rows, int pre
             // if (j == max_target_index && !regression) {
             //     loss[i][j] = 0.0f;
             // } else {
-            //     loss[i][j] = fast_pow((float)target[max_target_index] - prediction[i][j], 2);
+                // loss[i][j] = pow((float)target[max_target_index] - prediction[i][j], 2);
             // }
 
-            loss[i][j] = fast_pow((float)target[j] - prediction[i][j], 2);
+            loss[i][j] = pow(target[j] - prediction[i][j], 2);
 
             loss[i][j] = check_if_isnan(loss[i][j]);
         }
