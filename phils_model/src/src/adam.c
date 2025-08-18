@@ -515,8 +515,6 @@ inline void adam_step_gpu(
 
     cl_mem m_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), NULL, NULL);
     cl_mem v_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, total_elements_weights * sizeof(float), NULL, NULL);
-    cl_mem epoch_buf = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int), NULL, NULL);
-    clEnqueueWriteBuffer(queue, epoch_buf, CL_TRUE, 0, sizeof(int), &epoch, 0, NULL, NULL);
 
     cl_kernel kernel = clCreateKernel(program, "adam_step_gpu", NULL);
 
@@ -531,7 +529,7 @@ inline void adam_step_gpu(
     clSetKernelArg(kernel, 8, sizeof(float), &max_change);
     clSetKernelArg(kernel, 9, sizeof(int), &total_elements_per_sample);
     clSetKernelArg(kernel, 10, sizeof(int), &dataset_samples_rows);
-    clSetKernelArg(kernel, 11, sizeof(cl_mem), &epoch_buf);
+    clSetKernelArg(kernel, 11, sizeof(int), &epoch);
 
     // Working Grid Settings
     size_t global_work_size[] = { total_elements_per_sample * dataset_samples_rows };
@@ -540,9 +538,8 @@ inline void adam_step_gpu(
     clEnqueueNDRangeKernel(queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);
 
     clEnqueueReadBuffer(queue, weights_vec_buf, CL_TRUE, 0, total_elements_weights * sizeof(float), weights_vec, 0, NULL, NULL);
-    clEnqueueReadBuffer(queue, epoch_buf, CL_TRUE, 0, sizeof(int), &epoch, 0, NULL, NULL);
 
-    optimizer->epoch = epoch;
+    optimizer->epoch = epoch + dataset_samples_rows;
 
     int current_weight_offset = 0;
     for (int layer_index = 0; layer_index < layer_sizes_rows; layer_index++) {
@@ -562,7 +559,6 @@ inline void adam_step_gpu(
     clReleaseMemObject(grads_w_buf);
     clReleaseMemObject(m_buf);
     clReleaseMemObject(v_buf);
-    clReleaseMemObject(epoch_buf);
     clReleaseKernel(kernel);
 
     free(grad_w_vec);

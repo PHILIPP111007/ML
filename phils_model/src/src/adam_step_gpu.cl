@@ -4,7 +4,7 @@ __kernel void adam_step_gpu(__global float *weights, __global float *grads,
                             const float eps, const float max_change,
                             const int total_elements_per_sample,
                             const int dataset_samples_rows,
-                            __global int *epoch) {
+                            const int epoch) {
 
   int tid = get_global_id(0);
 
@@ -14,12 +14,10 @@ __kernel void adam_step_gpu(__global float *weights, __global float *grads,
     return;
   }
 
-  atomic_inc(epoch);
+  int new_epoch = tid + epoch;
 
-  barrier(CLK_GLOBAL_MEM_FENCE);
-
-  float b1_pow = powf(b1, *epoch);
-  float b2_pow = powf(b2, *epoch);
+  float b1_pow = pow(b1, new_epoch);
+  float b2_pow = pow(b2, new_epoch);
   float inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
   float inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
   float b1_minus_1 = 1.0f - b1;

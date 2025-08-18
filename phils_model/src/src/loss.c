@@ -18,6 +18,7 @@ inline void mse_loss(float **__restrict prediction, int prediction_rows, int pre
 
         int max_target_index = argmax(target, prediction_cols);
 
+        #pragma omp simd
         for (int j = 0; j < prediction_cols; j++) {
             // if (j == max_target_index && !regression) {
             //     loss[i][j] = 0.0f;
@@ -50,6 +51,7 @@ inline void cross_entropy_loss(float **__restrict prediction, int prediction_row
 
         int max_target_index = argmax(target, prediction_cols);
 
+        #pragma omp simd
         for (int j = 0; j < prediction_cols; j++) {
             // if (j == max_target_index && !regression) {
             //     loss[i][j] = 0.0f;
