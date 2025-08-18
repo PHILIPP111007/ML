@@ -88,7 +88,14 @@ void fit(
     // Create Adam optimizer
     struct AdamOptimizer *opt = create_adam(learning_rate, 0.9, 0.999, 1e-6, linear_layer_sizes, linear_layer_sizes_rows, linear_layer_sizes_cols);
 
-    const int num_threads = (dataset_samples_rows < num_cpu) ? dataset_samples_rows : num_cpu;
+    int num_threads;
+    if (dataset_samples_rows < num_cpu) {
+        num_threads = dataset_samples_rows;
+    } else if (num_cpu <= 0) {
+        num_threads = 1;
+    } else {
+        num_threads = num_cpu;
+    }
 
     // Preparing the GPU Kernel
 
@@ -327,7 +334,6 @@ void predict_one(
     cl_program program_matmul_gpu;
     if (gpu) {
         source_matmul_gpu = get_file_content("src/src/matmul_gpu.cl");
-
         program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
         clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
     }
@@ -454,8 +460,13 @@ void predict(
         total_bias_count += n_neurons;
     }
 
-    if (num_cpu > dataset_samples_rows) {
-        num_cpu = dataset_samples_rows;
+    int num_threads;
+    if (dataset_samples_rows < num_cpu) {
+        num_threads = dataset_samples_rows;
+    } else if (num_cpu <= 0) {
+        num_threads = 1;
+    } else {
+        num_threads = num_cpu;
     }
     
     // Preparing the GPU Kernel
@@ -531,7 +542,7 @@ void predict(
                 linear_layer_sizes_rows,
                 linear_layer_sizes_cols,
                 activations,
-                num_cpu,
+                num_threads,
                 gpu,
                 context,
                 queue,
