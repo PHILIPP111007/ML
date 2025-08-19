@@ -18,8 +18,8 @@ __kernel void adam_step_gpu(__global float *weights, __global float *grads,
 
   double b1_pow = pow(b1, new_epoch);
   double b2_pow = pow(b2, new_epoch);
-  double inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-10f);
-  double inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-10f);
+  double inv_1mb1 = 1.0f / (1.0f - b1_pow + 1e-6f);
+  double inv_1mb2 = 1.0f / (1.0f - b2_pow + 1e-6f);
   double b1_minus_1 = 1.0f - b1;
   double b2_minus_1 = 1.0f - b2;
 

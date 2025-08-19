@@ -27,7 +27,9 @@ clang -shared \
 For Linux:
 
 ```sh
-sudo apt-get update && sudo apt-get install ocl-icd-opencl-dev
+sudo apt-get update
+sudo apt-get install ocl-icd-opencl-dev
+sudo apt install nvidia-cuda-toolkit
 
 gcc -shared \
     -o main.so \
