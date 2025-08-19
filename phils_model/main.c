@@ -123,7 +123,7 @@ void fit(
     cl_int err_code;
     cl_context context;
     if (gpu) {
-        context = clCreateContext(NULL, 1, devices, NULL, NULL, &err_code);
+        context = clCreateContext(NULL, num_devices, devices, NULL, NULL, &err_code);
         if (context == NULL || err_code != CL_SUCCESS) {
             fprintf(stderr, "Error creating OpenCL context: %d\n", err_code);
             exit(EXIT_FAILURE);
@@ -150,7 +150,7 @@ void fit(
 
         program_matmul_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_matmul_gpu, NULL, NULL);
         clBuildProgram(program_matmul_gpu, 1, devices, "-cl-fast-relaxed-math", NULL, NULL);
-    
+
         program_adam_step_gpu = clCreateProgramWithSource(context, 1, (const char**)&source_adam_step_gpu, NULL, NULL);
         clBuildProgram(program_adam_step_gpu, 2, devices, "-cl-fast-relaxed-math", NULL, NULL);
     }
