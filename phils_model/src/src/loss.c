@@ -26,8 +26,8 @@ inline void mse_loss(float **__restrict prediction, int prediction_rows, int pre
                 // loss[i][j] = pow((float)target[max_target_index] - prediction[i][j], 2);
             // }
 
-            loss[i][j] = pow(target[j] - prediction[i][j], 2);
-
+            float safe_prediction = safe_update(prediction[i][j], 1000);
+            loss[i][j] = pow(target[j] - safe_prediction, 2);
             loss[i][j] = check_if_isnan(loss[i][j]);
         }
     }
@@ -62,7 +62,6 @@ inline void cross_entropy_loss(float **__restrict prediction, int prediction_row
 
             float p = prediction[i][j] > 1e-6 ? prediction[i][j] : 1e-6;
             loss[i][j] = target[j] * log(p);
-
             loss[i][j] = check_if_isnan(loss[i][j]);
         }
     }

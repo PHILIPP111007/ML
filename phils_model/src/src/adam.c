@@ -185,8 +185,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
                         const float v_hat = new_v * inv_1mb2;
 
                         // Calculating the update
-                        const float sqrt_v_hat = sqrtf(v_hat);
-                        float delta = lr * m_hat / (sqrt_v_hat + eps);
+                        const float sqrt_v_hat = sqrt(v_hat);
+                        float delta = check_if_isnan(lr * m_hat / (sqrt_v_hat + eps));
 
                         // Limiting the change in weights
                         delta = delta > max_change ? max_change : delta;
@@ -350,8 +350,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
                         const float v_hat = new_v * inv_1mb2;
 
                         // Calculating the update
-                        const float sqrt_v_hat = sqrtf(v_hat);
-                        float delta = lr * m_hat / (sqrt_v_hat + eps);
+                        const float sqrt_v_hat = sqrt(v_hat);
+                        float delta = check_if_isnan(lr * m_hat / (sqrt_v_hat + eps));
 
                         // Limiting the change in weights
                         delta = delta > max_change ? max_change : delta;
@@ -430,8 +430,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
                                 const register float m_hat = m_row[idx] * inv_1mb1;
                                 const register float v_hat = v_row[idx] * inv_1mb2;
-                                const register float delta = lr * m_hat / (sqrtf(v_hat) + eps);
-                                weights_row[idx] -= fminf(fmaxf(delta, -max_change), max_change);
+                                const register float delta = check_if_isnan(lr * m_hat / (sqrt(v_hat) + eps));
+                                weights_row[idx] -= safe_update(delta, max_change);
                             }
                         } else {
                             // Handle remaining elements
@@ -445,8 +445,8 @@ struct AdamOptimizer *create_adam(float lr, float b1, float b2, float eps, float
 
                                 const register float m_hat = m_row[k] * inv_1mb1;
                                 const register float v_hat = v_row[k] * inv_1mb2;
-                                const register float delta = lr * m_hat / (sqrtf(v_hat) + eps);
-                                weights_row[k] -= fminf(fmaxf(delta, -max_change), max_change);
+                                const register float delta = check_if_isnan(lr * m_hat / (sqrt(v_hat) + eps));
+                                weights_row[k] -= safe_update(delta, max_change);
                             }
                         }
                     }

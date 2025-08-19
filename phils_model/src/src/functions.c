@@ -193,7 +193,7 @@ inline int argmax(float *__restrict arr, int size) {
 }
 
 inline float safe_update(float number, float max_change) {
-    return fmaxf(fminf(number, max_change), -max_change);
+    return fmax(fmin(number, max_change), -max_change);
 }
 
 inline void apply_dropout(float **__restrict y, int matrix_rows, int n_neurons, float dropout) {
