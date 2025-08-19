@@ -60,7 +60,7 @@ void *backward_worker(void *arg) {
 
         // Calculate loss and initial delta
         calc_loss(loss, targets[dataset_index], Y[layer_sizes_rows - 1], matrix_rows, n_neurons, delta, regression);
-        epoch_losses[dataset_index] = sum(delta, matrix_rows, n_neurons);
+        epoch_losses[dataset_index] = sum(delta, matrix_rows, n_neurons) / n_neurons;
 
         // Compute gradients for last layer
         grad_b[layer_sizes_rows - 1] = sum_axis_0(delta, matrix_rows, n_neurons);
