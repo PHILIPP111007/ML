@@ -2,3 +2,4 @@
 weights.json
 biases.json
 MNIST
+__pycache__
