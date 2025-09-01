@@ -12,8 +12,8 @@ inline void relu_calc(float **__restrict y, int matrix_rows, int matrix_columns)
     for (register int i = 0; i < matrix_rows; i++) {
         #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
-            if (y[i] <= 0) {
-                y[i][j] = 0.0;
+            if (y[i][j] <= 0.0f) {
+                y[i][j] = 0.0f;
             }
         }
     }
@@ -23,8 +23,10 @@ inline void relu_derivative(float **__restrict y, int matrix_rows, int matrix_co
     for (register int i = 0; i < matrix_rows; i++) {
         #pragma omp simd
         for (register int j = 0; j < matrix_columns; j++) {
-            if (y[i] <= 0) {
-                y[i][j] = 0.0;
+            if (y[i][j] < 0.0f) {
+                y[i][j] = 0.0f;
+            } else {
+                y[i][j] = 1.0f;
             }
         }
     }
