@@ -2,4 +2,5 @@
 weights.json
 biases.json
 MNIST
+FashionMNIST
 __pycache__
