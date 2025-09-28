@@ -1,0 +1,30 @@
+services:
+  fastapi:
+    container_name: fastapi
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./dockerfiles/fastapi/Dockerfile
+    expose:
+      - 8080
+    command: >
+      sh -c "fastapi run --workers 1 --port 8080 app/main.py"
+    networks:
+      - nginx_network
+
+  client:
+    container_name: client
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./dockerfiles/react/Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - fastapi
+    networks:
+      - nginx_network
+
+networks:
+  nginx_network:
+    driver: bridge

@@ -1,0 +1,7 @@
+fastapi[standard]==0.116.1
+torch --index-url https://download.pytorch.org/whl/cpu
+torchvision --index-url https://download.pytorch.org/whl/cpu
+numpy
+tqdm
+matplotlib
+faiss-cpu
